@@ -20,6 +20,7 @@
 
 #include <cstdlib>
 
+#include "system.h"
 #include "CPUInfo.h"
 #include "utils/Temperature.h"
 #include <string>
