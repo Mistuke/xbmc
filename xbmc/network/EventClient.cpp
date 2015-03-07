@@ -34,7 +34,7 @@
 #include "utils/TimeUtils.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "guilib/GraphicContext.h"
-#include "guilib/Key.h"
+#include "input/Key.h"
 #include "guilib/LocalizeStrings.h"
 #include "utils/StringUtils.h"
 
@@ -187,7 +187,7 @@ bool CEventClient::AddPacket(CEventPacket *packet)
 
 void CEventClient::ProcessEvents()
 {
-  if (m_readyPackets.size() > 0)
+  if (!m_readyPackets.empty())
   {
     while ( ! m_readyPackets.empty() )
     {
@@ -204,7 +204,7 @@ void CEventClient::ProcessEvents()
 bool CEventClient::GetNextAction(CEventAction &action)
 {
   CSingleLock lock(m_critSection);
-  if (m_actionQueue.size() > 0)
+  if (!m_actionQueue.empty())
   {
     // grab the next action in line
     action = m_actionQueue.front();
@@ -322,12 +322,7 @@ bool CEventClient::OnPacketHELO(CEventPacket *packet)
       break;
     }
     XFILE::CFile file;
-    if (file.OpenForWrite(iconfile, true))
-    {
-      file.Write((const void *)payload, psize);
-      file.Close();
-    }
-    else
+    if (!file.OpenForWrite(iconfile, true) || file.Write((const void *)payload, psize) != psize)
     {
       CLog::Log(LOGERROR, "ES: Could not write icon file");
       m_eLogoType = LT_NONE;
@@ -596,12 +591,7 @@ bool CEventClient::OnPacketNOTIFICATION(CEventPacket *packet)
     }
 
     XFILE::CFile file;
-    if (file.OpenForWrite(iconfile, true))
-    {
-      file.Write((const void *)payload, psize);
-      file.Close();
-    }
-    else
+    if (!file.OpenForWrite(iconfile, true) || file.Write((const void *)payload, psize) != psize)
     {
       CLog::Log(LOGERROR, "ES: Could not write icon file");
       m_eLogoType = LT_NONE;
@@ -732,7 +722,7 @@ void CEventClient::FreePacketQueues()
     {
       delete iter->second;
     }
-    iter++;
+    ++iter;
   }
   m_seqPackets.clear();
 }
@@ -765,7 +755,7 @@ unsigned int CEventClient::GetButtonCode(string& joystickName, bool& isAxis, flo
 
   list<CEventButtonState> repeat;
   list<CEventButtonState>::iterator it;
-  for(it = m_buttonQueue.begin(); bcode == 0 && it != m_buttonQueue.end(); it++)
+  for(it = m_buttonQueue.begin(); bcode == 0 && it != m_buttonQueue.end(); ++it)
   {
     bcode        = it->KeyCode();
     joystickName = it->JoystickName();

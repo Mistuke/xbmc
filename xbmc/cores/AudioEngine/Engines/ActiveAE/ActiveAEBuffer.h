@@ -19,11 +19,14 @@
  *
  */
 
-#include "DllAvUtil.h"
-#include "DllSwResample.h"
-#include "Utils/AEAudioFormat.h"
-#include "Interfaces/AE.h"
+#include "cores/AudioEngine/Utils/AEAudioFormat.h"
+#include "cores/AudioEngine/Interfaces/AE.h"
 #include <deque>
+
+extern "C" {
+#include "libavutil/avutil.h"
+#include "libswresample/swresample.h"
+}
 
 namespace ActiveAE
 {
@@ -35,6 +38,7 @@ struct SampleConfig
   int channels;
   int sample_rate;
   int bits_per_sample;
+  int dither_bits;
 };
 
 /**
@@ -47,7 +51,6 @@ public:
   ~CSoundPacket();
   uint8_t **data;                        // array with pointers to planes of data
   SampleConfig config;
-  AEDataFormat internal_format;          // used when carrying pass through
   int bytes_per_sample;                  // bytes per sample and per channel
   int linesize;                          // see ffmpeg, required for planar formats
   int planes;                            // 1 for non planar formats, #channels for planar
@@ -66,7 +69,9 @@ public:
   void Return();
   CSoundPacket *pkt;
   CActiveAEBufferPool *pool;
-  unsigned int timestamp;
+  int64_t timestamp;
+  int clockId;
+  int pkt_start_offset;
   int refCount;
 };
 
@@ -83,23 +88,23 @@ public:
   std::deque<CSampleBuffer*> m_freeSamples;
 };
 
-class CActiveAEResample;
+class IAEResample;
 
 class CActiveAEBufferPoolResample : public CActiveAEBufferPool
 {
 public:
   CActiveAEBufferPoolResample(AEAudioFormat inputFormat, AEAudioFormat outputFormat, AEQuality quality);
   virtual ~CActiveAEBufferPoolResample();
-  virtual bool Create(unsigned int totaltime, bool remap, bool upmix);
+  virtual bool Create(unsigned int totaltime, bool remap, bool upmix, bool normalize = true);
   void ChangeResampler();
-  bool ResampleBuffers(unsigned int timestamp = 0);
+  bool ResampleBuffers(int64_t timestamp = 0);
   float GetDelay();
   void Flush();
   AEAudioFormat m_inputFormat;
   std::deque<CSampleBuffer*> m_inputSamples;
   std::deque<CSampleBuffer*> m_outputSamples;
   CSampleBuffer *m_procSample;
-  CActiveAEResample *m_resampler;
+  IAEResample *m_resampler;
   uint8_t *m_planes[16];
   bool m_fillPackets;
   bool m_drain;
@@ -108,6 +113,8 @@ public:
   double m_resampleRatio;
   AEQuality m_resampleQuality;
   bool m_stereoUpmix;
+  bool m_normalize;
+  int64_t m_lastSamplePts;
 };
 
 }

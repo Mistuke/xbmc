@@ -35,13 +35,12 @@
 #include "guilib/GUIFontManager.h"
 #include "guilib/GUITextLayout.h"
 #include "guilib/GUIWindowManager.h"
-#include "guilib/Key.h"
+#include "input/Key.h"
 #include "video/dialogs/GUIDialogFullScreenInfo.h"
 #include "dialogs/GUIDialogNumeric.h"
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
-#include "guilib/GUISelectButtonControl.h"
 #include "FileItem.h"
 #include "video/VideoReferenceClock.h"
 #include "settings/AdvancedSettings.h"
@@ -51,13 +50,13 @@
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
 #include "utils/URIUtils.h"
+#include "utils/StringUtils.h"
 #include "XBDateTime.h"
 #include "input/ButtonTranslator.h"
-#include "pvr/PVRManager.h"
-#include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "windowing/WindowingFactory.h"
 #include "cores/IPlayer.h"
 #include "filesystem/File.h"
+#include "utils/SeekHandler.h"
 
 #include <stdio.h>
 #include <algorithm>
@@ -65,13 +64,10 @@
 #include "linux/LinuxResourceCounter.h"
 #endif
 
-using namespace PVR;
-
 #define BLUE_BAR                          0
 #define LABEL_ROW1                       10
 #define LABEL_ROW2                       11
 #define LABEL_ROW3                       12
-#define CONTROL_GROUP_CHOOSER            503
 
 //Displays current position, visible after seek or when forced
 //Alt, use conditional visibility Player.DisplayAfterSeek
@@ -88,8 +84,6 @@ using namespace PVR;
 static CLinuxResourceCounter m_resourceCounter;
 #endif
 
-static color_t color[8] = { 0xFFFFFF00, 0xFFFFFFFF, 0xFF0099FF, 0xFF00FF00, 0xFFCCFF00, 0xFF00FFFF, 0xFFE5E5E5, 0xFFC0C0C0 };
-
 CGUIWindowFullScreen::CGUIWindowFullScreen(void)
     : CGUIWindow(WINDOW_FULLSCREEN_VIDEO, "VideoFullScreen.xml")
 {
@@ -100,8 +94,6 @@ CGUIWindowFullScreen::CGUIWindowFullScreen(void)
   m_bShowViewModeInfo = false;
   m_dwShowViewModeTimeout = 0;
   m_bShowCurrentTime = false;
-  m_subsLayout = NULL;
-  m_bGroupSelectShow = false;
   m_loadType = KEEP_IN_MEMORY;
   // audio
   //  - language
@@ -144,12 +136,14 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
     ToggleOSD();
     return true;
 
+  case ACTION_TRIGGER_OSD:
+    TriggerOSD();
+    return true;
+
   case ACTION_SHOW_GUI:
     {
       // switch back to the menu
-      OutputDebugString("Switching to GUI\n");
       g_windowManager.PreviousWindow();
-      OutputDebugString("Now in GUI\n");
       return true;
     }
     break;
@@ -163,46 +157,24 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
     }
     break;
 
+  case ACTION_SMALL_STEP_BACK:
   case ACTION_STEP_BACK:
-    if (m_timeCodePosition > 0)
-      SeekToTimeCodeStamp(SEEK_RELATIVE, SEEK_BACKWARD);
-    else
-      g_application.m_pPlayer->Seek(false, false);
-    return true;
-
-  case ACTION_STEP_FORWARD:
-    if (m_timeCodePosition > 0)
-      SeekToTimeCodeStamp(SEEK_RELATIVE, SEEK_FORWARD);
-    else
-      g_application.m_pPlayer->Seek(true, false);
-    return true;
-
   case ACTION_BIG_STEP_BACK:
   case ACTION_CHAPTER_OR_BIG_STEP_BACK:
     if (m_timeCodePosition > 0)
+    {
       SeekToTimeCodeStamp(SEEK_RELATIVE, SEEK_BACKWARD);
-    else
-      g_application.m_pPlayer->Seek(false, true, action.GetID() == ACTION_CHAPTER_OR_BIG_STEP_BACK);
-    return true;
-
+      return true;
+    }
+    break;
+  case ACTION_STEP_FORWARD:
   case ACTION_BIG_STEP_FORWARD:
   case ACTION_CHAPTER_OR_BIG_STEP_FORWARD:
     if (m_timeCodePosition > 0)
+    {
       SeekToTimeCodeStamp(SEEK_RELATIVE, SEEK_FORWARD);
-    else
-      g_application.m_pPlayer->Seek(true, true, action.GetID() == ACTION_CHAPTER_OR_BIG_STEP_FORWARD);
-    return true;
-
-  case ACTION_NEXT_SCENE:
-    if (g_application.m_pPlayer->SeekScene(true))
-      g_infoManager.SetDisplayAfterSeek();
-    return true;
-    break;
-
-  case ACTION_PREV_SCENE:
-    if (g_application.m_pPlayer->SeekScene(false))
-      g_infoManager.SetDisplayAfterSeek();
-    return true;
+      return true;
+    }
     break;
 
   case ACTION_SHOW_OSD_TIME:
@@ -236,44 +208,11 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
   case REMOTE_8:
   case REMOTE_9:
     {
-      if (g_application.CurrentFileItem().IsLiveTV())
-      {
-          CPVRChannelPtr channel;
-        int iChannelNumber = -1;
-        g_PVRManager.GetCurrentChannel(channel);
-
-        if (action.GetID() == REMOTE_0)
-        {
-          iChannelNumber = g_PVRManager.GetPreviousChannel();
-          if (iChannelNumber > 0)
-            CLog::Log(LOGDEBUG, "switch to channel number %d", iChannelNumber);
-          else
-            CLog::Log(LOGDEBUG, "no previous channel number found");
-        }
-        else
-        {
-          int autoCloseTime = CSettings::Get().GetBool("pvrplayback.confirmchannelswitch") ? 0 : g_advancedSettings.m_iPVRNumericChannelSwitchTimeout;
-          CStdString strChannel;
-          strChannel.Format("%i", action.GetID() - REMOTE_0);
-          if (CGUIDialogNumeric::ShowAndGetNumber(strChannel, g_localizeStrings.Get(19000), autoCloseTime) || autoCloseTime)
-            iChannelNumber = atoi(strChannel.c_str());
-        }
-
-        if (iChannelNumber > 0 && iChannelNumber != channel->ChannelNumber())
-        {
-          CPVRChannelGroupPtr selectedGroup = g_PVRManager.GetPlayingGroup(channel->IsRadio());
-          CFileItemPtr channel = selectedGroup->GetByChannelNumber(iChannelNumber);
-          if (!channel || !channel->HasPVRChannelInfoTag())
-            return false;
-
-          g_application.OnAction(CAction(ACTION_CHANNEL_SWITCH, (float)iChannelNumber));
-        }
-      }
-      else
+      if (!g_application.CurrentFileItem().IsLiveTV())
       {
         ChangetheTimeCode(action.GetID());
+        return true;
       }
-      return true;
     }
     break;
 
@@ -290,18 +229,6 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
     }
     return true;
     break;
-  case ACTION_SMALL_STEP_BACK:
-    if (m_timeCodePosition > 0)
-      SeekToTimeCodeStamp(SEEK_RELATIVE, SEEK_BACKWARD);
-    else
-    {
-      int orgpos = (int)g_application.GetTime();
-      int jumpsize = g_advancedSettings.m_videoSmallStepBackSeconds; // secs
-      int setpos = (orgpos > jumpsize) ? orgpos - jumpsize : 0;
-      g_application.SeekTime((double)setpos);
-    }
-    return true;
-    break;
   case ACTION_SHOW_PLAYLIST:
     {
       CFileItem item(g_application.CurrentFileItem());
@@ -314,23 +241,21 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
     }
     return true;
     break;
-  case ACTION_PREVIOUS_CHANNELGROUP:
-    {
-      if (g_application.CurrentFileItem().HasPVRChannelInfoTag())
-        ChangetheTVGroup(false);
-      return true;
-    }
-  case ACTION_NEXT_CHANNELGROUP:
-    {
-      if (g_application.CurrentFileItem().HasPVRChannelInfoTag())
-        ChangetheTVGroup(true);
-      return true;
-    }
   default:
       break;
   }
 
   return CGUIWindow::OnAction(action);
+}
+
+void CGUIWindowFullScreen::ClearBackground()
+{
+  if (g_renderManager.IsVideoLayer())
+#ifdef HAS_IMXVPU
+    g_graphicsContext.Clear((16 << 16)|(8 << 8)|16);
+#else
+    g_graphicsContext.Clear(0);
+#endif
 }
 
 void CGUIWindowFullScreen::OnWindowLoaded()
@@ -339,10 +264,10 @@ void CGUIWindowFullScreen::OnWindowLoaded()
   // override the clear colour - we must never clear fullscreen
   m_clearBackground = 0;
 
-  CGUIProgressControl* pProgress = (CGUIProgressControl*)GetControl(CONTROL_PROGRESS);
+  CGUIProgressControl* pProgress = dynamic_cast<CGUIProgressControl*>(GetControl(CONTROL_PROGRESS));
   if(pProgress)
   {
-    if( pProgress->GetInfo() == 0 || pProgress->GetVisibleCondition() == 0)
+    if( pProgress->GetInfo() == 0 || !pProgress->HasVisibleCondition())
     {
       pProgress->SetInfo(PLAYER_PROGRESS);
       pProgress->SetVisibleCondition("player.displayafterseek");
@@ -350,15 +275,15 @@ void CGUIWindowFullScreen::OnWindowLoaded()
     }
   }
 
-  CGUILabelControl* pLabel = (CGUILabelControl*)GetControl(LABEL_BUFFERING);
-  if(pLabel && pLabel->GetVisibleCondition() == 0)
+  CGUILabelControl* pLabel = dynamic_cast<CGUILabelControl*>(GetControl(LABEL_BUFFERING));
+  if(pLabel && !pLabel->HasVisibleCondition())
   {
     pLabel->SetVisibleCondition("player.caching");
     pLabel->SetVisible(true);
   }
 
-  pLabel = (CGUILabelControl*)GetControl(LABEL_CURRENT_TIME);
-  if(pLabel && pLabel->GetVisibleCondition() == 0)
+  pLabel = dynamic_cast<CGUILabelControl*>(GetControl(LABEL_CURRENT_TIME));
+  if(pLabel && !pLabel->HasVisibleCondition())
   {
     pLabel->SetVisibleCondition("player.displayafterseek");
     pLabel->SetVisible(true);
@@ -366,8 +291,6 @@ void CGUIWindowFullScreen::OnWindowLoaded()
   }
 
   m_showCodec.Parse("player.showcodec", GetID());
-
-  FillInTVGroups();
 }
 
 bool CGUIWindowFullScreen::OnMessage(CGUIMessage& message)
@@ -386,7 +309,6 @@ bool CGUIWindowFullScreen::OnMessage(CGUIMessage& message)
       g_infoManager.SetShowInfo(false);
       g_infoManager.SetShowCodec(false);
       m_bShowCurrentTime = false;
-      m_bGroupSelectShow = false;
       g_infoManager.SetDisplayAfterSeek(0); // Make sure display after seek is off.
 
       // switch resolution
@@ -400,26 +322,6 @@ bool CGUIWindowFullScreen::OnMessage(CGUIMessage& message)
       CGUIWindow::OnMessage(message);
 
       m_bShowViewModeInfo = false;
-
-      if (CUtil::IsUsingTTFSubtitles())
-      {
-        CSingleLock lock (m_fontLock);
-
-        CStdString fontPath = URIUtils::AddFileToFolder("special://home/media/Fonts/", CSettings::Get().GetString("subtitles.font"));
-        if (!XFILE::CFile::Exists(fontPath))
-          fontPath = URIUtils::AddFileToFolder("special://xbmc/media/Fonts/", CSettings::Get().GetString("subtitles.font"));
-
-        // We scale based on PAL4x3 - this at least ensures all sizing is constant across resolutions.
-        RESOLUTION_INFO pal(720, 576, 0);
-        CGUIFont *subFont = g_fontManager.LoadTTF("__subtitle__", fontPath, color[CSettings::Get().GetInt("subtitles.color")], 0, CSettings::Get().GetInt("subtitles.height"), CSettings::Get().GetInt("subtitles.style"), false, 1.0f, 1.0f, &pal, true);
-        CGUIFont *borderFont = g_fontManager.LoadTTF("__subtitleborder__", fontPath, 0xFF000000, 0, CSettings::Get().GetInt("subtitles.height"), CSettings::Get().GetInt("subtitles.style"), true, 1.0f, 1.0f, &pal, true);
-        if (!subFont || !borderFont)
-          CLog::Log(LOGERROR, "CGUIWindowFullScreen::OnMessage(WINDOW_INIT) - Unable to load subtitle font");
-        else
-          m_subsLayout = new CGUITextLayout(subFont, true, 0, borderFont);
-      }
-      else
-        m_subsLayout = NULL;
 
       return true;
     }
@@ -437,9 +339,7 @@ bool CGUIWindowFullScreen::OnMessage(CGUIMessage& message)
       if (pDialog) pDialog->Close(true);
       pDialog = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_PVR_OSD_GUIDE);
       if (pDialog) pDialog->Close(true);
-      pDialog = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_PVR_OSD_DIRECTOR);
-      if (pDialog) pDialog->Close(true);
-      pDialog = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_PVR_OSD_CUTTER);
+      pDialog = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_SUBTITLES);
       if (pDialog) pDialog->Close(true);
 
       CGUIWindow::OnMessage(message);
@@ -453,73 +353,9 @@ bool CGUIWindowFullScreen::OnMessage(CGUIMessage& message)
 #ifdef HAS_VIDEO_PLAYBACK
       // make sure renderer is uptospeed
       g_renderManager.Update();
+      g_renderManager.FrameFinish();
 #endif
-
-      CSingleLock lockFont(m_fontLock);
-      if (m_subsLayout)
-      {
-        g_fontManager.Unload("__subtitle__");
-        g_fontManager.Unload("__subtitleborder__");
-        delete m_subsLayout;
-        m_subsLayout = NULL;
-      }
-
       return true;
-    }
-  case GUI_MSG_CLICKED:
-    {
-      unsigned int iControl = message.GetSenderId();
-      if (iControl == CONTROL_GROUP_CHOOSER && g_PVRManager.IsStarted())
-      {
-        // Get the currently selected label of the Select button
-        CGUIMessage msg(GUI_MSG_ITEM_SELECTED, GetID(), iControl);
-        OnMessage(msg);
-        CStdString strLabel = msg.GetLabel();
-
-        CPVRChannelPtr playingChannel;
-        if (g_PVRManager.GetCurrentChannel(playingChannel))
-        {
-          CPVRChannelGroupPtr selectedGroup = g_PVRChannelGroups->Get(playingChannel->IsRadio())->GetByName(strLabel);
-          if (selectedGroup)
-          {
-            g_PVRManager.SetPlayingGroup(selectedGroup);
-            CLog::Log(LOGDEBUG, "%s - switched to group '%s'", __FUNCTION__, selectedGroup->GroupName().c_str());
-
-            if (!selectedGroup->IsGroupMember(*playingChannel))
-            {
-              CLog::Log(LOGDEBUG, "%s - channel '%s' is not a member of '%s', switching to channel 1 of the new group",
-                  __FUNCTION__, playingChannel->ChannelName().c_str(), selectedGroup->GroupName().c_str());
-              CFileItemPtr switchChannel = selectedGroup->GetByChannelNumber(1);
-
-              if (switchChannel && switchChannel->HasPVRChannelInfoTag())
-                g_application.OnAction(CAction(ACTION_CHANNEL_SWITCH, (float) switchChannel->GetPVRChannelInfoTag()->ChannelNumber()));
-              else
-              {
-                CLog::Log(LOGERROR, "%s - cannot find channel '1' in group %s", __FUNCTION__, selectedGroup->GroupName().c_str());
-                CApplicationMessenger::Get().MediaStop(false);
-              }
-            }
-          }
-          else
-          {
-            CLog::Log(LOGERROR, "%s - could not switch to group '%s'", __FUNCTION__, selectedGroup->GroupName().c_str());
-            CApplicationMessenger::Get().MediaStop(false);
-          }
-        }
-        else
-        {
-          CLog::Log(LOGERROR, "%s - cannot find the current channel", __FUNCTION__);
-          CApplicationMessenger::Get().MediaStop(false);
-        }
-
-        // hide the control and reset focus
-        m_bGroupSelectShow = false;
-        SET_CONTROL_HIDDEN(CONTROL_GROUP_CHOOSER);
-//      SET_CONTROL_FOCUS(0, 0);
-
-        return true;
-      }
-      break;
     }
   case GUI_MSG_SETFOCUS:
   case GUI_MSG_LOSTFOCUS:
@@ -545,19 +381,8 @@ EVENT_RESULT CGUIWindowFullScreen::OnMouseEvent(const CPoint &point, const CMous
   {
     return g_application.OnAction(CAction(ACTION_ANALOG_SEEK_BACK, 0.5f)) ? EVENT_RESULT_HANDLED : EVENT_RESULT_UNHANDLED;
   }
-  if (event.m_id == ACTION_GESTURE_NOTIFY)
+  if (event.m_id >= ACTION_GESTURE_NOTIFY && event.m_id <= ACTION_GESTURE_END) // gestures
     return EVENT_RESULT_UNHANDLED;
-  if (event.m_id != ACTION_MOUSE_MOVE || event.m_offsetX || event.m_offsetY)
-  { // some other mouse action has occurred - bring up the OSD
-    // if it is not already running
-    CGUIDialogVideoOSD *pOSD = (CGUIDialogVideoOSD *)g_windowManager.GetWindow(WINDOW_DIALOG_VIDEO_OSD);
-    if (pOSD && !pOSD->IsDialogRunning())
-    {
-      pOSD->SetAutoClose(3000);
-      pOSD->DoModal();
-    }
-    return EVENT_RESULT_HANDLED;
-  }
   return EVENT_RESULT_UNHANDLED;
 }
 
@@ -580,7 +405,7 @@ void CGUIWindowFullScreen::FrameMove()
   if (m_showCodec)
   {
     // show audio codec info
-    CStdString strAudio, strVideo, strGeneral;
+    std::string strAudio, strVideo, strGeneral;
     g_application.m_pPlayer->GetAudioInfo(strAudio);
     {
       CGUIMessage msg(GUI_MSG_LABEL_SET, GetID(), LABEL_ROW1);
@@ -597,31 +422,31 @@ void CGUIWindowFullScreen::FrameMove()
     // show general info
     g_application.m_pPlayer->GetGeneralInfo(strGeneral);
     {
-      CStdString strGeneralFPS;
+      std::string strGeneralFPS;
 #if defined(TARGET_DARWIN)
       // We show CPU usage for the entire process, as it's arguably more useful.
       double dCPU = m_resourceCounter.GetCPUUsage();
-      CStdString strCores;
-      strCores.Format("cpu:%.0f%%", dCPU);
+      std::string strCores;
+      strCores = StringUtils::Format("cpu:%.0f%%", dCPU);
 #else
-      CStdString strCores = g_cpuInfo.GetCoresUsageString();
+      std::string strCores = g_cpuInfo.GetCoresUsageString();
 #endif
       int    missedvblanks;
-      int    refreshrate;
+      double refreshrate;
       double clockspeed;
-      CStdString strClock;
+      std::string strClock;
 
       if (g_VideoReferenceClock.GetClockInfo(missedvblanks, clockspeed, refreshrate))
-        strClock.Format("S( refresh:%i missed:%i speed:%+.3f%% %s )"
-                       , refreshrate
-                       , missedvblanks
-                       , clockspeed - 100.0
-                       , g_renderManager.GetVSyncState().c_str());
+        strClock = StringUtils::Format("S( refresh:%.3f missed:%i speed:%+.3f%% %s )"
+                                       , refreshrate
+                                       , missedvblanks
+                                       , clockspeed - 100.0
+                                       , g_renderManager.GetVSyncState().c_str());
 
-      strGeneralFPS.Format("%s\nW( fps:%02.2f %s ) %s"
-                         , strGeneral.c_str()
-                         , g_infoManager.GetFPS()
-                         , strCores.c_str(), strClock.c_str() );
+      strGeneralFPS = StringUtils::Format("%s\nW( fps:%02.2f %s )\n%s"
+                                          , strGeneral.c_str()
+                                          , g_infoManager.GetFPS()
+                                          , strCores.c_str(), strClock.c_str() );
 
       CGUIMessage msg(GUI_MSG_LABEL_SET, GetID(), LABEL_ROW3);
       msg.SetLabel(strGeneralFPS);
@@ -641,10 +466,9 @@ void CGUIWindowFullScreen::FrameMove()
 
     {
       // get the "View Mode" string
-      CStdString strTitle = g_localizeStrings.Get(629);
-      CStdString strMode = g_localizeStrings.Get(630 + CMediaSettings::Get().GetCurrentVideoSettings().m_ViewMode);
-      CStdString strInfo;
-      strInfo.Format("%s : %s", strTitle.c_str(), strMode.c_str());
+      std::string strTitle = g_localizeStrings.Get(629);
+      std::string strMode = g_localizeStrings.Get(630 + CMediaSettings::Get().GetCurrentVideoSettings().m_ViewMode);
+      std::string strInfo = StringUtils::Format("%s : %s", strTitle.c_str(), strMode.c_str());
       CGUIMessage msg(GUI_MSG_LABEL_SET, GetID(), LABEL_ROW1);
       msg.SetLabel(strInfo);
       OnMessage(msg);
@@ -657,28 +481,35 @@ void CGUIWindowFullScreen::FrameMove()
       float xscale = (float)res.iScreenWidth  / (float)res.iWidth;
       float yscale = (float)res.iScreenHeight / (float)res.iHeight;
 
-      CStdString strSizing;
-      strSizing.Format(g_localizeStrings.Get(245),
-                       (int)info.SrcRect.Width(), (int)info.SrcRect.Height(),
-                       (int)(info.DestRect.Width() * xscale), (int)(info.DestRect.Height() * yscale),
-                       CDisplaySettings::Get().GetZoomAmount(), info.videoAspectRatio*CDisplaySettings::Get().GetPixelRatio(),
-                       CDisplaySettings::Get().GetPixelRatio(), CDisplaySettings::Get().GetVerticalShift());
+      std::string strSizing = StringUtils::Format(g_localizeStrings.Get(245).c_str(),
+                                                 (int)info.SrcRect.Width(),
+                                                 (int)info.SrcRect.Height(),
+                                                 (int)(info.DestRect.Width() * xscale),
+                                                 (int)(info.DestRect.Height() * yscale),
+                                                 CDisplaySettings::Get().GetZoomAmount(),
+                                                 info.videoAspectRatio*CDisplaySettings::Get().GetPixelRatio(),
+                                                 CDisplaySettings::Get().GetPixelRatio(),
+                                                 CDisplaySettings::Get().GetVerticalShift());
       CGUIMessage msg(GUI_MSG_LABEL_SET, GetID(), LABEL_ROW2);
       msg.SetLabel(strSizing);
       OnMessage(msg);
     }
     // show resolution information
     {
-      CStdString strStatus;
+      std::string strStatus;
       if (g_Windowing.IsFullScreen())
-        strStatus.Format("%s %ix%i@%.2fHz - %s",
-          g_localizeStrings.Get(13287), res.iScreenWidth,
-          res.iScreenHeight, res.fRefreshRate,
-          g_localizeStrings.Get(244));
+        strStatus = StringUtils::Format("%s %ix%i@%.2fHz - %s",
+                                        g_localizeStrings.Get(13287).c_str(),
+                                        res.iScreenWidth,
+                                        res.iScreenHeight,
+                                        res.fRefreshRate,
+                                        g_localizeStrings.Get(244).c_str());
       else
-        strStatus.Format("%s %ix%i - %s",
-          g_localizeStrings.Get(13287), res.iScreenWidth,
-          res.iScreenHeight, g_localizeStrings.Get(242));
+        strStatus = StringUtils::Format("%s %ix%i - %s",
+                                        g_localizeStrings.Get(13287).c_str(),
+                                        res.iScreenWidth,
+                                        res.iScreenHeight,
+                                        g_localizeStrings.Get(242).c_str());
 
       CGUIMessage msg(GUI_MSG_LABEL_SET, GetID(), LABEL_ROW3);
       msg.SetLabel(strStatus);
@@ -693,7 +524,7 @@ void CGUIWindowFullScreen::FrameMove()
       m_timeCodeShow = false;
       m_timeCodePosition = 0;
     }
-    CStdString strDispTime = "00:00:00";
+    std::string strDispTime = "00:00:00";
 
     CGUIMessage msg(GUI_MSG_LABEL_SET, GetID(), LABEL_ROW1);
 
@@ -717,7 +548,6 @@ void CGUIWindowFullScreen::FrameMove()
     SET_CONTROL_VISIBLE(LABEL_ROW2);
     SET_CONTROL_VISIBLE(LABEL_ROW3);
     SET_CONTROL_VISIBLE(BLUE_BAR);
-    SET_CONTROL_HIDDEN(CONTROL_GROUP_CHOOSER);
   }
   else if (m_timeCodeShow)
   {
@@ -725,15 +555,6 @@ void CGUIWindowFullScreen::FrameMove()
     SET_CONTROL_HIDDEN(LABEL_ROW2);
     SET_CONTROL_HIDDEN(LABEL_ROW3);
     SET_CONTROL_VISIBLE(BLUE_BAR);
-    SET_CONTROL_HIDDEN(CONTROL_GROUP_CHOOSER);
-  }
-  else if (m_bGroupSelectShow)
-  {
-    SET_CONTROL_HIDDEN(LABEL_ROW1);
-    SET_CONTROL_HIDDEN(LABEL_ROW2);
-    SET_CONTROL_HIDDEN(LABEL_ROW3);
-    SET_CONTROL_HIDDEN(BLUE_BAR);
-    SET_CONTROL_VISIBLE(CONTROL_GROUP_CHOOSER);
   }
   else
   {
@@ -741,103 +562,39 @@ void CGUIWindowFullScreen::FrameMove()
     SET_CONTROL_HIDDEN(LABEL_ROW2);
     SET_CONTROL_HIDDEN(LABEL_ROW3);
     SET_CONTROL_HIDDEN(BLUE_BAR);
-    SET_CONTROL_HIDDEN(CONTROL_GROUP_CHOOSER);
   }
+
+  g_renderManager.FrameMove();
 }
 
 void CGUIWindowFullScreen::Process(unsigned int currentTime, CDirtyRegionList &dirtyregion)
 {
+  if (g_renderManager.IsGuiLayer())
+    MarkDirtyRegion();
+
+  CGUIWindow::Process(currentTime, dirtyregion);
+
   // TODO: This isn't quite optimal - ideally we'd only be dirtying up the actual video render rect
   //       which is probably the job of the renderer as it can more easily track resizing etc.
-  MarkDirtyRegion();
-  CGUIWindow::Process(currentTime, dirtyregion);
   m_renderRegion.SetRect(0, 0, (float)g_graphicsContext.GetWidth(), (float)g_graphicsContext.GetHeight());
 }
 
 void CGUIWindowFullScreen::Render()
 {
-  if (g_application.m_pPlayer->HasPlayer())
-    RenderTTFSubtitles();
+  g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetVideoResolution(), false);
+  g_renderManager.Render(true, 0, 255);
+  g_graphicsContext.SetRenderingResolution(m_coordsRes, m_needsScaling);
   CGUIWindow::Render();
 }
 
-void CGUIWindowFullScreen::RenderTTFSubtitles()
+void CGUIWindowFullScreen::RenderEx()
 {
-  if ((g_application.GetCurrentPlayer() == EPC_MPLAYER ||
-#if defined(HAS_OMXPLAYER)
-       g_application.GetCurrentPlayer() == EPC_OMXPLAYER ||
+  CGUIWindow::RenderEx();
+  g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetVideoResolution(), false);
+#ifdef HAS_VIDEO_PLAYBACK
+  g_renderManager.Render(false, 0, 255, false);
+  g_renderManager.FrameFinish();
 #endif
-       g_application.GetCurrentPlayer() == EPC_DVDPLAYER) &&
-      CUtil::IsUsingTTFSubtitles() && (g_application.m_pPlayer->GetSubtitleVisible()))
-  {
-    CSingleLock lock (m_fontLock);
-
-    if(!m_subsLayout)
-      return;
-
-    CStdString subtitleText = "How now brown cow";
-    if (g_application.m_pPlayer->GetCurrentSubtitle(subtitleText))
-    {
-      // Remove HTML-like tags from the subtitles until
-      subtitleText.Replace("\\r", "");
-      subtitleText.Replace("\r", "");
-      subtitleText.Replace("\\n", "[CR]");
-      subtitleText.Replace("\n", "[CR]");
-      subtitleText.Replace("<br>", "[CR]");
-      subtitleText.Replace("\\N", "[CR]");
-      subtitleText.Replace("<i>", "[I]");
-      subtitleText.Replace("</i>", "[/I]");
-      subtitleText.Replace("<b>", "[B]");
-      subtitleText.Replace("</b>", "[/B]");
-      subtitleText.Replace("<u>", "");
-      subtitleText.Replace("<p>", "");
-      subtitleText.Replace("<P>", "");
-      subtitleText.Replace("&nbsp;", "");
-      subtitleText.Replace("</u>", "");
-      subtitleText.Replace("</i", "[/I]"); // handle tags which aren't closed properly (happens).
-      subtitleText.Replace("</b", "[/B]");
-      subtitleText.Replace("</u", "");
-
-      RESOLUTION_INFO res = g_graphicsContext.GetResInfo();
-      g_graphicsContext.SetRenderingResolution(res, false);
-
-      float maxWidth = (float) res.Overscan.right - res.Overscan.left;
-      m_subsLayout->Update(subtitleText, maxWidth * 0.9f, false, true); // true to force LTR reading order (most Hebrew subs are this format)
-
-      int subalign = CSettings::Get().GetInt("subtitles.align");
-      float textWidth, textHeight;
-      m_subsLayout->GetTextExtent(textWidth, textHeight);
-      float x = maxWidth * 0.5f + res.Overscan.left;
-      float y = (float) res.iSubtitles;
-
-      if (subalign == SUBTITLE_ALIGN_MANUAL)
-        y = (float) res.iSubtitles - textHeight;
-      else
-      {
-        SPlayerVideoStreamInfo info;
-        g_application.m_pPlayer->GetVideoStreamInfo(info);
-
-        if ((subalign == SUBTITLE_ALIGN_TOP_INSIDE) || (subalign == SUBTITLE_ALIGN_TOP_OUTSIDE))
-          y = info.DestRect.y1;
-        else
-          y = info.DestRect.y2;
-
-        // use the manual distance to the screenbottom as an offset to the automatic location
-        if ((subalign == SUBTITLE_ALIGN_BOTTOM_INSIDE) || (subalign == SUBTITLE_ALIGN_TOP_OUTSIDE))
-          y -= textHeight + g_graphicsContext.GetHeight() - res.iSubtitles;
-        else
-          y += g_graphicsContext.GetHeight() - res.iSubtitles;
-
-        y = std::max(y, (float) res.Overscan.top);
-        y = std::min(y, res.Overscan.bottom - textHeight);
-      }
-
-      m_subsLayout->RenderOutline(x, y, 0, 0xFF000000, XBFONT_CENTER_X, maxWidth);
-
-      // reset rendering resolution
-      g_graphicsContext.SetRenderingResolution(m_coordsRes, m_needsScaling);
-    }
-  }
 }
 
 void CGUIWindowFullScreen::ChangetheTimeCode(int remote)
@@ -894,47 +651,6 @@ void CGUIWindowFullScreen::SeekChapter(int iChapter)
   g_infoManager.SetDisplayAfterSeek();
 }
 
-void CGUIWindowFullScreen::FillInTVGroups()
-{
-  if (!g_PVRManager.IsStarted())
-    return;
-
-  CGUIMessage msgReset(GUI_MSG_LABEL_RESET, GetID(), CONTROL_GROUP_CHOOSER);
-  g_windowManager.SendMessage(msgReset);
-
-  const CPVRChannelGroups *groups = g_PVRChannelGroups->Get(g_PVRManager.IsPlayingRadio());
-  if (groups)
-    groups->FillGroupsGUI(GetID(), CONTROL_GROUP_CHOOSER);
-}
-
-void CGUIWindowFullScreen::ChangetheTVGroup(bool next)
-{
-  if (!g_PVRManager.IsStarted())
-    return;
-
-  CGUISelectButtonControl* pButton = (CGUISelectButtonControl*)GetControl(CONTROL_GROUP_CHOOSER);
-  if (!pButton)
-    return;
-
-  if (!m_bGroupSelectShow)
-  {
-    SET_CONTROL_VISIBLE(CONTROL_GROUP_CHOOSER);
-    SET_CONTROL_FOCUS(CONTROL_GROUP_CHOOSER, 0);
-
-    // fire off an event that we've pressed this button...
-    OnAction(CAction(ACTION_SELECT_ITEM));
-
-    m_bGroupSelectShow = true;
-  }
-  else
-  {
-    if (next)
-      pButton->OnRight();
-    else
-      pButton->OnLeft();
-  }
-}
-
 void CGUIWindowFullScreen::ToggleOSD()
 {
   CGUIDialogVideoOSD *pOSD = (CGUIDialogVideoOSD *)g_windowManager.GetWindow(WINDOW_DIALOG_VIDEO_OSD);
@@ -944,5 +660,17 @@ void CGUIWindowFullScreen::ToggleOSD()
       pOSD->Close();
     else
       pOSD->DoModal();
+  }
+
+  MarkDirtyRegion();
+}
+
+void CGUIWindowFullScreen::TriggerOSD()
+{
+  CGUIDialogVideoOSD *pOSD = (CGUIDialogVideoOSD *)g_windowManager.GetWindow(WINDOW_DIALOG_VIDEO_OSD);
+  if (pOSD && !pOSD->IsDialogRunning())
+  {
+    pOSD->SetAutoClose(3000);
+    pOSD->DoModal();
   }
 }

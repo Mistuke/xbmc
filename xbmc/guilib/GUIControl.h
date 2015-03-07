@@ -83,6 +83,9 @@ public:
   virtual void Process(unsigned int currentTime, CDirtyRegionList &dirtyregions);
   virtual void DoRender();
   virtual void Render() {};
+  // Called after the actual rendering is completed to trigger additional
+  // non GUI rendering operations
+  virtual void RenderEx() {};
 
   /*! \brief Returns whether or not we have processed */
   bool HasProcessed() const { return m_hasProcessed; };
@@ -179,29 +182,27 @@ public:
    */
   virtual CRect CalcRenderRegion() const;
 
-  virtual void SetNavigation(int up, int down, int left, int right, int back = 0);
-  virtual void SetTabNavigation(int next, int prev);
+  /*! \brief Set actions to perform on navigation
+   \param actions ActionMap of actions
+   \sa SetNavigationAction
+   */
+  typedef std::map<int, CGUIAction> ActionMap;
+  void SetNavigationActions(const ActionMap &actions);
 
   /*! \brief Set actions to perform on navigation
    Navigations are set if replace is true or if there is no previously set action
-   \param up CGUIAction to execute on up
-   \param down CGUIAction to execute on down
-   \param left CGUIAction to execute on left
-   \param right CGUIAction to execute on right
-   \param back CGUIAction to execute on back
+   \param actionID id of the nagivation action
+   \param actions CGUIAction to set
    \param replace Actions are set only if replace is true or there is no previously set action.  Defaults to true
-   \sa SetNavigation
+   \sa SetNavigationActions
    */
-  virtual void SetNavigationActions(const CGUIAction &up, const CGUIAction &down,
-                                    const CGUIAction &left, const CGUIAction &right,
-                                    const CGUIAction &back, bool replace = true);
-  void SetNavigationAction(int direction, const CGUIAction &action, bool replace = true);
-  int GetControlIdUp() const { return m_actionUp.GetNavigation(); };
-  int GetControlIdDown() const { return  m_actionDown.GetNavigation(); };
-  int GetControlIdLeft() const { return m_actionLeft.GetNavigation(); };
-  int GetControlIdRight() const { return m_actionRight.GetNavigation(); };
-  int GetControlIdBack() const { return m_actionBack.GetNavigation(); };
-  bool GetNavigationAction(int direction, CGUIAction& action) const;
+  void SetNavigationAction(int actionID, const CGUIAction &action, bool replace = true);
+
+  /*! \brief Get an action the control can be perform.
+   \param action the actionID to retrieve.
+   */
+  CGUIAction GetNavigateAction(int actionID) const;
+
   /*! \brief  Start navigating in given direction.
    */
   bool Navigate(int direction) const;
@@ -209,15 +210,16 @@ public:
   virtual void SetWidth(float width);
   virtual void SetHeight(float height);
   virtual void SetVisible(bool bVisible, bool setVisState = false);
-  void SetVisibleCondition(const CStdString &expression, const CStdString &allowHiddenFocus = "");
-  unsigned int GetVisibleCondition() const { return m_visibleCondition; };
-  void SetEnableCondition(const CStdString &expression);
+  void SetVisibleCondition(const std::string &expression, const std::string &allowHiddenFocus = "");
+  bool HasVisibleCondition() const { return m_visibleCondition != NULL; };
+  void SetEnableCondition(const std::string &expression);
   virtual void UpdateVisibility(const CGUIListItem *item = NULL);
   virtual void SetInitialVisibility();
   virtual void SetEnabled(bool bEnable);
   virtual void SetInvalid() { m_bInvalidated = true; };
   virtual void SetPulseOnSelect(bool pulse) { m_pulseOnSelect = pulse; };
-  virtual CStdString GetDescription() const { return ""; };
+  virtual std::string GetDescription() const { return ""; };
+  virtual std::string GetDescriptionByIndex(int index) const { return ""; };
 
   void SetAnimations(const std::vector<CAnimation> &animations);
   const std::vector<CAnimation> &GetAnimations() const { return m_animations; };
@@ -283,6 +285,8 @@ public:
 
   enum GUIVISIBLE { HIDDEN = 0, DELAYED, VISIBLE };
 
+  enum GUISCROLLVALUE { FOCUS = 0, NEVER, ALWAYS };
+
 #ifdef _DEBUG
   virtual void DumpTextureUse() {};
 #endif
@@ -314,13 +318,7 @@ protected:
   bool SendWindowMessage(CGUIMessage &message) const;
 
   // navigation and actions
-  CGUIAction m_actionLeft;
-  CGUIAction m_actionRight;
-  CGUIAction m_actionUp;
-  CGUIAction m_actionDown;
-  CGUIAction m_actionBack;
-  CGUIAction m_actionNext;
-  CGUIAction m_actionPrev;
+  ActionMap m_actions;
 
   float m_posX;
   float m_posY;
@@ -339,14 +337,14 @@ protected:
   CGUIControl *m_parentControl;   // our parent control if we're part of a group
 
   // visibility condition/state
-  unsigned int m_visibleCondition;
+  INFO::InfoPtr m_visibleCondition;
   GUIVISIBLE m_visible;
   bool m_visibleFromSkinCondition;
   bool m_forceHidden;       // set from the code when a hidden operation is given - overrides m_visible
   CGUIInfoBool m_allowHiddenFocus;
   bool m_hasProcessed;
   // enable/disable state
-  unsigned int m_enableCondition;
+  INFO::InfoPtr m_enableCondition;
   bool m_enabled;
 
   bool m_pushedUpdates;

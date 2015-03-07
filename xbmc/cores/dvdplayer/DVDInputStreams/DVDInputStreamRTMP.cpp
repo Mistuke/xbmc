@@ -63,7 +63,10 @@ extern "C"
   }
 }
 
-CDVDInputStreamRTMP::CDVDInputStreamRTMP() : CDVDInputStream(DVDSTREAM_TYPE_RTMP)
+CDVDInputStreamRTMP::CDVDInputStreamRTMP()
+  : CDVDInputStream(DVDSTREAM_TYPE_RTMP)
+  , m_canSeek(true)
+  , m_canPause(true)
 {
   if (m_libRTMP.Load())
   {
@@ -79,7 +82,7 @@ CDVDInputStreamRTMP::CDVDInputStreamRTMP() : CDVDInputStream(DVDSTREAM_TYPE_RTMP
       default: level = RTMP_LOGCRIT; break;
     }
 
-    if (g_advancedSettings.m_extraLogLevels & LOGRTMP)
+    if (g_advancedSettings.CanLogComponent(LOGRTMP))
       level = RTMP_LOGDEBUG2;
 
     m_libRTMP.LogSetLevel(level);
@@ -104,7 +107,8 @@ CDVDInputStreamRTMP::~CDVDInputStreamRTMP()
   m_sStreamPlaying = NULL;
 
   Close();
-  m_libRTMP.Free(m_rtmp);
+  if (m_rtmp)
+    m_libRTMP.Free(m_rtmp);
   m_rtmp = NULL;
   m_bPaused = false;
 }
@@ -120,15 +124,15 @@ bool CDVDInputStreamRTMP::IsEOF()
 
 /* librtmp option names are slightly different */
 static const struct {
-  const char *name;
-  AVal key;
+ const char *name;
+ AVal key;
 } options[] = {
-  { "SWFPlayer", AVC("swfUrl") },
-  { "PageURL",   AVC("pageUrl") },
-  { "PlayPath",  AVC("playpath") },
-  { "TcUrl",     AVC("tcUrl") },
-  { "IsLive",    AVC("live") },
-  { NULL }
+ { "SWFPlayer", AVC("swfUrl") },
+ { "PageURL", AVC("pageUrl") },
+ { "PlayPath", AVC("playpath") },
+ { "TcUrl", AVC("tcUrl") },
+ { "IsLive", AVC("live") },
+ { NULL }
 };
 
 bool CDVDInputStreamRTMP::Open(const char* strFile, const std::string& content)
@@ -139,7 +143,7 @@ bool CDVDInputStreamRTMP::Open(const char* strFile, const std::string& content)
     m_sStreamPlaying = NULL;
   }
 
-  if (!CDVDInputStream::Open(strFile, "video/x-flv"))
+  if (!m_rtmp || !CDVDInputStream::Open(strFile, "video/x-flv"))
     return false;
 
   CSingleLock lock(m_RTMPSection);
@@ -151,13 +155,32 @@ bool CDVDInputStreamRTMP::Open(const char* strFile, const std::string& content)
   if (!m_libRTMP.SetupURL(m_rtmp, m_sStreamPlaying))
     return false;
 
-  // SetOpt and SetAVal copy pointers to the value. librtmp doesn't use the values until the Connect() call,
-  // so value objects must stay allocated until then. To be extra safe, keep the values around until Close(),
-  // in case librtmp needs them again.
+  /* Look for protocol options in the URL.
+   * Options are added to the URL in space separated key=value pairs.
+   * We are only interested in the "live" option to disable seeking,
+   * the rest is handled by librtmp internally
+   *
+   * example URL suitable for use with RTMP_SetupURL():
+   * "rtmp://flashserver:1935/ondemand/thefile swfUrl=http://flashserver/player.swf swfVfy=1 live=1"
+   * details: https://rtmpdump.mplayerhq.hu/librtmp.3.html
+   */
+  std::string url = strFile;
+  size_t iPosBlank = url.find(' ');
+  if (iPosBlank != string::npos && (url.find("live=true") != string::npos || url.find("live=1") != string::npos))
+  {
+    m_canSeek = false;
+    m_canPause = false;
+  }
+  CLog::Log(LOGDEBUG, "RTMP canseek: %s", m_canSeek ? "true" : "false");
+
+  /* SetOpt and SetAVal copy pointers to the value. librtmp doesn't use the values until the Connect() call,
+   * so value objects must stay allocated until then. To be extra safe, keep the values around until Close(),
+   * in case librtmp needs them again.
+   */
   m_optionvalues.clear();
   for (int i=0; options[i].name; i++)
   {
-    CStdString tmp = m_item.GetProperty(options[i].name).asString();
+    std::string tmp = m_item.GetProperty(options[i].name).asString();
     if (!tmp.empty())
     {
       m_optionvalues.push_back(tmp);
@@ -181,7 +204,8 @@ void CDVDInputStreamRTMP::Close()
   CSingleLock lock(m_RTMPSection);
   CDVDInputStream::Close();
 
-  m_libRTMP.Close(m_rtmp);
+  if (m_rtmp)
+    m_libRTMP.Close(m_rtmp);
 
   m_optionvalues.clear();
   m_eof = true;
@@ -190,6 +214,9 @@ void CDVDInputStreamRTMP::Close()
 
 int CDVDInputStreamRTMP::Read(uint8_t* buf, int buf_size)
 {
+  if (!m_rtmp)
+    return -1;
+
   int i = m_libRTMP.Read(m_rtmp, (char *)buf, buf_size);
   if (i < 0)
     m_eof = true;
@@ -210,7 +237,7 @@ bool CDVDInputStreamRTMP::SeekTime(int iTimeInMsec)
   CLog::Log(LOGNOTICE, "RTMP Seek to %i requested", iTimeInMsec);
   CSingleLock lock(m_RTMPSection);
 
-  if (m_libRTMP.SendSeek(m_rtmp, iTimeInMsec))
+  if (m_rtmp && m_libRTMP.SendSeek(m_rtmp, iTimeInMsec))
     return true;
 
   return false;
@@ -226,7 +253,11 @@ bool CDVDInputStreamRTMP::Pause(double dTime)
   CSingleLock lock(m_RTMPSection);
 
   m_bPaused = !m_bPaused;
-  m_libRTMP.Pause(m_rtmp, m_bPaused);
+
+  CLog::Log(LOGNOTICE, "RTMP Pause %s requested", m_bPaused ? "TRUE" : "FALSE");
+
+  if (m_rtmp)
+    m_libRTMP.Pause(m_rtmp, m_bPaused);
 
   return true;
 }

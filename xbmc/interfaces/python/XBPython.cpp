@@ -67,13 +67,13 @@ XBPython::XBPython()
   m_vecPlayerCallbackList.clear();
   m_vecMonitorCallbackList.clear();
 
-  CAnnouncementManager::AddAnnouncer(this);
+  CAnnouncementManager::Get().AddAnnouncer(this);
 }
 
 XBPython::~XBPython()
 {
   XBMC_TRACE;
-  CAnnouncementManager::RemoveAnnouncer(this);
+  CAnnouncementManager::Get().RemoveAnnouncer(this);
 }
 
 #define LOCK_AND_COPY(type, dest, src) \
@@ -91,16 +91,24 @@ void XBPython::Announce(AnnouncementFlag flag, const char *sender, const char *m
   if (flag & VideoLibrary)
   {
    if (strcmp(message, "OnScanFinished") == 0)
-     OnDatabaseUpdated("video");
+     OnScanFinished("video");
    else if (strcmp(message, "OnScanStarted") == 0)
-     OnDatabaseScanStarted("video");
+     OnScanStarted("video");
+   else if (strcmp(message, "OnCleanStarted") == 0)
+     OnCleanStarted("video");
+   else if (strcmp(message, "OnCleanFinished") == 0)
+     OnCleanFinished("video");
   }
   else if (flag & AudioLibrary)
   {
    if (strcmp(message, "OnScanFinished") == 0)
-     OnDatabaseUpdated("music");
+     OnScanFinished("music");
    else if (strcmp(message, "OnScanStarted") == 0)
-     OnDatabaseScanStarted("music");
+     OnScanStarted("music");
+   else if (strcmp(message, "OnCleanStarted") == 0)
+     OnCleanStarted("music");
+   else if (strcmp(message, "OnCleanFinished") == 0)
+     OnCleanFinished("music");
   }
   else if (flag & GUI)
   {
@@ -108,6 +116,10 @@ void XBPython::Announce(AnnouncementFlag flag, const char *sender, const char *m
      OnScreensaverDeactivated();
    else if (strcmp(message, "OnScreensaverActivated") == 0)
      OnScreensaverActivated();
+   else if (strcmp(message, "OnDPMSDeactivated") == 0)
+     OnDPMSDeactivated();
+   else if (strcmp(message, "OnDPMSActivated") == 0)
+     OnDPMSActivated();
   }
 
   OnNotification(sender, std::string(ANNOUNCEMENT::AnnouncementFlagToString(flag)) + "." + std::string(message), CJSONVariantWriter::Write(data, g_advancedSettings.m_jsonOutputCompact));
@@ -269,7 +281,7 @@ void XBPython::UnregisterPythonMonitorCallBack(XBMCAddon::xbmc::Monitor* pCallba
   }
 }
 
-void XBPython::OnSettingsChanged(const CStdString &ID)
+void XBPython::OnSettingsChanged(const std::string &ID)
 {
   XBMC_TRACE;
   LOCK_AND_COPY(std::vector<XBMCAddon::xbmc::Monitor*>,tmp,m_vecMonitorCallbackList);
@@ -302,41 +314,69 @@ void XBPython::OnScreensaverDeactivated()
   }
 }
 
-void XBPython::OnDatabaseUpdated(const std::string &database)
+void XBPython::OnDPMSActivated()
 {
   XBMC_TRACE;
   LOCK_AND_COPY(std::vector<XBMCAddon::xbmc::Monitor*>,tmp,m_vecMonitorCallbackList);
   for (MonitorCallbackList::iterator it = tmp.begin(); (it != tmp.end()); ++it)
   {
     if (CHECK_FOR_ENTRY(m_vecMonitorCallbackList,(*it)))
-      (*it)->OnDatabaseUpdated(database);
+      (*it)->OnDPMSActivated();
   }
 }
 
-void XBPython::OnDatabaseScanStarted(const std::string &database)
+void XBPython::OnDPMSDeactivated()
 {
   XBMC_TRACE;
   LOCK_AND_COPY(std::vector<XBMCAddon::xbmc::Monitor*>,tmp,m_vecMonitorCallbackList);
   for (MonitorCallbackList::iterator it = tmp.begin(); (it != tmp.end()); ++it)
   {
     if (CHECK_FOR_ENTRY(m_vecMonitorCallbackList,(*it)))
-      (*it)->OnDatabaseScanStarted(database);
+      (*it)->OnDPMSDeactivated();
   }
 }
 
-void XBPython::OnAbortRequested(const CStdString &ID)
+void XBPython::OnScanStarted(const std::string &library)
 {
   XBMC_TRACE;
   LOCK_AND_COPY(std::vector<XBMCAddon::xbmc::Monitor*>,tmp,m_vecMonitorCallbackList);
   for (MonitorCallbackList::iterator it = tmp.begin(); (it != tmp.end()); ++it)
   {
     if (CHECK_FOR_ENTRY(m_vecMonitorCallbackList,(*it)))
-    {
-      if (ID.IsEmpty())
-        (*it)->OnAbortRequested();
-      else if ((*it)->GetId() == ID)
-        (*it)->OnAbortRequested();
-    }
+      (*it)->OnScanStarted(library);
+  }
+}
+
+void XBPython::OnScanFinished(const std::string &library)
+{
+  XBMC_TRACE;
+  LOCK_AND_COPY(std::vector<XBMCAddon::xbmc::Monitor*>,tmp,m_vecMonitorCallbackList);
+  for (MonitorCallbackList::iterator it = tmp.begin(); (it != tmp.end()); ++it)
+  {
+    if (CHECK_FOR_ENTRY(m_vecMonitorCallbackList,(*it)))
+      (*it)->OnScanFinished(library);
+  }
+}
+
+void XBPython::OnCleanStarted(const std::string &library)
+{
+  XBMC_TRACE;
+  LOCK_AND_COPY(std::vector<XBMCAddon::xbmc::Monitor*>,tmp,m_vecMonitorCallbackList);
+  for (MonitorCallbackList::iterator it = tmp.begin(); (it != tmp.end()); ++it)
+  {
+    if (CHECK_FOR_ENTRY(m_vecMonitorCallbackList,(*it)))
+      (*it)->OnCleanStarted(library);
+  }
+}
+
+void XBPython::OnCleanFinished(const std::string &library)
+{
+  XBMC_TRACE;
+  LOCK_AND_COPY(std::vector<XBMCAddon::xbmc::Monitor*>,tmp,m_vecMonitorCallbackList);
+  for (MonitorCallbackList::iterator it = tmp.begin(); (it != tmp.end()); ++it)
+  {
+    if (CHECK_FOR_ENTRY(m_vecMonitorCallbackList,(*it)))
+      (*it)->OnCleanFinished(library);
   }
 }
 
@@ -410,118 +450,6 @@ void XBPython::UnloadExtensionLibs()
   m_extensions.clear();
 }
 
-/**
-* Should be called before executing a script
-*/
-bool XBPython::InitializeEngine()
-{
-  XBMC_TRACE;
-  CLog::Log(LOGINFO, "initializing python engine.");
-  CSingleLock lock(m_critSection);
-  m_iDllScriptCounter++;
-  if (!m_bInitialized)
-  {
-      // first we check if all necessary files are installed
-#ifndef TARGET_POSIX
-      if(!FileExist("special://xbmc/system/python/DLLs/_socket.pyd") ||
-        !FileExist("special://xbmc/system/python/DLLs/_ssl.pyd") ||
-        !FileExist("special://xbmc/system/python/DLLs/bz2.pyd") ||
-        !FileExist("special://xbmc/system/python/DLLs/pyexpat.pyd") ||
-        !FileExist("special://xbmc/system/python/DLLs/select.pyd") ||
-        !FileExist("special://xbmc/system/python/DLLs/unicodedata.pyd"))
-      {
-        CLog::Log(LOGERROR, "Python: Missing files, unable to execute script");
-        Finalize();
-        return false;
-      }
-#endif
-
-
-// Darwin packs .pyo files, we need PYTHONOPTIMIZE on in order to load them.
-#if defined(TARGET_DARWIN)
-   setenv("PYTHONOPTIMIZE", "1", 1);
-#endif
-      // Info about interesting python envvars available
-      // at http://docs.python.org/using/cmdline.html#environment-variables
-
-#if !defined(TARGET_WINDOWS) && !defined(TARGET_ANDROID)
-      /* PYTHONOPTIMIZE is set off intentionally when using external Python.
-         Reason for this is because we cannot be sure what version of Python
-         was used to compile the various Python object files (i.e. .pyo,
-         .pyc, etc.). */
-        // check if we are running as real xbmc.app or just binary
-      if (!CUtil::GetFrameworksPath(true).IsEmpty())
-      {
-        // using external python, it's build looking for xxx/lib/python2.6
-        // so point it to frameworks which is where python2.6 is located
-        setenv("PYTHONHOME", CSpecialProtocol::TranslatePath("special://frameworks").c_str(), 1);
-        setenv("PYTHONPATH", CSpecialProtocol::TranslatePath("special://frameworks").c_str(), 1);
-        CLog::Log(LOGDEBUG, "PYTHONHOME -> %s", CSpecialProtocol::TranslatePath("special://frameworks").c_str());
-        CLog::Log(LOGDEBUG, "PYTHONPATH -> %s", CSpecialProtocol::TranslatePath("special://frameworks").c_str());
-      }
-      setenv("PYTHONCASEOK", "1", 1); //This line should really be removed
-#elif defined(TARGET_WINDOWS)
-      // because the third party build of python is compiled with vs2008 we need
-      // a hack to set the PYTHONPATH
-      CStdString buf;
-      buf = "PYTHONPATH=" + CSpecialProtocol::TranslatePath("special://xbmc/system/python/DLLs") + ";" + CSpecialProtocol::TranslatePath("special://xbmc/system/python/Lib");
-      CEnvironment::putenv(buf);
-      buf = "PYTHONOPTIMIZE=1";
-      CEnvironment::putenv(buf);
-      buf = "PYTHONHOME=" + CSpecialProtocol::TranslatePath("special://xbmc/system/python");
-      CEnvironment::putenv(buf);
-      buf = "OS=win32";
-      CEnvironment::putenv(buf);
-
-#elif defined(TARGET_ANDROID)
-      CStdString apkPath = getenv("XBMC_ANDROID_APK");
-      apkPath += "/assets/python2.6";
-      setenv("PYTHONHOME",apkPath.c_str(), 1);
-      setenv("PYTHONPATH", "", 1);
-      setenv("PYTHONOPTIMIZE","",1);
-      setenv("PYTHONNOUSERSITE","1",1);
-#endif
-
-      if (PyEval_ThreadsInitialized())
-        PyEval_AcquireLock();
-      else
-        PyEval_InitThreads();
-
-      Py_Initialize();
-      PyEval_ReleaseLock();
-
-      // If this is not the first time we initialize Python, the interpreter
-      // lock already exists and we need to lock it as PyEval_InitThreads
-      // would not do that in that case.
-      PyEval_AcquireLock();
-      char* python_argv[1] = { (char*)"" } ;
-      PySys_SetArgv(1, python_argv);
-
-      if (!(m_mainThreadState = PyThreadState_Get()))
-        CLog::Log(LOGERROR, "Python threadstate is NULL.");
-      PyEval_ReleaseLock();
-
-      m_bInitialized = true;
-  }
-
-  return m_bInitialized;
-}
-
-/**
-* Should be called when a script is finished
-*/
-void XBPython::FinalizeScript()
-{
-  XBMC_TRACE;
-  CSingleLock lock(m_critSection);
-  // for linux - we never release the library. its loaded and stays in memory.
-  if (m_iDllScriptCounter)
-    m_iDllScriptCounter--;
-  else
-    CLog::Log(LOGERROR, "Python script counter attempted to become negative");
-  m_endtime = XbmcThreads::SystemClockMillis();
-}
-
 // Always called with the lock held on m_critSection
 void XBPython::Finalize()
 {
@@ -566,7 +494,7 @@ void XBPython::Uninitialize()
   // don't handle any more announcements as most scripts are probably already
   // stopped and executing a callback on one of their already destroyed classes
   // would lead to a crash
-  CAnnouncementManager::RemoveAnnouncer(this);
+  CAnnouncementManager::Get().RemoveAnnouncer(this);
 
   LOCK_AND_COPY(std::vector<PyElem>,tmpvec,m_vecPyList);
   m_vecPyList.clear();
@@ -575,7 +503,7 @@ void XBPython::Uninitialize()
   lock.Leave(); //unlock here because the python thread might lock when it exits
 
   // cleanup threads that are still running
-  tmpvec.clear(); // boost releases the XBPyThreads which, if deleted, calls FinalizeScript
+  tmpvec.clear(); // boost releases the XBPyThreads which, if deleted, calls OnScriptFinalized
 }
 
 void XBPython::Process()
@@ -598,7 +526,7 @@ void XBPython::Process()
     lock.Leave();
 
     //delete scripts which are done
-    tmpvec.clear(); // boost releases the XBPyThreads which, if deleted, calls FinalizeScript
+    tmpvec.clear(); // boost releases the XBPyThreads which, if deleted, calls OnScriptFinalized
 
     CSingleLock l2(m_critSection);
     if(m_iDllScriptCounter == 0 && (XbmcThreads::SystemClockMillis() - m_endtime) > 10000 )
@@ -606,6 +534,103 @@ void XBPython::Process()
       Finalize();
     }
   }
+}
+
+bool XBPython::OnScriptInitialized(ILanguageInvoker *invoker)
+{
+  if (invoker == NULL)
+    return false;
+
+  XBMC_TRACE;
+  CLog::Log(LOGINFO, "initializing python engine.");
+  CSingleLock lock(m_critSection);
+  m_iDllScriptCounter++;
+  if (!m_bInitialized)
+  {
+    // first we check if all necessary files are installed
+#ifndef TARGET_POSIX
+    if (!FileExist("special://xbmc/system/python/DLLs/_socket.pyd") ||
+      !FileExist("special://xbmc/system/python/DLLs/_ssl.pyd") ||
+      !FileExist("special://xbmc/system/python/DLLs/bz2.pyd") ||
+      !FileExist("special://xbmc/system/python/DLLs/pyexpat.pyd") ||
+      !FileExist("special://xbmc/system/python/DLLs/select.pyd") ||
+      !FileExist("special://xbmc/system/python/DLLs/unicodedata.pyd"))
+    {
+      CLog::Log(LOGERROR, "Python: Missing files, unable to execute script");
+      Finalize();
+      return false;
+    }
+#endif
+
+
+    // Darwin packs .pyo files, we need PYTHONOPTIMIZE on in order to load them.
+    // linux built with unified builds only packages the pyo files so need it
+#if defined(TARGET_DARWIN) || defined(TARGET_LINUX)
+    setenv("PYTHONOPTIMIZE", "1", 1);
+#endif
+    // Info about interesting python envvars available
+    // at http://docs.python.org/using/cmdline.html#environment-variables
+
+#if !defined(TARGET_WINDOWS) && !defined(TARGET_ANDROID)
+    /* PYTHONOPTIMIZE is set off intentionally when using external Python.
+    Reason for this is because we cannot be sure what version of Python
+    was used to compile the various Python object files (i.e. .pyo,
+    .pyc, etc.). */
+    // check if we are running as real xbmc.app or just binary
+    if (!CUtil::GetFrameworksPath(true).empty())
+    {
+      // using external python, it's build looking for xxx/lib/python2.6
+      // so point it to frameworks which is where python2.6 is located
+      setenv("PYTHONHOME", CSpecialProtocol::TranslatePath("special://frameworks").c_str(), 1);
+      setenv("PYTHONPATH", CSpecialProtocol::TranslatePath("special://frameworks").c_str(), 1);
+      CLog::Log(LOGDEBUG, "PYTHONHOME -> %s", CSpecialProtocol::TranslatePath("special://frameworks").c_str());
+      CLog::Log(LOGDEBUG, "PYTHONPATH -> %s", CSpecialProtocol::TranslatePath("special://frameworks").c_str());
+    }
+#elif defined(TARGET_WINDOWS)
+    // because the third party build of python is compiled with vs2008 we need
+    // a hack to set the PYTHONPATH
+    std::string buf;
+    buf = "PYTHONPATH=" + CSpecialProtocol::TranslatePath("special://xbmc/system/python/DLLs") + ";" + CSpecialProtocol::TranslatePath("special://xbmc/system/python/Lib");
+    CEnvironment::putenv(buf);
+    buf = "PYTHONOPTIMIZE=1";
+    CEnvironment::putenv(buf);
+    buf = "PYTHONHOME=" + CSpecialProtocol::TranslatePath("special://xbmc/system/python");
+    CEnvironment::putenv(buf);
+    buf = "OS=win32";
+    CEnvironment::putenv(buf);
+
+#elif defined(TARGET_ANDROID)
+    std::string apkPath = getenv("XBMC_ANDROID_APK");
+    apkPath += "/assets/python2.6";
+    setenv("PYTHONHOME", apkPath.c_str(), 1);
+    setenv("PYTHONPATH", "", 1);
+    setenv("PYTHONOPTIMIZE", "", 1);
+    setenv("PYTHONNOUSERSITE", "1", 1);
+#endif
+
+    if (PyEval_ThreadsInitialized())
+      PyEval_AcquireLock();
+    else
+      PyEval_InitThreads();
+
+    Py_Initialize();
+    PyEval_ReleaseLock();
+
+    // If this is not the first time we initialize Python, the interpreter
+    // lock already exists and we need to lock it as PyEval_InitThreads
+    // would not do that in that case.
+    PyEval_AcquireLock();
+    char* python_argv[1] = { (char*)"" };
+    PySys_SetArgv(1, python_argv);
+
+    if (!(m_mainThreadState = PyThreadState_Get()))
+      CLog::Log(LOGERROR, "Python threadstate is NULL.");
+    PyEval_ReleaseLock();
+
+    m_bInitialized = true;
+  }
+
+  return m_bInitialized;
 }
 
 void XBPython::OnScriptStarted(ILanguageInvoker *invoker)
@@ -624,6 +649,31 @@ void XBPython::OnScriptStarted(ILanguageInvoker *invoker)
   m_vecPyList.push_back(inf);
 }
 
+void XBPython::OnScriptAbortRequested(ILanguageInvoker *invoker)
+{
+  XBMC_TRACE;
+
+  std::string addonId;
+  if (invoker != NULL)
+  {
+    const ADDON::AddonPtr& addon = invoker->GetAddon();
+    if (addon != NULL)
+      addonId = addon->ID();
+  }
+
+  LOCK_AND_COPY(std::vector<XBMCAddon::xbmc::Monitor*>, tmp, m_vecMonitorCallbackList);
+  for (MonitorCallbackList::iterator it = tmp.begin(); (it != tmp.end()); ++it)
+  {
+    if (CHECK_FOR_ENTRY(m_vecMonitorCallbackList, (*it)))
+    {
+      if (addonId.empty())
+        (*it)->OnAbortRequested();
+      else if ((*it)->GetId() == addonId)
+        (*it)->OnAbortRequested();
+    }
+  }
+}
+
 void XBPython::OnScriptEnded(ILanguageInvoker *invoker)
 {
   CSingleLock lock(m_vecPyList);
@@ -640,6 +690,18 @@ void XBPython::OnScriptEnded(ILanguageInvoker *invoker)
     }
     ++it;
   }
+}
+
+void XBPython::OnScriptFinalized(ILanguageInvoker *invoker)
+{
+  XBMC_TRACE;
+  CSingleLock lock(m_critSection);
+  // for linux - we never release the library. its loaded and stays in memory.
+  if (m_iDllScriptCounter)
+    m_iDllScriptCounter--;
+  else
+    CLog::Log(LOGERROR, "Python script counter attempted to become negative");
+  m_endtime = XbmcThreads::SystemClockMillis();
 }
 
 ILanguageInvoker* XBPython::CreateInvoker()

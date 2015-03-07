@@ -20,13 +20,14 @@
 
 #pragma once
 
-#if defined(HAS_GLX) || defined(TARGET_DARWIN_OSX)
+#if defined(HAS_GLX) || defined(HAS_EGL) || defined(TARGET_DARWIN)
 class IDispResource
 {
 public:
   virtual ~IDispResource() {};
   virtual void OnLostDevice() {};
   virtual void OnResetDevice() {};
+  virtual void OnAppFocusChange(bool focus) {};
 };
 
 #endif

@@ -39,7 +39,7 @@ void CEvent::removeGroup(XbmcThreads::CEventGroup* group)
   CSingleLock lock(groupListMutex);
   if (groups)
   {
-    for (std::vector<XbmcThreads::CEventGroup*>::iterator iter = groups->begin(); iter != groups->end(); iter++)
+    for (std::vector<XbmcThreads::CEventGroup*>::iterator iter = groups->begin(); iter != groups->end(); ++iter)
     {
       if ((*iter) == group)
       {
@@ -76,7 +76,7 @@ void CEvent::Set()
   if (groups)
   {
     for (std::vector<XbmcThreads::CEventGroup*>::iterator iter = groups->begin(); 
-         iter != groups->end(); iter++)
+         iter != groups->end(); ++iter)
       (*iter)->Set(this);
   }
 }
@@ -117,7 +117,7 @@ namespace XbmcThreads
     // ==================================================
     signaled = NULL;
     for (std::vector<CEvent*>::iterator iter = events.begin();
-         signaled == NULL && iter != events.end(); iter++)
+         signaled == NULL && iter != events.end(); ++iter)
     {
       CEvent* cur = *iter;
       if (cur->signaled) 
@@ -153,16 +153,21 @@ namespace XbmcThreads
     va_list ap;
 
     va_start(ap, v1);
-    events.push_back(v1);
+    if (v1)
+      events.push_back(v1);
     num--; // account for v1
-    for (;num > 0; num--)
-      events.push_back(va_arg(ap,CEvent*));
+    for (; num > 0; num--)
+    {
+      CEvent* const cur = va_arg(ap, CEvent*);
+      if (cur)
+        events.push_back(cur);
+    }
     va_end(ap);
 
     // we preping for a wait, so we need to set the group value on
     // all of the CEvents. 
     for (std::vector<CEvent*>::iterator iter = events.begin();
-         iter != events.end(); iter++)
+         iter != events.end(); ++iter)
       (*iter)->addGroup(this);
   }
 
@@ -171,7 +176,8 @@ namespace XbmcThreads
     va_list ap;
 
     va_start(ap, v1);
-    events.push_back(v1);
+    if (v1)
+      events.push_back(v1);
     bool done = false;
     while(!done)
     {
@@ -186,14 +192,14 @@ namespace XbmcThreads
     // we preping for a wait, so we need to set the group value on
     // all of the CEvents. 
     for (std::vector<CEvent*>::iterator iter = events.begin();
-         iter != events.end(); iter++)
+         iter != events.end(); ++iter)
       (*iter)->addGroup(this);
   }
 
   CEventGroup::~CEventGroup()
   {
     for (std::vector<CEvent*>::iterator iter = events.begin();
-         iter != events.end(); iter++)
+         iter != events.end(); ++iter)
       (*iter)->removeGroup(this);
   }
 }

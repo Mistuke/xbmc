@@ -100,7 +100,7 @@ bool CGUIDialogPlayEject::ShowAndGetInput(const CFileItem & item,
     return false;
 
   // Figure out Lines 1 and 2 of the dialog
-  CStdString strLine1, strLine2;
+  std::string strLine1, strLine2;
   CXBMCTinyXML discStubXML;
   if (discStubXML.LoadFile(item.GetPath()))
   {
@@ -115,7 +115,7 @@ bool CGUIDialogPlayEject::ShowAndGetInput(const CFileItem & item,
   }
 
   // Use the label for Line 1 if not defined
-  if (strLine1.IsEmpty())
+  if (strLine1.empty())
     strLine1 = item.GetLabel();
 
   // Setup dialog parameters

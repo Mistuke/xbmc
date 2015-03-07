@@ -12,7 +12,7 @@ ARCHIVE=$(SOURCE).tar.gz
 export LIBTOOL=builds/unix/libtool
 export PATH:=$(PREFIX)/bin:$(PATH)
 CONFIGURE=./configure --prefix=$(PREFIX) \
---program-transform-name=s/tar/gtar/ --disable-dependency-tracking
+--program-transform-name=s/tar/gtar/ --disable-dependency-tracking ac_cv_func_fdopendir=no
 
 APP=$(SOURCE)/src/tar
 APPBIN=$(PREFIX)/bin/tar
@@ -26,7 +26,6 @@ $(PLATFORM): $(TARBALLS_LOCATION)/$(ARCHIVE) $(DEPS)
 	-rm -rf $(PLATFORM)/*; mkdir -p $(PLATFORM)
 	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
 	cd $(PLATFORM); $(CONFIGURE)
-	touch $@
 
 $(APP): $(PLATFORM)
 	$(MAKE) -C $(PLATFORM)
@@ -35,6 +34,7 @@ $(APP): $(PLATFORM)
 	$(MAKE) -C $(PLATFORM) install
 	rm -f $(PREFIX)/bin/tar $(PREFIX)/bin/gnutar
 	cd $(PREFIX)/bin; ln -s gtar tar; ln -s gtar gnutar
+	touch $@
 
 clean:
 	$(MAKE) -C $(PLATFORM) clean

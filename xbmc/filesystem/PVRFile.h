@@ -42,8 +42,8 @@ public:
   virtual int64_t       GetLength();
   virtual int           Stat(const CURL& url, struct __stat64* buffer) { return -1; }
   virtual void          Close();
-  virtual unsigned int  Read(void* buffer, int64_t size);
-  virtual CStdString    GetContent()                                   { return ""; }
+  virtual ssize_t       Read(void* buffer, size_t size);
+  virtual std::string   GetContent()                                   { return ""; }
   virtual bool          SkipNext()                                     { return !m_isPlayRecording; }
 
   virtual bool          Delete(const CURL& url);
@@ -68,7 +68,7 @@ public:
 
   virtual int            IoControl(EIoControl request, void *param);
 
-  static CStdString      TranslatePVRFilename(const CStdString& pathFile);
+  static std::string     TranslatePVRFilename(const std::string& pathFile);
 
 protected:
   bool            m_isPlayRecording;

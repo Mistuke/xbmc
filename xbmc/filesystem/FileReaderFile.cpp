@@ -43,19 +43,20 @@ CFileReaderFile::~CFileReaderFile()
 //*********************************************************************************************
 bool CFileReaderFile::Open(const CURL& url)
 {
-  CStdString strURL = url.Get();
-  strURL = strURL.Mid(13);
+  // URL is of the form filereader://<foo>
+  std::string strURL = url.Get();
+  strURL = strURL.substr(13);
   return m_reader.Open(strURL,READ_CACHED);
 }
 
 bool CFileReaderFile::Exists(const CURL& url)
 {
-  return CFile::Exists(url.Get().Mid(13));
+  return CFile::Exists(url.Get().substr(13));
 }
 
 int CFileReaderFile::Stat(const CURL& url, struct __stat64* buffer)
 {
-  return CFile::Stat(url.Get().Mid(13),buffer);
+  return CFile::Stat(url.Get().substr(13), buffer);
 }
 
 
@@ -66,15 +67,15 @@ bool CFileReaderFile::OpenForWrite(const CURL& url, bool bOverWrite)
 }
 
 //*********************************************************************************************
-unsigned int CFileReaderFile::Read(void *lpBuf, int64_t uiBufSize)
+ssize_t CFileReaderFile::Read(void *lpBuf, size_t uiBufSize)
 {
   return m_reader.Read(lpBuf,uiBufSize);
 }
 
 //*********************************************************************************************
-int CFileReaderFile::Write(const void *lpBuf, int64_t uiBufSize)
+ssize_t CFileReaderFile::Write(const void *lpBuf, size_t uiBufSize)
 {
-  return 0;
+  return -1;
 }
 
 //*********************************************************************************************

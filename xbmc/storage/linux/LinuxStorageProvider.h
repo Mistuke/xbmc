@@ -19,7 +19,6 @@
  *
  */
 #include "storage/IStorageProvider.h"
-#include "HALProvider.h"
 #include "DeviceKitDisksProvider.h"
 #include "UDevProvider.h"
 #include "UDisksProvider.h"
@@ -37,10 +36,6 @@ public:
       m_instance = new CUDisksProvider();
     else if (CDeviceKitDisksProvider::HasDeviceKitDisks())
       m_instance = new CDeviceKitDisksProvider();
-#endif
-#ifdef HAS_HAL
-    if (m_instance == NULL)
-      m_instance = new CHALProvider();
 #endif
 #ifdef HAVE_LIBUDEV
     if (m_instance == NULL)
@@ -87,12 +82,12 @@ public:
     m_instance->GetRemovableDrives(removableDrives);
   }
 
-  virtual bool Eject(CStdString mountpath)
+  virtual bool Eject(const std::string& mountpath)
   {
     return m_instance->Eject(mountpath);
   }
 
-  virtual std::vector<CStdString> GetDiskUsage()
+  virtual std::vector<std::string> GetDiskUsage()
   {
     return m_instance->GetDiskUsage();
   }

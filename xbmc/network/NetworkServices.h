@@ -20,16 +20,20 @@
  */
 
 #include "system.h"
-#include "settings/ISettingCallback.h"
+#include "settings/lib/ISettingCallback.h"
 
 #ifdef HAS_WEB_SERVER
 class CWebServer;
 class CHTTPImageHandler;
+class CHTTPImageTransformationHandler;
 class CHTTPVfsHandler;
 #ifdef HAS_JSONRPC
 class CHTTPJsonRpcHandler;
 #endif // HAS_JSONRPC
 #ifdef HAS_WEB_INTERFACE
+#ifdef HAS_PYTHON
+class CHTTPPythonHandler;
+#endif
 class CHTTPWebinterfaceHandler;
 class CHTTPWebinterfaceAddonsHandler;
 #endif // HAS_WEB_INTERFACE
@@ -42,6 +46,7 @@ public:
   
   virtual bool OnSettingChanging(const CSetting *setting);
   virtual void OnSettingChanged(const CSetting *setting);
+  virtual bool OnSettingUpdate(CSetting* &setting, const char *oldSettingId, const TiXmlNode *oldSettingNode);
 
   void Start();
   void Stop(bool bWait);
@@ -97,11 +102,15 @@ private:
 #ifdef HAS_WEB_SERVER
   CWebServer& m_webserver;
   CHTTPImageHandler& m_httpImageHandler;
+  CHTTPImageTransformationHandler& m_httpImageTransformationHandler;
   CHTTPVfsHandler& m_httpVfsHandler;
 #ifdef HAS_JSONRPC
   CHTTPJsonRpcHandler& m_httpJsonRpcHandler;
 #endif
 #ifdef HAS_WEB_INTERFACE
+#ifdef HAS_PYTHON
+  CHTTPPythonHandler& m_httpPythonHandler;
+#endif
   CHTTPWebinterfaceHandler& m_httpWebinterfaceHandler;
   CHTTPWebinterfaceAddonsHandler& m_httpWebinterfaceAddonsHandler;
 #endif

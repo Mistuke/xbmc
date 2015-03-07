@@ -22,6 +22,7 @@
 #include "IOSKeyboard.h"
 #include "IOSKeyboardView.h"
 #include "XBMCDebugHelpers.h"
+#include "osx/DarwinUtils.h"
 
 #import "AutoPool.h"
 
@@ -42,6 +43,10 @@ bool CIOSKeyboard::ShowAndGetInput(char_callback_t pCallback, const std::string 
     // assume we are only drawn on the mainscreen ever!
     UIScreen *pCurrentScreen = [UIScreen mainScreen];
     CGRect keyboardFrame = CGRectMake(0, 0, pCurrentScreen.bounds.size.height, pCurrentScreen.bounds.size.width);
+#if __IPHONE_8_0
+    if (CDarwinUtils::GetIOSVersion() >= 8.0)
+      keyboardFrame = CGRectMake(0, 0, pCurrentScreen.bounds.size.width, pCurrentScreen.bounds.size.height);
+#endif
 //    LOG(@"kb: kb frame: %@", NSStringFromCGRect(keyboardFrame));
     
     //create the keyboardview
@@ -78,6 +83,14 @@ bool CIOSKeyboard::ShowAndGetInput(char_callback_t pCallback, const std::string 
 void CIOSKeyboard::Cancel()
 {
   m_bCanceled = true;
+}
+
+bool CIOSKeyboard::SetTextToKeyboard(const std::string &text, bool closeKeyboard /* = false */)
+{
+  if (!g_pIosKeyboard)
+    return false;
+  [g_pIosKeyboard setKeyboardText:[NSString stringWithUTF8String:text.c_str()] closeKeyboard:closeKeyboard?YES:NO];
+  return true;
 }
 
 //wrap our callback between objc and c++

@@ -7,7 +7,11 @@ VERSION=1.6
 SOURCE=$(LIBNAME)-$(VERSION)
 FILENAME=v$(VERSION)
 ARCHIVE=$(SOURCE).tar.gz
+ifeq (darwin, $(findstring darwin, $(HOST)))
+LIBDYLIB=$(PLATFORM)/build/src/libplist++.dylib
+else
 LIBDYLIB=$(PLATFORM)/build/src/libplist++.so
+endif
 CFLAGS+=-fvisibility=default
 all: .installed-$(PLATFORM)
 
@@ -19,7 +23,8 @@ $(PLATFORM): $(TARBALLS_LOCATION)/$(ARCHIVE) $(DEPS)
 	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
 	cd $(PLATFORM); patch -p1 < ../0001-dontbuildswig.patch
 	cd $(PLATFORM); patch -p1 < ../0002-fixclang.diff
-	cd $(PLATFORM); sed -ie 's/TARGET_LINK_LIBRARIES( plist /TARGET_LINK_LIBRARIES( plist m z  /' src/CMakeLists.txt
+	cd $(PLATFORM); patch -p1 < ../0003-fixc++1.patch
+	cd $(PLATFORM); sed -ie 's/TARGET_LINK_LIBRARIES( plist \(.*\))/TARGET_LINK_LIBRARIES( plist \1 z m)  /' src/CMakeLists.txt
 	cd $(PLATFORM); rm -rf build; mkdir -p build
 	cd $(PLATFORM)/build; $(CMAKE) VERBOSE=1 -DCMAKE_C_FLAGS="$(CFLAGS)" -DCMAKE_LD_FLAGS="$(LDFLAGS)" ..
 

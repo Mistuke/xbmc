@@ -24,12 +24,11 @@
 #include <deque>
 #include <sys/types.h>
 
-#include "utils/StdString.h"
-
 #include "OMXClock.h"
 #include "DVDStreamInfo.h"
 #include "OMXVideo.h"
 #include "threads/Thread.h"
+#include "IDVDPlayer.h"
 
 #include "DVDDemuxers/DVDDemux.h"
 #include "DVDCodecs/Video/DVDVideoCodec.h"
@@ -39,9 +38,7 @@
 #include "linux/DllBCM.h"
 #include "cores/VideoRenderers/RenderManager.h"
 
-using namespace std;
-
-class OMXPlayerVideo : public CThread
+class OMXPlayerVideo : public CThread, public IDVDStreamPlayerVideo
 {
 protected:
   CDVDMessageQueue          m_messageQueue;
@@ -67,9 +64,11 @@ protected:
   float                     m_fForcedAspectRatio;
   unsigned                  m_flags;
 
+  CRect                     m_src_rect;
   CRect                     m_dst_rect;
-  int                       m_view_mode;
-
+  RENDER_STEREO_MODE        m_video_stereo_mode;
+  RENDER_STEREO_MODE        m_display_stereo_mode;
+  bool                      m_StereoInvert;
   uint32_t                  m_history_valid_pts;
   DllBcmHost                m_DllBcmHost;
 
@@ -80,6 +79,7 @@ protected:
 
   void ProcessOverlays(double pts);
   double NextOverlay(double pts);
+  bool OpenStream(CDVDStreamInfo &hints, COMXVideo *codec);
 
   virtual void OnStartup();
   virtual void OnExit();
@@ -89,17 +89,17 @@ public:
   OMXPlayerVideo(OMXClock *av_clock, CDVDOverlayContainer* pOverlayContainer, CDVDMessageQueue& parent);
   ~OMXPlayerVideo();
   bool OpenStream(CDVDStreamInfo &hints);
-  bool OpenStream(CDVDStreamInfo &hints, COMXVideo *codec);
   void SendMessage(CDVDMsg* pMsg, int priority = 0) { m_messageQueue.Put(pMsg, priority); }
   bool AcceptsData() const                          { return !m_messageQueue.IsFull(); }
   bool HasData() const                              { return m_messageQueue.GetDataSize() > 0; }
   bool IsInited() const                             { return m_messageQueue.IsInited(); }
   void WaitForBuffers()                             { m_messageQueue.WaitUntilEmpty(); }
   int  GetLevel() const                             { return m_messageQueue.GetLevel(); }
-  bool IsStalled()                                  { return m_stalled;  }
+  bool IsStalled() const                            { return m_stalled;  }
   bool IsEOS();
-  bool CloseStream(bool bWaitForBuffers);
+  void CloseStream(bool bWaitForBuffers);
   void Output(double pts, bool bDropPacket);
+  bool StepFrame();
   void Flush();
   bool OpenDecoder();
   int  GetDecoderBufferSize();
@@ -107,12 +107,13 @@ public:
   double GetCurrentPts() { return m_iCurrentPts; };
   double GetFPS() { return m_fFrameRate; };
   void  SubmitEOS();
-  bool SubmittedEOS();
+  bool SubmittedEOS() const { return m_omxVideo.SubmittedEOS(); }
   void SetDelay(double delay) { m_iVideoDelay = delay; }
   double GetDelay() { return m_iVideoDelay; }
   void SetSpeed(int iSpeed);
   std::string GetPlayerInfo();
   int GetVideoBitrate();
+  std::string GetStereoMode();
   double GetOutputDelay();
   double GetSubtitleDelay()                         { return m_iSubtitleDelay; }
   void SetSubtitleDelay(double delay)               { m_iSubtitleDelay = delay; }
@@ -123,8 +124,9 @@ public:
   void SetFlags(unsigned flags)                     { m_flags = flags; };
   int GetFreeSpace();
   void  SetVideoRect(const CRect &SrcRect, const CRect &DestRect);
+  void GetVideoRect(CRect& SrcRect, CRect& DestRect) const { g_renderManager.GetVideoRect(SrcRect, DestRect); }
   static void RenderUpdateCallBack(const void *ctx, const CRect &SrcRect, const CRect &DestRect);
-  void ResolutionUpdateCallBack(uint32_t width, uint32_t height, float pixel_aspect);
-  static void ResolutionUpdateCallBack(void *ctx, uint32_t width, uint32_t height, float pixel_aspect);
+  void ResolutionUpdateCallBack(uint32_t width, uint32_t height, float framerate, float pixel_aspect);
+  static void ResolutionUpdateCallBack(void *ctx, uint32_t width, uint32_t height, float framerate, float pixel_aspect);
 };
 #endif

@@ -115,16 +115,16 @@ bool CPeripheralBusUSB::PerformDeviceScan(PeripheralScanResults &results)
   devices = udev_enumerate_get_list_entry(enumerate);
 
   bool bContinue(true);
-  CStdString strPath, strClass;
+  std::string strPath, strClass;
   udev_list_entry_foreach(dev_list_entry, devices)
   {
     strPath = udev_list_entry_get_name(dev_list_entry);
-    if (strPath.IsEmpty())
+    if (strPath.empty())
       bContinue = false;
 
     if (bContinue)
     {
-      if (!(parent = udev_device_new_from_syspath(m_udev, strPath)))
+      if (!(parent = udev_device_new_from_syspath(m_udev, strPath.c_str())))
         bContinue = false;
     }
 
@@ -138,7 +138,7 @@ bool CPeripheralBusUSB::PerformDeviceScan(PeripheralScanResults &results)
     if (bContinue)
     {
       strClass = udev_device_get_sysattr_value(dev, "bDeviceClass");
-      if (strClass.IsEmpty())
+      if (strClass.empty())
         bContinue = false;
     }
 

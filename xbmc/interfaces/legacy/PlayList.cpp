@@ -80,7 +80,7 @@ namespace XBMCAddon
 
         // load a playlist like .m3u, .pls
         // first get correct factory to load playlist
-        std::auto_ptr<CPlayList> pPlayList (CPlayListFactory::Create(item));
+        std::unique_ptr<CPlayList> pPlayList (CPlayListFactory::Create(item));
         if ( NULL != pPlayList.get())
         {
           // load it
@@ -95,7 +95,7 @@ namespace XBMCAddon
           for (int i=0; i < (int)pPlayList->size(); ++i)
           {
             CFileItemPtr playListItem =(*pPlayList)[i];
-            if (playListItem->GetLabel().IsEmpty())
+            if (playListItem->GetLabel().empty())
               playListItem->SetLabel(URIUtils::GetFileName(playListItem->GetPath()));
 
             this->pPlayList->Add(playListItem);

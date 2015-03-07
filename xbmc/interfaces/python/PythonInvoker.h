@@ -29,7 +29,7 @@
 class CPythonInvoker : public ILanguageInvoker
 {
 public:
-  CPythonInvoker(ILanguageInvocationHandler *invocationHandler);
+  explicit CPythonInvoker(ILanguageInvocationHandler *invocationHandler);
   virtual ~CPythonInvoker();
 
   virtual bool Execute(const std::string &script, const std::vector<std::string> &arguments = std::vector<std::string>());
@@ -41,6 +41,7 @@ public:
 protected:
   // implementation of ILanguageInvoker
   virtual bool execute(const std::string &script, const std::vector<std::string> &arguments);
+  virtual void executeScript(void *fp, const std::string &script, void *module, void *moduleDict);
   virtual bool stop(bool abort);
   virtual void onExecutionFailed();
 
@@ -54,9 +55,9 @@ protected:
 
   virtual void onSuccess() { }
   virtual void onAbort() { }
-  virtual void onError();
+  virtual void onError(const std::string &exceptionType = "", const std::string &exceptionValue = "", const std::string &exceptionTraceback = "");
 
-  char *m_source;
+  std::string m_sourceFile;
   unsigned int  m_argc;
   char **m_argv;
   CCriticalSection m_critical;
@@ -64,7 +65,9 @@ protected:
 private:
   void initializeModules(const std::map<std::string, PythonModuleInitialization> &modules);
   bool initializeModule(PythonModuleInitialization module);
-  void addPath(const std::string& path);
+  void addPath(const std::string& path); // add path in UTF-8 encoding
+  void addNativePath(const std::string& path); // add path in system/Python encoding
+  void getAddonModuleDeps(const ADDON::AddonPtr& addon, std::set<std::string>& paths);
 
   std::string m_pythonPath;
   void *m_threadState;

@@ -27,6 +27,7 @@
 #include "FileItem.h"
 #include "utils/log.h"
 #include "utils/URIUtils.h"
+#include "utils/StringUtils.h"
 
 namespace XFILE
 {
@@ -58,16 +59,14 @@ CDAAPDirectory::~CDAAPDirectory(void)
   m_currentSongItems = NULL;
 }
 
-bool CDAAPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items)
+bool CDAAPDirectory::GetDirectory(const CURL& url, CFileItemList &items)
 {
-  CURL url(strPath);
-
-  CStdString strRoot = strPath;
+  std::string strRoot = url.Get();
   URIUtils::AddSlashAtEnd(strRoot);
 
-  CStdString host = url.GetHostName();
+  std::string host = url.GetHostName();
   if (url.HasPort())
-    host.Format("%s:%i",url.GetHostName(),url.GetPort());
+    host = StringUtils::Format("%s:%i", url.GetHostName().c_str(), url.GetPort());
   m_thisHost = g_DaapClient.GetHost(host);
   if (!m_thisHost)
     return false;
@@ -102,7 +101,7 @@ bool CDAAPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &item
     {
       for (int c = 0; c < m_thisHost->dbplaylists->nPlaylists; c++)
       {
-        CStdString strFile;
+        std::string strFile;
         //size_t strLen;
 
         // we use UTF-8 internally, so no need to convert
@@ -137,7 +136,7 @@ bool CDAAPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &item
         // if selected playlist name == d/b name then show in artist/album/song formation
         if (strcmp(m_thisHost->databases[0].name, m_thisHost->dbplaylists->playlists[c].itemname) == 0)
         {
-          CStdString strBuffer;
+          std::string strBuffer;
           artistPTR *cur = m_artisthead;
           while (cur)
           {
@@ -176,26 +175,26 @@ bool CDAAPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &item
               CLog::Log(LOGDEBUG, "DAAPDirectory: Adding item %s", m_currentSongItems[idx].itemname);
               CFileItemPtr pItem(new CFileItem(m_currentSongItems[idx].itemname));
 
-              CStdString path;
+              std::string path;
               if( m_thisHost->version_major != 3 )
               {
-                path.Format(REQUEST42,
-                                        m_thisHost->host,
-                                        g_DaapClient.m_iDatabase,
-                                        m_currentSongItems[idx].id,
-                                        m_currentSongItems[idx].songformat,
-                                        m_thisHost->sessionid,
-                                        m_thisHost->revision_number);
+                path = StringUtils::Format(REQUEST42,
+                                           m_thisHost->host,
+                                           g_DaapClient.m_iDatabase,
+                                           m_currentSongItems[idx].id,
+                                           m_currentSongItems[idx].songformat,
+                                           m_thisHost->sessionid,
+                                           m_thisHost->revision_number);
 
               }
               else
               {
-                path.Format(REQUEST45,
-                                        m_thisHost->host,
-                                        g_DaapClient.m_iDatabase,
-                                        m_currentSongItems[idx].id,
-                                        m_currentSongItems[idx].songformat,
-                                        m_thisHost->sessionid);
+                path = StringUtils::Format(REQUEST45,
+                                           m_thisHost->host,
+                                           g_DaapClient.m_iDatabase,
+                                           m_currentSongItems[idx].id,
+                                           m_currentSongItems[idx].songformat,
+                                           m_thisHost->sessionid);
               }
 
               pItem->SetPath(path);
@@ -206,11 +205,7 @@ bool CDAAPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &item
               pItem->GetMusicInfoTag()->SetTitle(m_currentSongItems[idx].itemname);
               pItem->GetMusicInfoTag()->SetArtist(m_currentSongItems[idx].songartist);
               pItem->GetMusicInfoTag()->SetAlbum(m_currentSongItems[idx].songalbum);
-
-              //pItem->m_musicInfoTag.SetTrackNumber(m_currentSongItems[idx].songtracknumber);
               pItem->GetMusicInfoTag()->SetTrackNumber(m_thisHost->dbplaylists->playlists[c].items[j].songid);
-              //pItem->m_musicInfoTag.SetTrackNumber(j+1);
-              //pItem->m_musicInfoTag.SetPartOfSet(m_currentSongItems[idx].songdiscnumber);
               pItem->GetMusicInfoTag()->SetDuration((int) (m_currentSongItems[idx].songtime / 1000));
               pItem->GetMusicInfoTag()->SetLoaded(true);
 
@@ -264,26 +259,26 @@ bool CDAAPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &item
             CLog::Log(LOGDEBUG, "DAAPDirectory: Adding item %s", m_currentSongItems[c].itemname);
             CFileItemPtr pItem(new CFileItem(m_currentSongItems[c].itemname));
 
-            CStdString path;
+            std::string path;
             if( m_thisHost->version_major != 3 )
             {
-              path.Format(REQUEST42,
-                                      m_thisHost->host,
-                                      g_DaapClient.m_iDatabase,
-                                      m_currentSongItems[c].id,
-                                      m_currentSongItems[c].songformat,
-                                      m_thisHost->sessionid,
-                                      m_thisHost->revision_number);
+              path = StringUtils::Format(REQUEST42,
+                                         m_thisHost->host,
+                                         g_DaapClient.m_iDatabase,
+                                         m_currentSongItems[c].id,
+                                         m_currentSongItems[c].songformat,
+                                         m_thisHost->sessionid,
+                                         m_thisHost->revision_number);
 
             }
             else
             {
-              path.Format(REQUEST45,
-                                      m_thisHost->host,
-                                      g_DaapClient.m_iDatabase,
-                                      m_currentSongItems[c].id,
-                                      m_currentSongItems[c].songformat,
-                                      m_thisHost->sessionid);
+              path = StringUtils::Format(REQUEST45,
+                                         m_thisHost->host,
+                                         g_DaapClient.m_iDatabase,
+                                         m_currentSongItems[c].id,
+                                         m_currentSongItems[c].songformat,
+                                         m_thisHost->sessionid);
             }
 
             pItem->SetPath(path);
@@ -297,7 +292,7 @@ bool CDAAPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &item
             pItem->GetMusicInfoTag()->SetAlbum(m_selectedAlbum);
 
             pItem->GetMusicInfoTag()->SetTrackNumber(m_currentSongItems[c].songtracknumber);
-            pItem->GetMusicInfoTag()->SetPartOfSet(m_currentSongItems[c].songdiscnumber);
+            pItem->GetMusicInfoTag()->SetDiscNumber(m_currentSongItems[c].songdiscnumber);
             pItem->GetMusicInfoTag()->SetDuration((int) (m_currentSongItems[c].songtime / 1000));
             pItem->GetMusicInfoTag()->SetLoaded(true);
 
@@ -399,17 +394,17 @@ void CDAAPDirectory::AddToArtistAlbum(char *artist_s, char *album_s)
   }
 }
 
-int CDAAPDirectory::GetCurrLevel(CStdString strPath)
+int CDAAPDirectory::GetCurrLevel(const std::string &strPath)
 {
-  int intSPos;
-  int intEPos;
+  size_t intSPos;
+  size_t intEPos;
   int intLevel;
   int intCnt;
-  CStdString strJustPath;
+  std::string strJustPath;
 
-  intSPos = strPath.Find("://");
-  if (intSPos > -1)
-    strJustPath = strPath.Right(strPath.size() - (intSPos + 3));
+  intSPos = strPath.find("://");
+  if (intSPos != std::string::npos)
+    strJustPath = strPath.substr(intSPos + 3);
   else
     strJustPath = strPath;
 
@@ -417,10 +412,10 @@ int CDAAPDirectory::GetCurrLevel(CStdString strPath)
 
   intLevel = -1;
   intSPos = strPath.length();
-  while (intSPos > -1)
+  while (intSPos != std::string::npos)
   {
-    intSPos = strJustPath.ReverseFind("/", intSPos);
-    if (intSPos > -1) intLevel ++;
+    intSPos = strJustPath.rfind("/", intSPos);
+    if (intSPos != std::string::npos) intLevel++;
     intSPos -= 2;
   }
 
@@ -431,8 +426,8 @@ int CDAAPDirectory::GetCurrLevel(CStdString strPath)
   intEPos = (strJustPath.length() - 1);
   while (intCnt >= 0)
   {
-    intSPos = strJustPath.ReverseFind("/", intEPos);
-    if (intSPos > -1)
+    intSPos = strJustPath.rfind("/", intEPos);
+    if (intSPos != std::string::npos)
     {
       if (intCnt == 2)  // album
       {

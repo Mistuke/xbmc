@@ -25,6 +25,8 @@
 #include "settings/Settings.h"
 #include "utils/log.h"
 
+#include <algorithm>
+
 #include "cores/AudioEngine/AEFactory.h"
 
 CDVDAudioCodecPassthrough::CDVDAudioCodecPassthrough(void) :
@@ -40,29 +42,11 @@ CDVDAudioCodecPassthrough::~CDVDAudioCodecPassthrough(void)
 
 bool CDVDAudioCodecPassthrough::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options)
 {
-  /* dont open if AE doesnt support RAW */
-  if (!CAEFactory::SupportsRaw())
-    return false;
-
-  bool bSupportsAC3Out    = false;
-  bool bSupportsEAC3Out   = false;
-  bool bSupportsDTSOut    = false;
-  bool bSupportsTrueHDOut = false;
-  bool bSupportsDTSHDOut  = false;
-
-  int audioMode = CSettings::Get().GetInt("audiooutput.mode");
-  if (AUDIO_IS_BITSTREAM(audioMode))
-  {
-    bSupportsAC3Out = CSettings::Get().GetBool("audiooutput.ac3passthrough");
-    bSupportsEAC3Out = CSettings::Get().GetBool("audiooutput.eac3passthrough");
-    bSupportsDTSOut = CSettings::Get().GetBool("audiooutput.dtspassthrough");
-  }
-
-  if (audioMode == AUDIO_HDMI)
-  {
-    bSupportsTrueHDOut = CSettings::Get().GetBool("audiooutput.truehdpassthrough");
-    bSupportsDTSHDOut  = CSettings::Get().GetBool("audiooutput.dtshdpassthrough" ) && bSupportsDTSOut;
-  }
+  bool bSupportsAC3Out    = CAEFactory::SupportsRaw(AE_FMT_AC3, hints.samplerate);
+  bool bSupportsEAC3Out   = CAEFactory::SupportsRaw(AE_FMT_EAC3, 192000);
+  bool bSupportsDTSOut    = CAEFactory::SupportsRaw(AE_FMT_DTS, hints.samplerate);
+  bool bSupportsTrueHDOut = CAEFactory::SupportsRaw(AE_FMT_TRUEHD, 192000);
+  bool bSupportsDTSHDOut  = CAEFactory::SupportsRaw(AE_FMT_DTSHD, 192000);
 
   /* only get the dts core from the parser if we don't support dtsHD */
   m_info.SetCoreOnly(!bSupportsDTSHDOut);

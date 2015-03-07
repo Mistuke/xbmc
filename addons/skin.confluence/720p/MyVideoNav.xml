@@ -4,7 +4,7 @@
 	<allowoverlay>no</allowoverlay>
 	<views>50,51,500,550,551,560,501,508,504,503,515,505,511</views>
 	<onload condition="!Skin.HasSetting(FirstTimeRun)">ActivateWindow(1112)</onload>
-	<onload condition="Skin.HasSetting(ActivateTvTunes) + System.HasAddon(script.tvtunes)">XBMC.RunScript(script.tvtunes,backend=True&amp;loop=False)</onload>
+	<onload condition="Skin.HasSetting(ActivateTvTunes) + System.HasAddon(script.tvtunes)">RunScript(script.tvtunes,backend=True)</onload>
 	<controls>
 		<include>CommonBackground</include>
 		<include>ContentPanelBackgrounds</include>
@@ -31,16 +31,16 @@
 		<include>ScrollOffsetLabel</include>
 		<control type="image">
 			<description>Section header image</description>
-			<posx>20</posx>
-			<posy>3</posy>
+			<left>20</left>
+			<top>3</top>
 			<width>35</width>
 			<height>35</height>
 			<aspectratio>keep</aspectratio>
 			<texture>icon_video.png</texture>
 		</control>
 		<control type="grouplist">
-			<posx>65</posx>
-			<posy>5</posy>
+			<left>65</left>
+			<top>5</top>
 			<width>1000</width>
 			<height>30</height>
 			<orientation>horizontal</orientation>
@@ -57,11 +57,11 @@
 			</control>
 		</control>
 		<control type="group">
-			<posx>-250</posx>
+			<left>-250</left>
 			<include>SideBladeLeft</include>
 			<control type="grouplist" id="9000">
-				<posx>0</posx>
-				<posy>60</posy>
+				<left>0</left>
+				<top>60</top>
 				<width>250</width>
 				<height>650</height>
 				<onleft>9000</onleft>
@@ -155,7 +155,7 @@
 					<textwidth>170</textwidth>
 					<include>ButtonCommonValues</include>
 					<label>20336</label>
-					<onclick>xbmc.mastermode</onclick>
+					<onclick>mastermode</onclick>
 					<selected>system.ismaster</selected>
 					<visible>system.haslocks</visible>
 				</control>
@@ -170,6 +170,7 @@
 				</control>
 				<control type="togglebutton" id="20">
 					<description>Update library</description>
+					<textwidth>235</textwidth>
 					<include>ButtonCommonValues</include>
 					<label>653</label>
 					<altlabel>13353</altlabel>

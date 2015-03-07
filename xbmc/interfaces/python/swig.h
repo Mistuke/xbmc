@@ -24,7 +24,6 @@
 #include <string>
 #include <stdint.h>
 
-#include "utils/StdString.h"
 #include "interfaces/legacy/Exception.h"
 #include "interfaces/legacy/AddonClass.h"
 #include "interfaces/legacy/Window.h"
@@ -33,6 +32,16 @@
 
 namespace PythonBindings
 {
+  /**
+   * This call will convert the python object passed to a string. The object
+   * passed must be a python str or unicode object unless coerceToString is
+   * true. If coerceToString is true then the type must be castable to a string
+   * using the python call str(pObject).
+   *
+   * This method will handle a 'None' that's passed in. If 'None' is passed then
+   * the resulting buf will contain the value of XBMCAddon::emptyString (which 
+   * is simply a std::string instantiated with the default constructor.
+   */
   void PyXBMCGetUnicodeString(std::string& buf, PyObject* pObject, bool coerceToString = false,
                               const char* pos = "unknown", 
                               const char* methodname = "unknown") throw (XBMCAddon::WrongTypeException);
@@ -171,6 +180,12 @@ namespace PythonBindings
      *  obtained. It will also clear the python message.
      */
     PythonToCppException();
+    PythonToCppException(const std::string &exceptionType, const std::string &exceptionValue, const std::string &exceptionTraceback);
+
+    static bool ParsePythonException(std::string &exceptionType, std::string &exceptionValue, std::string &exceptionTraceback);
+
+  protected:
+    void SetMessage(const std::string &exceptionType, const std::string &exceptionValue, const std::string &exceptionTraceback);
   };
 
   template<class T> struct PythonCompare

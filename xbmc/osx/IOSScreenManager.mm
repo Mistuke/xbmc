@@ -29,6 +29,8 @@
 #include "Application.h"
 #include "WindowingFactory.h"
 #include "settings/DisplaySettings.h"
+#include "cores/AudioEngine/AEFactory.h"
+#include "osx/DarwinUtils.h"
 #undef BOOL
 
 #import <Foundation/Foundation.h>
@@ -36,7 +38,7 @@
 
 #import "IOSScreenManager.h"
 #if defined(TARGET_DARWIN_IOS_ATV2)
-#import "xbmc/osx/atv2/XBMCController.h"
+#import "xbmc/osx/atv2/KodiController.h"
 #elif defined(TARGET_DARWIN_IOS)
 #import "xbmc/osx/ios/XBMCController.h"
 #endif
@@ -53,6 +55,7 @@ static CEvent screenChangeEvent;
 @synthesize _screenIdx;
 @synthesize _externalScreen;
 @synthesize _glView;
+@synthesize _lastTouchControllerOrientation;
 
 //--------------------------------------------------------------
 - (void) fadeFromBlack:(CGFloat) delaySecs
@@ -70,7 +73,20 @@ static CEvent screenChangeEvent;
 - (void) setScreen:(unsigned int) screenIdx withMode:(UIScreenMode *)mode
 {
     UIScreen *newScreen = [[UIScreen screens] objectAtIndex:screenIdx];
-    bool toExternal = _screenIdx == 0 && _screenIdx != screenIdx;
+    bool toExternal = false;
+
+    // current screen is main screen and new screen
+    // is different
+    if (_screenIdx == 0 && _screenIdx != screenIdx)
+      toExternal = true;
+
+    // current screen is not main screen
+    // and new screen is the same as current
+    // this means we are external already but
+    // for example resolution gets changed
+    // treat this as toExternal for proper rotation...
+    if (_screenIdx != 0 && _screenIdx == screenIdx)
+      toExternal = true;
 
     //set new screen mode
     [newScreen setCurrentMode:mode];
@@ -90,7 +106,26 @@ static CEvent screenChangeEvent;
 
     [_glView setScreen:newScreen withFrameBufferResize:TRUE];//will also resize the framebuffer
 
-    [g_xbmcController activateScreen:newScreen];// will attach the screen to xbmc mainwindow
+    if (toExternal)
+    {
+      // portrait on external screen means its landscape for xbmc
+#if __IPHONE_8_0
+      if (CDarwinUtils::GetIOSVersion() >= 8.0)
+        [g_xbmcController activateScreen:newScreen withOrientation:UIInterfaceOrientationLandscapeLeft];// will attach the screen to xbmc mainwindow
+      else
+#endif
+        [g_xbmcController activateScreen:newScreen withOrientation:UIInterfaceOrientationPortrait];// will attach the screen to xbmc mainwindow
+    }
+    else
+    {
+#if __IPHONE_8_0
+      if (CDarwinUtils::GetIOSVersion() >= 8.0)
+        [g_xbmcController activateScreen:newScreen withOrientation:UIInterfaceOrientationPortrait];// will attach the screen to xbmc mainwindow
+      else
+#endif
+      // switching back to internal - use same orientation as we used for the touch controller
+      [g_xbmcController activateScreen:newScreen withOrientation:_lastTouchControllerOrientation];// will attach the screen to xbmc mainwindow
+    }
 
     if(toExternal)//changing the external screen might need some time ...
     {
@@ -142,6 +177,7 @@ static CEvent screenChangeEvent;
 
   if([self willSwitchToInternal:screenIdx] && _externalTouchController != nil)
   {
+    _lastTouchControllerOrientation = [_externalTouchController interfaceOrientation];
     [_externalTouchController release];
     _externalTouchController = nil;
   }
@@ -194,6 +230,10 @@ static CEvent screenChangeEvent;
   {
     [self changeScreenSelector:dict];
   }
+
+  // re-enumerate audio devices in that case too
+  // as we might gain passthrough capabilities via HDMI
+  CAEFactory::DeviceChange();
   return true;
 }
 //--------------------------------------------------------------
@@ -228,11 +268,17 @@ static CEvent screenChangeEvent;
   res.size = [brwin interfaceFrame].size;
 #endif
 #else
-  //main screen is in portrait mode (physically) so exchange height and width
-  if(screen == [UIScreen mainScreen])
+  #if __IPHONE_8_0
+  if (CDarwinUtils::GetIOSVersion() < 8.0)
+  #endif
   {
-    CGRect frame = res;
-    res.size = CGSizeMake(frame.size.height, frame.size.width);
+    //main screen is in portrait mode (physically) so exchange height and width
+    //at least when compiled with ios sdk < 8.0 (seems to be fixed in later sdks)
+    if(screen == [UIScreen mainScreen])
+    {
+      CGRect frame = res;
+      res.size = CGSizeMake(frame.size.height, frame.size.width);
+    }
   }
 #endif
   return res;

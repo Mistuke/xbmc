@@ -19,7 +19,9 @@
  */
 
 #include "GUISpinControl.h"
-#include "Key.h"
+#include "input/Key.h"
+#include "utils/StringUtils.h"
+#include <stdio.h>
 
 using namespace std;
 
@@ -253,6 +255,17 @@ bool CGUISpinControl::OnMessage(CGUIMessage& message)
         m_bShowRange = false;
       break;
 
+    case GUI_MSG_SET_LABELS:
+      if (message.GetPointer())
+      {
+        const vector< pair<string, int> > *labels = (const vector< pair<string, int> > *)message.GetPointer();
+        Clear();
+        for (vector< pair<string, int> >::const_iterator i = labels->begin(); i != labels->end(); ++i)
+          AddLabel(i->first, i->second);
+        SetValue( message.GetParam1());
+      }
+      break;
+
     case GUI_MSG_LABEL_ADD:
       {
         AddLabel(message.GetLabel(), message.GetParam1());
@@ -358,17 +371,17 @@ void CGUISpinControl::Process(unsigned int currentTime, CDirtyRegionList &dirtyr
     strcpy(m_szTyped, "");
   }
 
-  CStdString text;
+  std::string text;
 
   if (m_iType == SPIN_CONTROL_TYPE_INT)
   {
     if (m_bShowRange)
     {
-      text.Format("%i/%i", m_iValue, m_iEnd);
+      text = StringUtils::Format("%i/%i", m_iValue, m_iEnd);
     }
     else
     {
-      text.Format("%i", m_iValue);
+      text = StringUtils::Format("%i", m_iValue);
     }
   }
   else if (m_iType == SPIN_CONTROL_TYPE_PAGE)
@@ -378,17 +391,17 @@ void CGUISpinControl::Process(unsigned int currentTime, CDirtyRegionList &dirtyr
     int currentPage = m_currentItem / m_itemsPerPage + 1;
     if (m_currentItem >= m_numItems - m_itemsPerPage)
       currentPage = numPages;
-    text.Format("%i/%i", currentPage, numPages);
+    text = StringUtils::Format("%i/%i", currentPage, numPages);
   }
   else if (m_iType == SPIN_CONTROL_TYPE_FLOAT)
   {
     if (m_bShowRange)
     {
-      text.Format("%02.2f/%02.2f", m_fValue, m_fEnd);
+      text = StringUtils::Format("%02.2f/%02.2f", m_fValue, m_fEnd);
     }
     else
     {
-      text.Format("%02.2f", m_fValue);
+      text = StringUtils::Format("%02.2f", m_fValue);
     }
   }
   else
@@ -397,14 +410,14 @@ void CGUISpinControl::Process(unsigned int currentTime, CDirtyRegionList &dirtyr
     {
       if (m_bShowRange)
       {
-        text.Format("(%i/%i) %s", m_iValue + 1, (int)m_vecLabels.size(), CStdString(m_vecLabels[m_iValue]).c_str() );
+        text = StringUtils::Format("(%i/%i) %s", m_iValue + 1, (int)m_vecLabels.size(), std::string(m_vecLabels[m_iValue]).c_str() );
       }
       else
       {
-        text.Format("%s", CStdString(m_vecLabels[m_iValue]).c_str() );
+        text = StringUtils::Format("%s", std::string(m_vecLabels[m_iValue]).c_str() );
       }
     }
-    else text.Format("?%i?", m_iValue);
+    else text = StringUtils::Format("?%i?", m_iValue);
 
   }
 
@@ -426,6 +439,7 @@ void CGUISpinControl::Process(unsigned int currentTime, CDirtyRegionList &dirtyr
   changed |= m_imgspinDown.Process(currentTime);
   changed |= m_imgspinUp.Process(currentTime);
   changed |= m_imgspinUpFocus.Process(currentTime);
+  changed |= m_label.Process(currentTime);
 
   if (changed)
     MarkDirtyRegion();
@@ -499,7 +513,7 @@ void CGUISpinControl::SetFloatRange(float fStart, float fEnd)
   m_fEnd = fEnd;
 }
 
-void CGUISpinControl::SetValueFromLabel(const CStdString &label)
+void CGUISpinControl::SetValueFromLabel(const std::string &label)
 {
   if (m_iType == SPIN_CONTROL_TYPE_TEXT)
   {
@@ -945,11 +959,9 @@ EVENT_RESULT CGUISpinControl::OnMouseEvent(const CPoint &point, const CMouseEven
   return EVENT_RESULT_UNHANDLED;
 }
 
-CStdString CGUISpinControl::GetDescription() const
+std::string CGUISpinControl::GetDescription() const
 {
-  CStdString strLabel;
-  strLabel.Format("%i/%i", 1 + GetValue(), GetMaximum());
-  return strLabel;
+  return StringUtils::Format("%i/%i", 1 + GetValue(), GetMaximum());
 }
 
 bool CGUISpinControl::IsFocusedOnUp() const

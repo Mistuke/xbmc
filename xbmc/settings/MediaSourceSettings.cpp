@@ -324,7 +324,7 @@ bool CMediaSourceSettings::GetSource(const std::string &category, const TiXmlNod
   {
     if (pPathName->FirstChild())
     {
-      CStdString strPath = pPathName->FirstChild()->ValueStr();
+      std::string strPath = pPathName->FirstChild()->ValueStr();
 
       // make sure there are no virtualpaths or stack paths defined in sources.xml
       if (!URIUtils::IsStack(strPath))
@@ -355,7 +355,7 @@ bool CMediaSourceSettings::GetSource(const std::string &category, const TiXmlNod
   if (strName.empty() || vecPaths.empty())
     return false;
 
-  vector<CStdString> verifiedPaths;
+  vector<string> verifiedPaths;
   // disallowed for files, or theres only a single path in the vector
   if (StringUtils::EqualsNoCase(category, "files") || vecPaths.size() == 1)
     verifiedPaths.push_back(vecPaths[0]);
@@ -366,14 +366,13 @@ bool CMediaSourceSettings::GetSource(const std::string &category, const TiXmlNod
     for (vector<string>::const_iterator path = vecPaths.begin(); path != vecPaths.end(); ++path)
     {
       CURL url(*path);
-      string protocol = url.GetProtocol();
       bool bIsInvalid = false;
 
       // for my programs
       if (StringUtils::EqualsNoCase(category, "programs") || StringUtils::EqualsNoCase(category, "myprograms"))
       {
         // only allow HD and plugins
-        if (url.IsLocal() || StringUtils::EqualsNoCase(protocol, "plugin"))
+        if (url.IsLocal() || url.IsProtocol("plugin"))
           verifiedPaths.push_back(*path);
         else
           bIsInvalid = true;

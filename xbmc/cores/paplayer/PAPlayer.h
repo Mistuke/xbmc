@@ -46,7 +46,7 @@ public:
   virtual bool OpenFile(const CFileItem& file, const CPlayerOptions &options);
   virtual bool QueueNextFile(const CFileItem &file);
   virtual void OnNothingToQueueNotify();
-  virtual bool CloseFile();
+  virtual bool CloseFile(bool reopen = false);
   virtual bool IsPlaying() const;
   virtual void Pause();
   virtual bool IsPaused() const;
@@ -58,20 +58,19 @@ public:
   virtual float GetPercentage();
   virtual void SetVolume(float volume);
   virtual void SetDynamicRangeCompression(long drc);
-  virtual void GetAudioInfo( CStdString& strAudioInfo) {}
-  virtual void GetVideoInfo( CStdString& strVideoInfo) {}
-  virtual void GetGeneralInfo( CStdString& strVideoInfo) {}
+  virtual void GetAudioInfo( std::string& strAudioInfo) {}
+  virtual void GetVideoInfo( std::string& strVideoInfo) {}
+  virtual void GetGeneralInfo( std::string& strVideoInfo) {}
   virtual void ToFFRW(int iSpeed = 0);
   virtual int GetCacheLevel() const;
   virtual int64_t GetTotalTime();
   virtual void GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info);
-  virtual int GetBitsPerSample();
-  virtual int GetSampleRate();
   virtual int64_t GetTime();
   virtual void SeekTime(int64_t iTime = 0);
   virtual bool SkipNext();
+  virtual void GetAudioCapabilities(std::vector<int> &audioCaps) {}
 
-  static bool HandlesType(const CStdString &type);
+  static bool HandlesType(const std::string &type);
 
   virtual void OnJobComplete(unsigned int jobID, bool success, CJob *job);
 
@@ -149,9 +148,9 @@ private:
   void SoftStart(bool wait = false);
   void SoftStop(bool wait = false, bool close = true);
   void CloseAllStreams(bool fade = true);
-  void ProcessStreams(double &delay, double &buffer);
+  void ProcessStreams(double &freeBufferTime);
   bool PrepareStream(StreamInfo *si);
-  bool ProcessStream(StreamInfo *si, double &delay, double &buffer);
+  bool ProcessStream(StreamInfo *si, double &freeBufferTime);
   bool QueueData(StreamInfo *si);
   int64_t GetTotalTime64();
   void UpdateCrossfadeTime(const CFileItem& file);

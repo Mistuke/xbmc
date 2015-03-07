@@ -35,6 +35,8 @@
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
 #include "Util.h"
+#include "XbmcContext.h"
+#include "WindowingFactory.h"
 #undef BOOL
 
 #import <QuartzCore/QuartzCore.h>
@@ -43,7 +45,7 @@
 #import <OpenGLES/ES2/glext.h>
 #import "IOSEAGLView.h"
 #if defined(TARGET_DARWIN_IOS_ATV2)
-#import "xbmc/osx/atv2/XBMCController.h"
+#import "xbmc/osx/atv2/KodiController.h"
 #elif defined(TARGET_DARWIN_IOS)
 #import "xbmc/osx/ios/XBMCController.h"
 #endif
@@ -63,6 +65,7 @@
 @implementation IOSEAGLView
 @synthesize animating;
 @synthesize xbmcAlive;
+@synthesize readyToRun;
 @synthesize pause;
 @synthesize currentScreen;
 @synthesize framebufferResizeRequested;
@@ -97,11 +100,9 @@
   if(framebufferResizeRequested)
   {
     framebufferResizeRequested = FALSE;
-    [self deinitDisplayLink];
     [self deleteFramebuffer];
     [self createFramebuffer];
-    [self setFramebuffer];  
-    [self initDisplayLink];
+    [self setFramebuffer];
   }
 }
 
@@ -122,9 +123,16 @@
     //if no retina display scale detected yet -
     //ensure retina resolution on supported devices mainScreen
     //even on older iOS SDKs
-    if (ret == 1.0 && screen == [UIScreen mainScreen] && DarwinHasRetina())
+    double screenScale = 1.0;
+    if (ret == 1.0 && screen == [UIScreen mainScreen] && CDarwinUtils::DeviceHasRetina(screenScale))
     {
-      ret = 2.0;//all retina devices have a scale factor of 2.0
+      ret = screenScale;//set scale factor from our static list in case older SDKs report 1.0
+    }
+
+    // fix for ip6 plus which seems to report 2.0 when not compiled with ios8 sdk
+    if (CDarwinUtils::DeviceHasRetina(screenScale) && screenScale == 3.0)
+    {
+      ret = screenScale;
     }
   }
   return ret;
@@ -183,8 +191,6 @@
     [self setContext:context];
     [self createFramebuffer];
     [self setFramebuffer];
-
-		displayLink = nil;
   }
 
   return self;
@@ -318,14 +324,14 @@
 {
   PRINT_SIGNATURE();
   pause = TRUE;
-  g_application.SetInBackground(true);
+  g_application.SetRenderGUI(false);
 }
 //--------------------------------------------------------------
 - (void) resumeAnimation
 {
   PRINT_SIGNATURE();
   pause = FALSE;
-  g_application.SetInBackground(false);
+  g_application.SetRenderGUI(true);
 }
 //--------------------------------------------------------------
 - (void) startAnimation
@@ -341,7 +347,6 @@
       selector:@selector(runAnimation:)
       object:animationThreadLock];
     [animationThread start];
-    [self initDisplayLink];
 	}
 }
 //--------------------------------------------------------------
@@ -350,7 +355,6 @@
   PRINT_SIGNATURE();
 	if (animating && context)
 	{
-    [self deinitDisplayLink];
 		animating = FALSE;
     xbmcAlive = FALSE;
     if (!g_application.m_bStop)
@@ -367,7 +371,9 @@
 - (void) runAnimation:(id) arg
 {
   CCocoaAutoPool outerpool;
-  bool readyToRun = true;
+  // set up some xbmc specific relationships
+  XBMC::Context context;
+  readyToRun = true;
 
   // signal we are alive
   NSConditionLock* myLock = arg;
@@ -435,53 +441,6 @@
   [g_xbmcController enableSystemSleep];
   //[g_xbmcController applicationDidExit];
   exit(0);
-}
-
-//--------------------------------------------------------------
-- (void) runDisplayLink;
-{
-  NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
-
-  displayFPS = 1.0 / ([displayLink duration] * [displayLink frameInterval]);
-  if (animationThread && [animationThread isExecuting] == YES)
-  {
-    if (g_VideoReferenceClock.IsRunning())
-      g_VideoReferenceClock.VblankHandler(CurrentHostCounter(), displayFPS);
-  }
-  [pool release];
-}
-//--------------------------------------------------------------
-- (void) initDisplayLink
-{
-  //init with the appropriate display link for the
-  //used screen
-  bool external = currentScreen != [UIScreen mainScreen];
-  
-  if(external)
-  {
-    fprintf(stderr,"InitDisplayLink on external");
-  }
-  else
-  {
-    fprintf(stderr,"InitDisplayLink on internal");
-  }
-  
-  
-  displayLink = [currentScreen displayLinkWithTarget:self selector:@selector(runDisplayLink)];
-  [displayLink setFrameInterval:1];
-  [displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
-  displayFPS = 1.0 / ([displayLink duration] * [displayLink frameInterval]);
-}
-//--------------------------------------------------------------
-- (void) deinitDisplayLink
-{
-  [displayLink invalidate];
-  displayLink = nil;
-}
-//--------------------------------------------------------------
-- (double) getDisplayLinkFPS;
-{
-  return displayFPS;
 }
 //--------------------------------------------------------------
 @end

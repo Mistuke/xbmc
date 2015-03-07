@@ -37,8 +37,11 @@
 // but this allows for double/redundant or ambiguous mapping definition, e.g.
 // ASCII/unicode could be derived from scancodes, virtual keys, modifiers and/or other ASCII/unicode.
 
+#include <string>
+
 #include "windowing/XBMC_events.h"
-#include "guilib/Key.h"
+#include "input/Key.h"
+#include "input/XBMC_keyboard.h"
 
 class CKeyboardStat
 {
@@ -51,7 +54,7 @@ public:
   const CKey ProcessKeyDown(XBMC_keysym& keysym);
   void       ProcessKeyUp(void);
 
-  CStdString GetKeyName(int KeyID);
+  std::string GetKeyName(int KeyID);
 
 private:
   bool LookupSymAndUnicodePeripherals(XBMC_keysym &keysym, uint8_t *key, char *unicode);
@@ -59,7 +62,5 @@ private:
   XBMC_keysym m_lastKeysym;
   unsigned int m_lastKeyTime;
 };
-
-extern CKeyboardStat g_Keyboard;
 
 #endif

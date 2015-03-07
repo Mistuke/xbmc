@@ -19,8 +19,10 @@
  *
  */
 
+#include <algorithm>
 #include "system.h"
 #include "utils/log.h"
+#include <stdlib.h>
 
 /*
  Redbook   : CDDA
@@ -152,18 +154,15 @@ struct iso_dirtree *iso9660::ReadRecursiveDirFromSector( DWORD sector, const cha
 
 
 #ifdef _DEBUG_OUTPUT
-  CStdString strTmp;
-  strTmp.Format("******************   Adding dir : %s\r", path);
+  std::string strTmp;
+  strTmp = StringUtils::Format("******************   Adding dir : %s\r", path);
   OutputDebugString( strTmp.c_str() );
 #endif
 
   pDir = (struct iso_dirtree *)malloc(sizeof(struct iso_dirtree));
   if (!pDir)
-  {
-    OutputDebugString("out of memory");
-
     return NULL;
-  }
+
   pDir->next = NULL;
   pDir->path = NULL;
   pDir->name = NULL;
@@ -177,15 +176,12 @@ struct iso_dirtree *iso9660::ReadRecursiveDirFromSector( DWORD sector, const cha
 
   pCurr_dir_cache = (char*)malloc( 16*wSectorSize );
   if (!pCurr_dir_cache )
-  {
-    OutputDebugString("out of memory\n");
     return NULL;
-  }
 
   BOOL bResult = ::ReadFile( m_info.ISO_HANDLE, pCurr_dir_cache, wSectorSize, &lpNumberOfBytesRead, NULL );
   if (!bResult || lpNumberOfBytesRead != wSectorSize)
   {
-    OutputDebugString("unable to read\n");
+    CLog::Log(LOGERROR, "%s: unable to read", __FUNCTION__);
     free(pCurr_dir_cache);
     return NULL;
   }
@@ -198,15 +194,13 @@ struct iso_dirtree *iso9660::ReadRecursiveDirFromSector( DWORD sector, const cha
     free( pCurr_dir_cache );
     pCurr_dir_cache = (char*)malloc( 16 * from_733(isodir.size) );
     if (!pCurr_dir_cache )
-    {
-      OutputDebugString("out of memory\n");
       return NULL;
-    }
+
     ::SetFilePointer( m_info.ISO_HANDLE, wSectorSize * sector, 0, FILE_BEGIN );
     bResult = ::ReadFile( m_info.ISO_HANDLE, pCurr_dir_cache , curr_dirSize, &lpNumberOfBytesRead, NULL );
     if (!bResult || lpNumberOfBytesRead != curr_dirSize)
     {
-      OutputDebugString("unable to read\n");
+      CLog::Log(LOGERROR, "%s: unable to read", __FUNCTION__);
       free(pCurr_dir_cache);
       return NULL;
     }
@@ -220,10 +214,8 @@ struct iso_dirtree *iso9660::ReadRecursiveDirFromSector( DWORD sector, const cha
     {
       m_paths = (struct iso_directories *)malloc(sizeof(struct iso_directories));
       if (!m_paths )
-      {
-        OutputDebugString("out of memory\n");
         return NULL;
-      }
+
       m_paths->path = NULL;
       m_paths->dir = NULL;
       m_paths->next = NULL;
@@ -238,7 +230,7 @@ struct iso_dirtree *iso9660::ReadRecursiveDirFromSector( DWORD sector, const cha
   m_lastpath->next = ( struct iso_directories *)malloc( sizeof( struct iso_directories ) );
   if (!m_lastpath->next )
   {
-    OutputDebugString("out of memory\n");
+    free(pCurr_dir_cache);
     return NULL;
   }
 
@@ -248,9 +240,10 @@ struct iso_dirtree *iso9660::ReadRecursiveDirFromSector( DWORD sector, const cha
   m_lastpath->path = (char *)malloc(strlen(path) + 1);
   if (!m_lastpath->path )
   {
-    OutputDebugString("out of memory\n");
+    free(pCurr_dir_cache);
     return NULL;
   }
+
   strcpy( m_lastpath->path, path );
 
   while ( 1 )
@@ -298,10 +291,8 @@ struct iso_dirtree *iso9660::ReadRecursiveDirFromSector( DWORD sector, const cha
 
           pFile_Pointer->next = (struct iso_dirtree *)malloc(sizeof(struct iso_dirtree));
           if (!pFile_Pointer->next)
-          {
-            OutputDebugString("out of memory\n");
             break;
-          }
+
           m_vecDirsAndFiles.push_back(pFile_Pointer->next);
           pFile_Pointer = pFile_Pointer->next;
           pFile_Pointer->next = 0;
@@ -309,21 +300,22 @@ struct iso_dirtree *iso9660::ReadRecursiveDirFromSector( DWORD sector, const cha
           pFile_Pointer->path = (char *)malloc(strlen(path) + 1);
           if (!pFile_Pointer->path)
           {
-            OutputDebugString("out of memory");
+            free(pCurr_dir_cache);
             return NULL;
           }
+
           strcpy( pFile_Pointer->path, path );
           pFile_Pointer->name = (char *)malloc( temp_text.length() + 1);
           if (!pFile_Pointer->name)
           {
-            OutputDebugString("out of memory");
+            free(pCurr_dir_cache);
             return NULL;
           }
 
           strcpy( pFile_Pointer->name , temp_text.c_str());
 #ifdef _DEBUG_OUTPUT
-          //CStdString strTmp;
-          //strTmp.Format("adding sector : %X, File : %s     size = %u     pos = %x\r",sector,temp_text.c_str(), isodir.dwFileLengthLE, isodir.dwFileLocationLE );
+          //std::string strTmp;
+          //strTmp = StringUtils::Format("adding sector : %X, File : %s     size = %u     pos = %x\r",sector,temp_text.c_str(), isodir.dwFileLengthLE, isodir.dwFileLocationLE );
           //OutputDebugString( strTmp.c_str());
 #endif
 
@@ -387,10 +379,8 @@ struct iso_dirtree *iso9660::ReadRecursiveDirFromSector( DWORD sector, const cha
 
           pFile_Pointer->next = (struct iso_dirtree *)malloc(sizeof(struct iso_dirtree));
           if (!pFile_Pointer->next)
-          {
-            OutputDebugString("out of memory");
             return NULL;
-          }
+
           m_vecDirsAndFiles.push_back(pFile_Pointer->next);
           pFile_Pointer = pFile_Pointer->next;
           pFile_Pointer->next = 0;
@@ -398,17 +388,14 @@ struct iso_dirtree *iso9660::ReadRecursiveDirFromSector( DWORD sector, const cha
           pFile_Pointer->path = (char *)malloc(strlen(path) + 1);
 
           if (!pFile_Pointer->path)
-          {
-            OutputDebugString("out of memory");
             return NULL;
-          }
 
           strcpy( pFile_Pointer->path, path );
           pFile_Pointer->name = (char *)malloc( temp_text.length() + 1);
 
           if (!pFile_Pointer->name)
           {
-            OutputDebugString("out of memory");
+            free(pCurr_dir_cache);
             return NULL;
           }
 
@@ -416,8 +403,8 @@ struct iso_dirtree *iso9660::ReadRecursiveDirFromSector( DWORD sector, const cha
 
           DWORD dwFileLocation = from_733(isodir.extent);
 #ifdef _DEBUG_OUTPUT
-          CStdString strTmp;
-          strTmp.Format("adding directory sector : %X, File : %s     size = %u     pos = %x\r", sector, temp_text.c_str(), from_733(isodir.size), dwFileLocation );
+          std::string strTmp;
+          strTmp = StringUtils::Format("adding directory sector : %X, File : %s     size = %u     pos = %x\r", sector, temp_text.c_str(), from_733(isodir.size), dwFileLocation );
           OutputDebugString( strTmp.c_str());
 #endif
 
@@ -447,6 +434,7 @@ iso9660::iso9660( )
   m_hCDROM = NULL;
   m_lastpath = NULL;
   m_searchpointer = NULL;
+  m_paths = 0;
   Reset();
 }
 
@@ -493,7 +481,8 @@ void iso9660::Scan()
     WORD wSectorSize = from_723(m_info.iso.logical_block_size);
 
     // first check if first file in the current VD has a rock-ridge NM. if it has, disable joliet
-    ::SetFilePointer( m_info.ISO_HANDLE, wSectorSize * from_733(((iso9660_Directory*)(&m_info.iso.szRootDir))->extent), 0, FILE_BEGIN );
+    iso9660_Directory *dirPointer = reinterpret_cast<iso9660_Directory*>(&m_info.iso.szRootDir);
+    ::SetFilePointer( m_info.ISO_HANDLE, wSectorSize * from_733(dirPointer->extent), 0, FILE_BEGIN );
 
     DWORD lpNumberOfBytesRead;
     char* pCurr_dir_cache = (char*)malloc( 16*wSectorSize );
@@ -702,7 +691,7 @@ string iso9660::GetThinText(BYTE* strTxt, int iLen )
 {
   // convert from "fat" text (UTF-16BE) to "thin" text (UTF-8)
   std::u16string strTxtUnicode((char16_t*)strTxt, iLen / 2);
-  CStdString utf8String;
+  std::string utf8String;
 
   g_charsetConverter.utf16BEtoUTF8(strTxtUnicode, utf8String);
 

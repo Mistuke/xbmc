@@ -44,7 +44,7 @@ MediaLibrary.prototype = {
     $('#tvshowLibrary').removeClass('selected');
     $('#remoteControl').removeClass('selected');
     $('#pictureLibrary').removeClass('selected');
-    $('#profilesLibrary').removeClass('selected');
+    $('#profiles').removeClass('selected');
     this.hideOverlay();
   },
   replaceAll: function (haystack, needle, thread) {
@@ -395,6 +395,9 @@ MediaLibrary.prototype = {
             'rating',
             'playcount'
           ],
+          'sort': {
+            'method': 'track'
+          },
           'filter': {
             'albumid' : event.data.album.albumid
           }

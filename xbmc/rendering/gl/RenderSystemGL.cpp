@@ -26,12 +26,14 @@
 #include "RenderSystemGL.h"
 #include "guilib/GraphicContext.h"
 #include "settings/AdvancedSettings.h"
+#include "guilib/MatrixGLES.h"
 #include "settings/DisplaySettings.h"
 #include "utils/log.h"
 #include "utils/GLUtils.h"
 #include "utils/TimeUtils.h"
 #include "utils/SystemInfo.h"
 #include "utils/MathUtils.h"
+#include "utils/StringUtils.h"
 
 CRenderSystemGL::CRenderSystemGL() : CRenderSystemBase()
 {
@@ -48,7 +50,7 @@ void CRenderSystemGL::CheckOpenGLQuirks()
 
 {
 #ifdef TARGET_DARWIN_OSX
-  if (m_RenderVendor.Find("NVIDIA") > -1)
+  if (m_RenderVendor.find("NVIDIA") != std::string::npos)
   {             
     // Nvidia 7300 (AppleTV) and 7600 cannot do DXT with NPOT under OSX
     // Nvidia 9400M is slow as a dog
@@ -67,18 +69,18 @@ void CRenderSystemGL::CheckOpenGLQuirks()
   }
 #ifdef __ppc__
   // ATI Radeon 9600 on osx PPC cannot do NPOT
-  if (m_RenderRenderer.Find("ATI Radeon 9600") > -1)
+  if (m_RenderRenderer.find("ATI Radeon 9600") != std::string::npos)
   {
     m_renderCaps &= ~ RENDER_CAPS_NPOT;
     m_renderCaps &= ~ RENDER_CAPS_DXT_NPOT;
   }
 #endif
 #endif
-  if (m_RenderVendor.ToLower() == "nouveau")
+  if (StringUtils::EqualsNoCase(m_RenderVendor, "nouveau"))
     m_renderQuirks |= RENDER_QUIRKS_YV12_PREFERED;
 
-  if (m_RenderVendor.Equals("Tungsten Graphics, Inc.")
-  ||  m_RenderVendor.Equals("Tungsten Graphics, Inc"))
+  if (StringUtils::EqualsNoCase(m_RenderVendor, "Tungsten Graphics, Inc.")
+  ||  StringUtils::EqualsNoCase(m_RenderVendor, "Tungsten Graphics, Inc"))
   {
     unsigned major, minor, micro;
     if (sscanf(m_RenderVersion.c_str(), "%*s Mesa %u.%u.%u", &major, &minor, &micro) == 3)
@@ -92,7 +94,7 @@ void CRenderSystemGL::CheckOpenGLQuirks()
     else
       CLog::Log(LOGNOTICE, "CRenderSystemGL::CheckOpenGLQuirks - unable to parse mesa version string");
 
-    if(m_RenderRenderer.Find("Poulsbo") >= 0)
+    if(m_RenderRenderer.find("Poulsbo") != std::string::npos)
       m_renderCaps &= ~RENDER_CAPS_DXT_NPOT;
 
     m_renderQuirks |= RENDER_QUIRKS_BROKEN_OCCLUSION_QUERY;
@@ -181,16 +183,25 @@ bool CRenderSystemGL::ResetRenderSystem(int width, int height, bool fullScreen, 
 
   CalculateMaxTexturesize();
 
-  glViewport(0, 0, width, height);
-  glScissor(0, 0, width, height);
+  CRect rect( 0, 0, width, height );
+  SetViewPort( rect );
 
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_SCISSOR_TEST);
 
-  //ati doesn't init the texture matrix correctly
-  //so we have to do it ourselves
-  glMatrixMode(GL_TEXTURE);
-  glLoadIdentity();
+  glMatrixProject.Clear();
+  glMatrixModview->LoadIdentity();
+  glMatrixProject->Ortho(0.0f, width-1, height-1, 0.0f, -1.0f, 1.0f);
+  glMatrixProject.Load();
+
+  glMatrixModview.Clear();
+  glMatrixModview->LoadIdentity();
+  glMatrixModview.Load();
+
+  glMatrixTexture.Clear();
+  glMatrixTexture->LoadIdentity();
+  glMatrixTexture.Load();
+
   if (glewIsSupported("GL_ARB_multitexture"))
   {
     //clear error flags
@@ -216,18 +227,10 @@ bool CRenderSystemGL::ResetRenderSystem(int width, int height, bool fullScreen, 
     for (GLint i = 0; i < maxtex; i++)
     {
       glActiveTextureARB(GL_TEXTURE0 + i);
-      glLoadIdentity();
+      glMatrixTexture.Load();
     }
     glActiveTextureARB(GL_TEXTURE0);
   }
-
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-
-  glOrtho(0.0f, width-1, height-1, 0.0f, -1.0f, 1.0f);
-
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE);
   glEnable(GL_BLEND);          // Turn Blending On
@@ -283,7 +286,7 @@ bool CRenderSystemGL::ClearBuffers(color_t color)
 
 bool CRenderSystemGL::IsExtSupported(const char* extension)
 {
-  CStdString name;
+  std::string name;
   name  = " ";
   name += extension;
   name += " ";
@@ -391,15 +394,11 @@ void CRenderSystemGL::CaptureStateBlock()
 {
   if (!m_bRenderCreated)
     return;
-  
-  glGetIntegerv(GL_VIEWPORT, m_viewPort);
 
-  glMatrixMode(GL_PROJECTION);
-  glPushMatrix();
-  glMatrixMode(GL_TEXTURE);
-  glPushMatrix();
-  glMatrixMode(GL_MODELVIEW);
-  glPushMatrix();
+  glMatrixProject.Push();
+  glMatrixModview.Push();
+  glMatrixTexture.Push();
+
   glDisable(GL_SCISSOR_TEST); // fixes FBO corruption on Macs
   if (glActiveTextureARB)
     glActiveTextureARB(GL_TEXTURE0_ARB);
@@ -414,12 +413,11 @@ void CRenderSystemGL::ApplyStateBlock()
     return;
 
   glViewport(m_viewPort[0], m_viewPort[1], m_viewPort[2], m_viewPort[3]);
-  glMatrixMode(GL_PROJECTION);
-  glPopMatrix();
-  glMatrixMode(GL_TEXTURE);
-  glPopMatrix();
-  glMatrixMode(GL_MODELVIEW);
-  glPopMatrix();
+
+  glMatrixProject.PopLoad();
+  glMatrixModview.PopLoad();
+  glMatrixTexture.PopLoad();
+
   if (glActiveTextureARB)
     glActiveTextureARB(GL_TEXTURE0_ARB);
   glEnable(GL_TEXTURE_2D);
@@ -437,34 +435,28 @@ void CRenderSystemGL::SetCameraPosition(const CPoint &camera, int screenWidth, i
 
   CPoint offset = camera - CPoint(screenWidth*0.5f, screenHeight*0.5f);
 
-  GLint viewport[4];
-  glGetIntegerv(GL_VIEWPORT, viewport);
 
-  float w = (float)viewport[2]*0.5f;
-  float h = (float)viewport[3]*0.5f;
+  float w = (float)m_viewPort[2]*0.5f;
+  float h = (float)m_viewPort[3]*0.5f;
 
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-  glTranslatef(-(w + offset.x), +(h + offset.y), 0);
-  gluLookAt(0.0, 0.0, -2.0*h, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0);
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glFrustum( (-w - offset.x)*0.5f, (w - offset.x)*0.5f, (-h + offset.y)*0.5f, (h + offset.y)*0.5f, h, 100*h);
-  glMatrixMode(GL_MODELVIEW);
+  glMatrixModview->LoadIdentity();
+  glMatrixModview->Translatef(-(w + offset.x), +(h + offset.y), 0);
+  glMatrixModview->LookAt(0.0, 0.0, -2.0*h, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0);
+  glMatrixModview.Load();
 
-  glGetIntegerv(GL_VIEWPORT, m_viewPort);
-  glGetDoublev(GL_MODELVIEW_MATRIX, m_view);
-  glGetDoublev(GL_PROJECTION_MATRIX, m_projection);
+  glMatrixProject->LoadIdentity();
+  glMatrixProject->Frustum( (-w - offset.x)*0.5f, (w - offset.x)*0.5f, (-h + offset.y)*0.5f, (h + offset.y)*0.5f, h, 100*h);
+  glMatrixProject.Load();
 
   g_graphicsContext.EndPaint();
 }
 
 void CRenderSystemGL::Project(float &x, float &y, float &z)
 {
-  GLdouble coordX, coordY, coordZ;
-  if (gluProject(x, y, z, m_view, m_projection, m_viewPort, &coordX, &coordY, &coordZ) == GLU_TRUE)
+  GLfloat coordX, coordY, coordZ;
+  if (CMatrixGL::Project(x, y, z, glMatrixModview.Get(), glMatrixProject.Get(), m_viewPort, &coordX, &coordY, &coordZ))
   {
-    x = (float)coordX;
+    x = coordX;
     y = (float)(m_viewPort[1] + m_viewPort[3] - coordY);
     z = 0;
   }
@@ -493,12 +485,11 @@ void CRenderSystemGL::ApplyHardwareTransform(const TransformMatrix &finalMatrix)
   if (!m_bRenderCreated)
     return;
 
-  glMatrixMode(GL_MODELVIEW);
-  glPushMatrix();
+  glMatrixModview.Push();
   GLfloat matrix[4][4];
 
-  for(int i=0;i<3;i++)
-    for(int j=0;j<4;j++)
+  for(int i = 0; i < 3; i++)
+    for(int j = 0; j < 4; j++)
       matrix[j][i] = finalMatrix.m[i][j];
 
   matrix[0][3] = 0.0f;
@@ -506,7 +497,8 @@ void CRenderSystemGL::ApplyHardwareTransform(const TransformMatrix &finalMatrix)
   matrix[2][3] = 0.0f;
   matrix[3][3] = 1.0f;
 
-  glMultMatrixf(&matrix[0][0]);
+  glMatrixModview->MultMatrixf(&matrix[0][0]);
+  glMatrixModview.Load();
 }
 
 void CRenderSystemGL::RestoreHardwareTransform()
@@ -514,8 +506,7 @@ void CRenderSystemGL::RestoreHardwareTransform()
   if (!m_bRenderCreated)
     return;
 
-  glMatrixMode(GL_MODELVIEW);
-  glPopMatrix();
+  glMatrixModview.PopLoad();
 }
 
 void CRenderSystemGL::CalculateMaxTexturesize()
@@ -554,10 +545,10 @@ void CRenderSystemGL::CalculateMaxTexturesize()
   // Problem noticed on:
   // iMac with ATI Radeon X1600, both on 10.5.8 (GL_VERSION: 2.0 ATI-1.5.48)
   // and 10.6.2 (GL_VERSION: 2.0 ATI-1.6.6)
-  if (strcmp(m_RenderRenderer, "ATI Radeon X1600 OpenGL Engine") == 0)
+  if (m_RenderRenderer == "ATI Radeon X1600 OpenGL Engine")
     m_maxTextureSize = 2048;
   // Mac mini G4 with ATI Radeon 9200 (GL_VERSION: 1.3 ATI-1.5.48)
-  else if (strcmp(m_RenderRenderer, "ATI Radeon 9200 OpenGL Engine") == 0)
+  else if (m_RenderRenderer == "ATI Radeon 9200 OpenGL Engine")
     m_maxTextureSize = 1024;
 #endif
 
@@ -569,13 +560,10 @@ void CRenderSystemGL::GetViewPort(CRect& viewPort)
   if (!m_bRenderCreated)
     return;
 
-  GLint glvp[4];
-  glGetIntegerv(GL_VIEWPORT, glvp);
-
-  viewPort.x1 = glvp[0];
-  viewPort.y1 = m_height - glvp[1] - glvp[3];
-  viewPort.x2 = glvp[0] + glvp[2];
-  viewPort.y2 = viewPort.y1 + glvp[3];
+  viewPort.x1 = m_viewPort[0];
+  viewPort.y1 = m_height - m_viewPort[1] - m_viewPort[3];
+  viewPort.x2 = m_viewPort[0] + m_viewPort[2];
+  viewPort.y2 = viewPort.y1 + m_viewPort[3];
 }
 
 void CRenderSystemGL::SetViewPort(CRect& viewPort)
@@ -585,6 +573,10 @@ void CRenderSystemGL::SetViewPort(CRect& viewPort)
 
   glScissor((GLint) viewPort.x1, (GLint) (m_height - viewPort.y1 - viewPort.Height()), (GLsizei) viewPort.Width(), (GLsizei) viewPort.Height());
   glViewport((GLint) viewPort.x1, (GLint) (m_height - viewPort.y1 - viewPort.Height()), (GLsizei) viewPort.Width(), (GLsizei) viewPort.Height());
+  m_viewPort[0] = viewPort.x1;
+  m_viewPort[1] = m_height - viewPort.y1 - viewPort.Height();
+  m_viewPort[2] = viewPort.Width();
+  m_viewPort[3] = viewPort.Height();
 }
 
 void CRenderSystemGL::SetScissors(const CRect &rect)
@@ -680,6 +672,13 @@ void CRenderSystemGL::SetStereoMode(RENDER_STEREO_MODE mode, RENDER_STEREO_VIEW 
     else if(m_stereoView == RENDER_STEREO_VIEW_RIGHT)
       glColorMask(GL_TRUE, GL_FALSE, GL_TRUE, GL_TRUE);
   }
+  if(m_stereoMode == RENDER_STEREO_MODE_ANAGLYPH_YELLOW_BLUE)
+  {
+    if(m_stereoView == RENDER_STEREO_VIEW_LEFT)
+      glColorMask(GL_TRUE, GL_TRUE, GL_FALSE, GL_TRUE);
+    else if(m_stereoView == RENDER_STEREO_VIEW_RIGHT)
+      glColorMask(GL_FALSE, GL_FALSE, GL_TRUE, GL_TRUE);
+  }
 
   if(m_stereoMode == RENDER_STEREO_MODE_INTERLACED)
   {
@@ -706,6 +705,7 @@ bool CRenderSystemGL::SupportsStereo(RENDER_STEREO_MODE mode)
   {
     case RENDER_STEREO_MODE_ANAGLYPH_RED_CYAN:
     case RENDER_STEREO_MODE_ANAGLYPH_GREEN_MAGENTA:
+    case RENDER_STEREO_MODE_ANAGLYPH_YELLOW_BLUE:
     case RENDER_STEREO_MODE_INTERLACED:
       return true;
     case RENDER_STEREO_MODE_HARDWAREBASED: {

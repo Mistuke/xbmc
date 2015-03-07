@@ -19,10 +19,9 @@
  *
  */
 
-#include "Interfaces/AEStream.h"
-#include "Utils/AEAudioFormat.h"
-#include "Utils/AELimiter.h"
-#include "Utils/AEConvert.h"
+#include "cores/AudioEngine/Interfaces/AEStream.h"
+#include "cores/AudioEngine/Utils/AEAudioFormat.h"
+#include "cores/AudioEngine/Utils/AELimiter.h"
 
 namespace ActiveAE
 {
@@ -38,11 +37,14 @@ protected:
   void IncFreeBuffers();
   void DecFreeBuffers();
   void ResetFreeBuffers();
+  void InitRemapper();
+  void RemapBuffer();
 
 public:
   virtual unsigned int GetSpace();
-  virtual unsigned int AddData(void *data, unsigned int size);
+  virtual unsigned int AddData(uint8_t* const *data, unsigned int offset, unsigned int frames, double pts = 0.0);
   virtual double GetDelay();
+  virtual int64_t GetPlayingPTS();
   virtual bool IsBuffering();
   virtual double GetCacheTime();
   virtual double GetCacheTotal();
@@ -75,6 +77,7 @@ public:
   virtual void FadeVolume(float from, float to, unsigned int time);
   virtual bool IsFading();
   virtual void RegisterSlave(IAEStream *stream);
+  virtual void Discontinuity();
 
 protected:
 
@@ -89,17 +92,20 @@ protected:
   bool m_streamFading;
   int m_streamFreeBuffers;
   bool m_streamIsBuffering;
+  bool m_streamIsFlushed;
   IAEStream *m_streamSlave;
-  CAEConvert::AEConvertToFn m_convertFn;
   CCriticalSection m_streamLock;
   uint8_t *m_leftoverBuffer;
   int m_leftoverBytes;
+  CSampleBuffer *m_currentBuffer;
+  CSoundPacket *m_remapBuffer;
+  IAEResample *m_remapper;
+  int m_clockId;
 
   // only accessed by engine
   CActiveAEBufferPool *m_inputBuffers;
   CActiveAEBufferPoolResample *m_resampleBuffers;
   std::deque<CSampleBuffer*> m_processingSamples;
-  CSampleBuffer *m_currentBuffer;
   CActiveAEDataProtocol *m_streamPort;
   CEvent m_inMsgEvent;
   CCriticalSection *m_statsLock;

@@ -1,14 +1,14 @@
-# XBMC Media Center language file
+# Kodi Media Center language file
 # Addon Name: Confluence
 # Addon id: skin.confluence
-# Addon Provider: Jezz_X, Team XBMC
+# Addon Provider: Jezz_X, Team Kodi
 msgid ""
 msgstr ""
 "Project-Id-Version: XBMC Main\n"
 "Report-Msgid-Bugs-To: http://trac.xbmc.org/\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: XBMC Translation Team\n"
+"Last-Translator: Kodi Translation Team\n"
 "Language-Team: Turkish (http://www.transifex.com/projects/p/xbmc-main/language/tr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -36,9 +36,9 @@ msgctxt "#31006"
 msgid "View Options"
 msgstr "Görünüm Seçenekleri"
 
-msgctxt "#31007"
-msgid "Settings Options"
-msgstr "Ayar Seçenekleri"
+msgctxt "#31008"
+msgid "Full screen"
+msgstr "Tam ekran"
 
 msgctxt "#31009"
 msgid "Total Duration"
@@ -90,11 +90,11 @@ msgstr "Bilgi"
 
 msgctxt "#31039"
 msgid "Actions"
-msgstr "Hareketler"
+msgstr "Eylemler"
 
 msgctxt "#31040"
 msgid "Now Playing"
-msgstr "Şimdi Çalınıyor"
+msgstr "Şimdi Yürütülüyor"
 
 msgctxt "#31042"
 msgid "PLAYING"
@@ -115,6 +115,10 @@ msgstr "GERİ SAR"
 msgctxt "#31046"
 msgid "SEEKING"
 msgstr "ARIYOR"
+
+msgctxt "#31048"
+msgid "Visualisation Presets"
+msgstr "Görsel Öğe Önayarları"
 
 msgctxt "#31049"
 msgid "End Time"
@@ -168,6 +172,10 @@ msgctxt "#31103"
 msgid "Show \"Paused\" in picture slide show"
 msgstr "Resim slayt gösterisinde \"Duraklatıldı\"yı göster"
 
+msgctxt "#31104"
+msgid "Play Trailers in a window [COLOR=grey3](Video Information Dialogue Only)[/COLOR]"
+msgstr "Fragmanları pencere içinde oynat [COLOR=grey3](Sadece Video Bilgisi İletişim Kutusu İçin)[/COLOR]"
+
 msgctxt "#31106"
 msgid "Miscellaneous options"
 msgstr "Çeşitli seçenekler"
@@ -204,13 +212,21 @@ msgctxt "#31117"
 msgid "Show Recently added Videos"
 msgstr "Son Eklenen Videoları Göster"
 
+msgctxt "#31118"
+msgid "Home Page Programs Sub-menu"
+msgstr "Ana Sayfa Programlar Alt Menüsü"
+
 msgctxt "#31119"
 msgid "Hide Background Fanart"
-msgstr "Arkaplan Fanartını Gizle"
+msgstr "Arka Plan Fanartını Gizle"
 
 msgctxt "#31124"
 msgid "Show Background \"Now Playing\" Video"
-msgstr "Arkaplanda Oynatılan Videoyu Göster"
+msgstr "Arka Planda Oynatılan Videoyu Göster"
+
+msgctxt "#31125"
+msgid "Show Background \"Now Playing\" Visualisation"
+msgstr "Arka Planda Görsel Ögeyi Göster"
 
 msgctxt "#31126"
 msgid "Play TV theme songs in video library (TvTunes add-on)"
@@ -224,13 +240,25 @@ msgctxt "#31128"
 msgid "Lyrics"
 msgstr "Şarkı Sözleri"
 
+msgctxt "#31129"
+msgid "Hide Fanart in full screen visualisation"
+msgstr "Tam ekran görsel öğede Fanart'ı gizle"
+
 msgctxt "#31132"
 msgid "Lyrics Add-on"
 msgstr "Şarkı Sözleri Eklentisi"
 
-msgctxt "#31133"
-msgid "Subtitle Add-on"
-msgstr "Altyazı Eklentisi"
+msgctxt "#31134"
+msgid "Home Page Videos Sub-menu"
+msgstr "Ana Sayfa Videolar Alt Menüsü"
+
+msgctxt "#31135"
+msgid "Home Page Music Sub-menu"
+msgstr "Ana Sayfa Müzik Alt Menüsü"
+
+msgctxt "#31136"
+msgid "Home Page Pictures Sub-menu"
+msgstr "Ana Sayfa Resimler Alt Menüsü"
 
 msgctxt "#31140"
 msgid "Music OSD"
@@ -239,6 +267,10 @@ msgstr "Müzik OSD"
 msgctxt "#31141"
 msgid "Video OSD"
 msgstr "Video OSD"
+
+msgctxt "#31142"
+msgid "Settings level"
+msgstr "Ayarlar düzeyi"
 
 msgctxt "#31200"
 msgid "Shortcuts"
@@ -429,20 +461,44 @@ msgid "[B]CONFIGURE SYSTEM SETTINGS[/B][CR][CR]Setup and calibrate displays · C
 msgstr "[B]SİSTEM AYARLARINI YAPILANDIR[/B][CR][CR]Görünüm ayarları · Ses çıkış ayarlarını yapılandır · Uzaktan kumandaları ayarla[CR]Güç tasarrufu seçeneklerini ayarla · Hata ayıklamayı etkinleştir · Sistem kilit ayarları"
 
 msgctxt "#31408"
-msgid "[B]CONFIGURE ADD-ONS[/B][CR][CR]Manage your installed Add-ons · Browse for and install Add-ons from xbmc.org[CR]Modify Add-on settings"
+msgid "[B]CONFIGURE ADD-ONS[/B][CR][CR]Manage your installed Add-ons · Browse for and install Add-ons from kodi.tv[CR]Modify Add-on settings"
 msgstr "[B]EKLENTİLERİ YAPILANDIR[/B][CR][CR]Yüklenmiş eklentileri yönet · Eklentilere gözat ve yenilerini yükle[CR]Eklenti ayarlarını değiştir"
 
+msgctxt "#31409"
+msgid "[B]CONFIGURE TV SETTINGS[/B][CR][CR]Change full screen info · Manage EPG data settings"
+msgstr "[B]TV AYARLARINI YAPILANDIR[/B][CR][CR]Tam ekran bilgisini değiştir · EPG veri ayarlarını yönet"
+
 msgctxt "#31410"
-msgid "[B]CONFIGURE SERVICE SETTINGS[/B][CR][CR]Setup control of XBMC via UPnP and HTTP · Configure file sharing[CR]Enable Zeroconf · Configure AirPlay"
-msgstr "[B]HİZMET AYARLARINI YAPILANDIR[/B][CR][CR]UPnP ve HTTP üzerinden XBMC kontrolü ayarları · Dosya paylaşımını yapılandır[CR]Zeroconf'u etkinleştir · AirPlay'i yapılandır"
+msgid "[B]CONFIGURE SERVICE SETTINGS[/B][CR][CR]Setup control of Kodi via UPnP and HTTP · Configure file sharing[CR]Enable Zeroconf · Configure AirPlay"
+msgstr "[B]HİZMET AYARLARINI YAPILANDIR[/B][CR][CR]UPnP ve HTTP üzerinden Kodi kontrolü ayarları · Dosya paylaşımını yapılandır[CR]Zeroconf'u etkinleştir · AirPlay'i yapılandır"
 
 msgctxt "#31411"
 msgid "First run help...."
 msgstr "İlk çalıştırma yardımı...."
 
+msgctxt "#31412"
+msgid "This tab signifies that there is a menu off to the side of this window that contains extra options for this section.  To access the menu, navigate to the left with your remote control or keyboard or place your mouse pointer over the tab. [CR][CR]Click \"Ok\" to close this dialogue. It will not appear again."
+msgstr "Bu sekme bu bölüm için ekstra özellikleri içeren bir menüye, bu pencerenin kenarından ulaşılabileceğini belirtir. Menüye ulaşmak için, uzaktan kumanda, klavye ya da fare imlecini sekmenin sol tarafına götürün. [CR][CR]Pencereyi kapatmak için \"Tamam\" tuşuna basın. Bu bildiri bir daha çıkmayacaktır."
+
+msgctxt "#31413"
+msgid "Local subtitle available"
+msgstr "Yerel altyazı mevcut"
+
+msgctxt "#31420"
+msgid "Login"
+msgstr "Oturum aç"
+
 msgctxt "#31421"
-msgid "Select your XBMC user Profile[CR]to login and continue"
-msgstr "Oturum açıp devam etmek için[CR]XBMC kullanıcı profilinizi seçin"
+msgid "Select your Kodi user Profile[CR]to login and continue"
+msgstr "Oturum açıp devam etmek için[CR]Kodi kullanıcı profilinizi seçin"
+
+msgctxt "#31422"
+msgid "Show or hide the login screen at startup."
+msgstr "Başlangıçta oturum açma ekranını göster veya gizle."
+
+msgctxt "#31423"
+msgid "Select the profile that will be used at startup when the login screen is disabled."
+msgstr "Oturum açma ekranı devre dışı olduğunda başlangıçta kullanılacak profilinizi seçin."
 
 msgctxt "#31501"
 msgid "Scheduled Time"
@@ -493,8 +549,8 @@ msgid "Weekend Forecast"
 msgstr "Hafta Sonu Hava Tahmini"
 
 msgctxt "#31904"
-msgid "10 Day Forecast"
-msgstr "10 Günlük Hava Tahmini"
+msgid "Daily Forecast"
+msgstr "Günlük Hava Tahmini"
 
 msgctxt "#31905"
 msgid "Forecast"
@@ -509,8 +565,8 @@ msgid "Fetching forecast info..."
 msgstr "Hava tahmini bilgisi getiriliyor..."
 
 msgctxt "#31910"
-msgid "Map & Alerts"
-msgstr "Harita ve Uyarılar"
+msgid "Maps"
+msgstr "Haritalar"
 
 msgctxt "#31950"
 msgid "WEATHER"
@@ -521,8 +577,8 @@ msgid "PICTURES"
 msgstr "RESİMLER"
 
 msgctxt "#31952"
-msgid "LIVE TV"
-msgstr "CANLI YAYIN"
+msgid "TV"
+msgstr "TV"
 
 msgctxt "#31953"
 msgid "VIDEOS"
@@ -534,7 +590,7 @@ msgstr "FİLMLER"
 
 msgctxt "#31955"
 msgid "TV SHOWS"
-msgstr "TV ŞOVLARI"
+msgstr "TV PROGRAMLARI"
 
 msgctxt "#31956"
 msgid "MUSIC"
@@ -551,3 +607,7 @@ msgstr "DİSKİ OYNAT"
 msgctxt "#31959"
 msgid "SYSTEM"
 msgstr "SİSTEM"
+
+msgctxt "#31960"
+msgid "RADIO"
+msgstr "RADYO"

@@ -1,11 +1,11 @@
-# XBMC Media Center language file
+# Kodi Media Center language file
 msgid ""
 msgstr ""
 "Project-Id-Version: XBMC Main\n"
 "Report-Msgid-Bugs-To: http://trac.xbmc.org/\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: XBMC Translation Team\n"
+"Last-Translator: Kodi Translation Team\n"
 "Language-Team: Serbian (Cyrillic) (http://www.transifex.com/projects/p/xbmc-main/language/sr_RS/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -38,8 +38,8 @@ msgid "Settings"
 msgstr "Поставке"
 
 msgctxt "#6"
-msgid "XBMC SVN"
-msgstr "XBMC SVN"
+msgid "Kodi SVN"
+msgstr "Kodi SVN"
 
 msgctxt "#7"
 msgid "File manager"
@@ -50,8 +50,8 @@ msgid "Weather"
 msgstr "Време"
 
 msgctxt "#9"
-msgid "xbmc media center"
-msgstr "xbmc медија центар"
+msgid "Kodi media center"
+msgstr "Kodi медија центар"
 
 msgctxt "#11"
 msgid "Monday"
@@ -205,6 +205,10 @@ msgctxt "#62"
 msgid "Dec"
 msgstr "дец"
 
+msgctxt "#83"
+msgid "W"
+msgstr "У реду"
+
 msgctxt "#98"
 msgid "View: Auto"
 msgstr "Приказ: Аутом."
@@ -292,10 +296,6 @@ msgstr "Потврдите копирање"
 msgctxt "#121"
 msgid "Confirm file move"
 msgstr "Потврдите премештање"
-
-msgctxt "#122"
-msgid "Confirm file delete?"
-msgstr "Потврђујете ли брисање?"
 
 msgctxt "#123"
 msgid "Copy these files?"
@@ -725,10 +725,6 @@ msgctxt "#251"
 msgid "Select destination directory"
 msgstr "Изаберите одредишну фасциклу"
 
-msgctxt "#252"
-msgid "Output stereo to all speakers"
-msgstr "Стерео излаз ка свим звучницима"
-
 msgctxt "#253"
 msgid "Number of channels"
 msgstr "Број канала"
@@ -766,8 +762,8 @@ msgid "Scripts output"
 msgstr "Излазне скрипте"
 
 msgctxt "#263"
-msgid "Allow control of XBMC via HTTP"
-msgstr "Дозволи контролу XBMC апликације путем HTTP протокола"
+msgid "Allow control of Kodi via HTTP"
+msgstr "Дозволи контролу Kodi апликације путем HTTP протокола"
 
 msgctxt "#264"
 msgid "Record"
@@ -1013,13 +1009,9 @@ msgctxt "#336"
 msgid "Framerate conversion"
 msgstr "Конверзија брзине сличица"
 
-msgctxt "#337"
-msgid "Audio output"
-msgstr "Излаз звука"
-
-msgctxt "#339"
-msgid "Optical/Coax"
-msgstr "Дигитални"
+msgctxt "#338"
+msgid "Fixed"
+msgstr "Брзо"
 
 msgctxt "#340"
 msgid "Various artists"
@@ -1044,10 +1036,6 @@ msgstr "Глумци"
 msgctxt "#345"
 msgid "Year"
 msgstr "Година"
-
-msgctxt "#346"
-msgid "Boost volume level on downmix"
-msgstr "Појачај ниво звука при пребацивању у мањи бр. канала"
 
 msgctxt "#350"
 msgid "Programs"
@@ -1489,10 +1477,6 @@ msgctxt "#470"
 msgid "Credits"
 msgstr "Заслуге"
 
-msgctxt "#471"
-msgid "Modchip"
-msgstr "Изме. чип"
-
 msgctxt "#474"
 msgid "Off"
 msgstr "Искљ."
@@ -1526,8 +1510,8 @@ msgid "Audio options"
 msgstr "Опције звука"
 
 msgctxt "#482"
-msgid "About XBMC"
-msgstr "О систему XBMC"
+msgid "About Kodi"
+msgstr "О систему Kodi"
 
 msgctxt "#485"
 msgid "Delete album"
@@ -2386,8 +2370,8 @@ msgid "Wireless network name (ESSID)"
 msgstr "Име бежичне мреже (ESSID)"
 
 msgctxt "#791"
-msgid "Allow programs on this system to control XBMC"
-msgstr "Дозволи програмима на овом систему да управљају XBMC-ом"
+msgid "Allow programs on this system to control Kodi"
+msgstr "Дозволи програмима на овом систему да управљају Kodi-ом"
 
 msgctxt "#792"
 msgid "Port"
@@ -2398,8 +2382,8 @@ msgid "Port range"
 msgstr "Опсег прикључака"
 
 msgctxt "#794"
-msgid "Allow programs on other systems to control XBMC"
-msgstr "Дозволи програмима са других система да управљају XBMC-ом"
+msgid "Allow programs on other systems to control Kodi"
+msgstr "Дозволи програмима са других система да управљају Kodi-ом"
 
 msgctxt "#795"
 msgid "Initial repeat delay (ms)"
@@ -2434,8 +2418,8 @@ msgid "Unable to connect"
 msgstr "Није могуће повезивање"
 
 msgctxt "#1002"
-msgid "XBMC was unable to connect to the network location."
-msgstr "XBMC није успео да се повеже на мрежну локацију."
+msgid "Kodi was unable to connect to the network location."
+msgstr "Kodi није успео да се повеже на мрежну локацију."
 
 msgctxt "#1003"
 msgid "This could be due to the network not being connected."
@@ -2597,10 +2581,6 @@ msgctxt "#1043"
 msgid "Program Add-ons"
 msgstr "Додаци за програм"
 
-msgctxt "#1044"
-msgid "Set plugin thumb"
-msgstr "Постави сличицу додатка"
-
 msgctxt "#1045"
 msgid "Add-on settings"
 msgstr "Поставке додатка"
@@ -2761,6 +2741,14 @@ msgctxt "#1301"
 msgid "Custom passthrough device"
 msgstr "Прилагођен пролазни уређај"
 
+msgctxt "#1381"
+msgid "Extreme"
+msgstr "Екстремно"
+
+msgctxt "#1390"
+msgid "Settings"
+msgstr "Поставке"
+
 msgctxt "#1396"
 msgid "Drifting"
 msgstr "клизаво"
@@ -2844,6 +2832,10 @@ msgstr "град"
 msgctxt "#1418"
 msgid "Thunderstorms"
 msgstr "грмљавина"
+
+msgctxt "#1427"
+msgid "Smoke"
+msgstr "Затамни"
 
 msgctxt "#1439"
 msgid "and"
@@ -2980,6 +2972,14 @@ msgstr "Екран за пријаву"
 msgctxt "#10034"
 msgid "Settings - Profiles"
 msgstr "Поставке - Профили"
+
+msgctxt "#10036"
+msgid "Basic"
+msgstr "Основно"
+
+msgctxt "#10037"
+msgid "Standard"
+msgstr "Уобичајено"
 
 msgctxt "#10131"
 msgid "Lock settings"
@@ -3253,10 +3253,6 @@ msgctxt "#12346"
 msgid "Password retry limit exceeded."
 msgstr "Прекомерни број покушаја уноса лозинке."
 
-msgctxt "#12347"
-msgid "The system will now shut off."
-msgstr "Систем ће сада бити искључен."
-
 msgctxt "#12348"
 msgid "Item locked"
 msgstr "Ставка је закључана"
@@ -3465,10 +3461,6 @@ msgctxt "#13110"
 msgid "Save resolution?"
 msgstr "Сачувати резолуцију?"
 
-msgctxt "#13111"
-msgid "Would you like to keep this resolution?"
-msgstr "Желите ли да задржите ову резолуцију?"
-
 msgctxt "#13112"
 msgid "High quality upscaling"
 msgstr "Висок квалитет увећања"
@@ -3526,8 +3518,8 @@ msgid "Active connections detected!"
 msgstr "Откривене су активне везе!"
 
 msgctxt "#13141"
-msgid "If you proceed, you might not be able to control XBMC"
-msgstr "Уколико наставите даље, можда нећете моћи да управљате XBMC"
+msgid "If you proceed, you might not be able to control Kodi"
+msgstr "Уколико наставите даље, можда нећете моћи да управљате Kodi"
 
 msgctxt "#13142"
 msgid "any longer. Are you sure you want to stop the Event server?"
@@ -3542,8 +3534,8 @@ msgid "If you are currently using the Apple Remote to control"
 msgstr "Уколико тренутно користите Apple Remote да управљате"
 
 msgctxt "#13146"
-msgid "XBMC, changing this setting might affect your ability"
-msgstr "XBMC апликацијом, променом ове поставаке можда промените"
+msgid "Kodi, changing this setting might affect your ability"
+msgstr "Kodi апликацијом, променом ове поставаке можда промените"
 
 msgctxt "#13147"
 msgid "to continue controlling it. Do you want to proceed?"
@@ -3729,6 +3721,10 @@ msgctxt "#13302"
 msgid "Fan speed override"
 msgstr "Наметни брзину вентилатора"
 
+msgctxt "#13303"
+msgid "Fonts"
+msgstr "Слова"
+
 msgctxt "#13304"
 msgid "Enable flipping bi-directional strings"
 msgstr "Омогући обртање би-дирекционих стрингова"
@@ -3750,8 +3746,8 @@ msgid "Do you wish to reboot your system"
 msgstr "Желите ли да поново покренете"
 
 msgctxt "#13309"
-msgid "instead of just XBMC?"
-msgstr "цео систем, а не само XBMC апликацију?"
+msgid "instead of just Kodi?"
+msgstr "цео систем, а не само Kodi апликацију?"
 
 msgctxt "#13310"
 msgid "Zoom effect"
@@ -3898,8 +3894,8 @@ msgid "Scan for new content"
 msgstr "Потражи нови садржај"
 
 msgctxt "#13350"
-msgid "Now playing..."
-msgstr "Тренутно се репродукује..."
+msgid "Current playlist"
+msgstr "Тренутни реп. списак"
 
 msgctxt "#13351"
 msgid "Album information"
@@ -4133,6 +4129,10 @@ msgctxt "#13425"
 msgid "Allow hardware acceleration (VDPAU)"
 msgstr "Broadcom Crystal HD"
 
+msgctxt "#13455"
+msgid "Software"
+msgstr "Софтвер"
+
 msgctxt "#13500"
 msgid "A/V sync method"
 msgstr "A/V начин синхрон."
@@ -4182,8 +4182,8 @@ msgid "Apple remote"
 msgstr "Apple даљински управљач"
 
 msgctxt "#13602"
-msgid "Allow start of XBMC using the remote"
-msgstr "Дозволи покретање XBMC аплик. коришћењем даљинског"
+msgid "Allow start of Kodi using the remote"
+msgstr "Дозволи покретање Kodi аплик. коришћењем даљинског"
 
 msgctxt "#13603"
 msgid "Sequence delay time"
@@ -4208,10 +4208,6 @@ msgstr "Вишеструки даљински (Сложно)"
 msgctxt "#13620"
 msgid "Apple Remote Error"
 msgstr "Грешка Apple даљинског управљача"
-
-msgctxt "#13621"
-msgid "Apple Remote support could be enabled."
-msgstr "Подршка за Apple даљ. управљач може бити омогућена."
 
 msgctxt "#14000"
 msgid "Stack"
@@ -4309,17 +4305,9 @@ msgctxt "#14026"
 msgid "Video cache - DVD-ROM"
 msgstr "Видео кеш - DVD-ROM"
 
-msgctxt "#14028"
-msgid "Internet"
-msgstr "Интернет"
-
 msgctxt "#14030"
 msgid "Audio cache - DVD-ROM"
 msgstr "Кеш звука - DVD-ROM"
-
-msgctxt "#14032"
-msgid "Internet"
-msgstr "Интернет"
 
 msgctxt "#14034"
 msgid "DVD cache - DVD-ROM"
@@ -4334,8 +4322,8 @@ msgid "Network settings changed"
 msgstr "Промењене су мрежне поставке"
 
 msgctxt "#14039"
-msgid "XBMC requires to restart to change your"
-msgstr "XBMC захтева поновно покретање ради промене"
+msgid "Kodi requires to restart to change your"
+msgstr "Kodi захтева поновно покретање ради промене"
 
 msgctxt "#14040"
 msgid "network setup.  Would you like to restart now?"
@@ -4501,10 +4489,6 @@ msgctxt "#14086"
 msgid "Playback"
 msgstr "Репродукција"
 
-msgctxt "#14087"
-msgid "DVDs"
-msgstr "DVD-ови"
-
 msgctxt "#14088"
 msgid "Play DVDs automatically"
 msgstr "Аутоматски репродукуј DVD-ове"
@@ -4536,6 +4520,10 @@ msgstr "Улазни уређаји"
 msgctxt "#14095"
 msgid "Power saving"
 msgstr "Уштеда енергије"
+
+msgctxt "#14096"
+msgid "Rip"
+msgstr "чет"
 
 msgctxt "#14098"
 msgid "Play"
@@ -4901,9 +4889,29 @@ msgctxt "#19000"
 msgid "Switch to channel"
 msgstr "Пребаци на канал"
 
+msgctxt "#19014"
+msgid "Fixed"
+msgstr "Брзо"
+
+msgctxt "#19017"
+msgid "Recordings"
+msgstr "Снимци"
+
 msgctxt "#19031"
 msgid "Next"
 msgstr "Следеће"
+
+msgctxt "#19150"
+msgid "Tu"
+msgstr "мар"
+
+msgctxt "#19154"
+msgid "Sa"
+msgstr "суб"
+
+msgctxt "#19155"
+msgid "Su"
+msgstr "Затамни"
 
 msgctxt "#19163"
 msgid "Recordings"
@@ -4913,9 +4921,21 @@ msgctxt "#19177"
 msgid "Playback"
 msgstr "Репродукција"
 
+msgctxt "#19190"
+msgid "Background"
+msgstr "Позадина"
+
+msgctxt "#19607"
+msgid "Fashion"
+msgstr "Режим"
+
 msgctxt "#19635"
 msgid "Languages"
 msgstr "Избор Језика"
+
+msgctxt "#19647"
+msgid "Motoring"
+msgstr "Аутоматски"
 
 msgctxt "#20000"
 msgid "Saved music folder"
@@ -4950,8 +4970,8 @@ msgid "Screenshots"
 msgstr "Слике екрана"
 
 msgctxt "#20009"
-msgid "Use XBMC"
-msgstr "Користи XBMC"
+msgid "Use Kodi"
+msgstr "Користи Kodi"
 
 msgctxt "#20011"
 msgid "Music playlists"
@@ -5713,10 +5733,6 @@ msgctxt "#20326"
 msgid "This will reset the calibration values for %s"
 msgstr "Овим ћете поништити вредности калибрације за %s"
 
-msgctxt "#20327"
-msgid "to it's default values."
-msgstr "на подразумеване вредности."
-
 msgctxt "#20328"
 msgid "Browse for destination"
 msgstr "Потражи одредиште"
@@ -5766,8 +5782,8 @@ msgid "Do you want to remove all items within"
 msgstr "Желите ли да уклоните све ставке у оквиру"
 
 msgctxt "#20341"
-msgid "this path from the XBMC library?"
-msgstr "ове путање из XBMC библиотеке?"
+msgid "this path from the Kodi library?"
+msgstr "ове путање из Kodi библиотеке?"
 
 msgctxt "#20342"
 msgid "Movies"
@@ -5925,10 +5941,6 @@ msgctxt "#20381"
 msgid "Specials"
 msgstr "Посебне емисије"
 
-msgctxt "#20382"
-msgid "Automatically grab season thumbs"
-msgstr "Аутоматски преузми сличицу сезоне"
-
 msgctxt "#20383"
 msgid "Selected folder contains a single video"
 msgstr "Изабрана фасцикла садржи један филм"
@@ -6040,10 +6052,6 @@ msgstr "Најава"
 msgctxt "#20411"
 msgid "Flatten"
 msgstr "Поравнат списак"
-
-msgctxt "#20412"
-msgid "Flatten TV shows"
-msgstr "Поравнат списак TV серија"
 
 msgctxt "#20413"
 msgid "Get fanart"
@@ -6181,6 +6189,10 @@ msgctxt "#20450"
 msgid "Would you like to continue scanning?"
 msgstr "Желите ли да наставите анализирање?"
 
+msgctxt "#20452"
+msgid "episode"
+msgstr "Епизода"
+
 msgctxt "#21330"
 msgid "Show hidden files and directories"
 msgstr "Прикажи скривене датотеке и фасцикле"
@@ -6229,17 +6241,9 @@ msgctxt "#21365"
 msgid "Remove media share"
 msgstr "Уклони дељену локацију медија"
 
-msgctxt "#21366"
-msgid "Subtitle folder"
-msgstr "Фасцикла са титловима"
-
 msgctxt "#21367"
 msgid "Movie & alternate subtitle directory"
 msgstr "Фасцикла филмова и алтернативних титлова"
-
-msgctxt "#21369"
-msgid "Enable mouse and Touch Screen support"
-msgstr "Омогући коришћење миша"
 
 msgctxt "#21370"
 msgid "Play navigation sounds during media playback"
@@ -6355,7 +6359,7 @@ msgstr "Високо квалитетно сенчење пиксела v2"
 
 msgctxt "#21398"
 msgid "Enable playlist at startup"
-msgstr "Омогући списак за репродукцију при укључивању XBMC-а"
+msgstr "Омогући списак за репродукцију при укључивању Kodi-а"
 
 msgctxt "#21399"
 msgid "Use tween animations"
@@ -6560,6 +6564,10 @@ msgstr "Даљински управљач шаље кôдове тастатур
 msgctxt "#21450"
 msgid "Edit"
 msgstr "Уреди"
+
+msgctxt "#21461"
+msgid "Fixed"
+msgstr "Брзо"
 
 msgctxt "#21800"
 msgid "File name"
@@ -6774,8 +6782,8 @@ msgid "Reference service"
 msgstr "Препоручен сервис"
 
 msgctxt "#21881"
-msgid "Allow control of XBMC via UPnP"
-msgstr "Омогући контролу XBMC апликације путем UPnP протокола"
+msgid "Allow control of Kodi via UPnP"
+msgstr "Омогући контролу Kodi апликације путем UPnP протокола"
 
 msgctxt "#21882"
 msgid "Attempt to skip introduction before DVD menu"
@@ -7094,6 +7102,10 @@ msgid "Enable"
 msgstr "Омогући додатни прог."
 
 msgctxt "#24023"
+msgid "Disabled"
+msgstr "Онемогућено"
+
+msgctxt "#24024"
 msgid "Add-on disabled"
 msgstr "Додатни прог. је онемогућен"
 
@@ -7205,6 +7217,10 @@ msgctxt "#24094"
 msgid "(current)"
 msgstr "Омогући хардверско убрзање (CrystalHD)"
 
+msgctxt "#24121"
+msgid "Enter search string"
+msgstr "Унесите реч за претрагу"
+
 msgctxt "#29800"
 msgid "Library Mode"
 msgstr "Режим библиотеке"
@@ -7276,10 +7292,6 @@ msgstr "Питај за преузимање пре репродукције ф�
 msgctxt "#33016"
 msgid "Clips"
 msgstr "Клипови"
-
-msgctxt "#33017"
-msgid "Restart plugin to enable"
-msgstr "Поново покрените додатак за активирање"
 
 msgctxt "#33018"
 msgid "Tonight"
@@ -7466,12 +7478,12 @@ msgid "This version of %s requires an"
 msgstr "Ова верзија за покретање захтева %s"
 
 msgctxt "#33075"
-msgid "XBMC revision of %s or greater to run."
-msgstr "XBMC издање или %s јаче."
+msgid "Kodi revision of %s or greater to run."
+msgstr "Kodi издање или %s јаче."
 
 msgctxt "#33076"
-msgid "Please update XBMC."
-msgstr "Молимо, ажурирајте XBMC апликацију."
+msgid "Please update Kodi."
+msgstr "Молимо, ажурирајте Kodi апликацију."
 
 msgctxt "#33077"
 msgid "No data found!"
@@ -7518,8 +7530,8 @@ msgid "DXVA2"
 msgstr "DXVA"
 
 msgctxt "#34100"
-msgid "Speaker Configuration"
-msgstr "Конфигурација звучника"
+msgid "Number of channels"
+msgstr "Број канала"
 
 msgctxt "#34101"
 msgid "2.0"
@@ -7584,3 +7596,63 @@ msgstr "Повезано"
 msgctxt "#36035"
 msgid "Always"
 msgstr "Увек"
+
+msgctxt "#36426"
+msgid "Switch to channel"
+msgstr "Пребаци на канал"
+
+msgctxt "#36428"
+msgid "Record"
+msgstr "Сними"
+
+msgctxt "#36502"
+msgid "Disabled"
+msgstr "Онемогућено"
+
+msgctxt "#36508"
+msgid "Hardware Based"
+msgstr "Хардвер"
+
+msgctxt "#36902"
+msgid "TV show"
+msgstr "TV серија"
+
+msgctxt "#36903"
+msgid "TV shows"
+msgstr "TV серије"
+
+msgctxt "#36906"
+msgid "episode"
+msgstr "Епизода"
+
+msgctxt "#36910"
+msgid "set"
+msgstr "Постави"
+
+msgctxt "#36911"
+msgid "sets"
+msgstr "Поставке сцене"
+
+msgctxt "#36912"
+msgid "video"
+msgstr "Видео"
+
+msgctxt "#36913"
+msgid "videos"
+msgstr "Филмови"
+
+msgctxt "#36918"
+msgid "album"
+msgstr "Албум"
+
+msgctxt "#36920"
+msgid "song"
+msgstr "Песма"
+
+msgctxt "#36921"
+msgid "songs"
+msgstr "Нумере"
+
+msgctxt "#37026"
+msgid "Auto"
+msgstr "Аутоматски"

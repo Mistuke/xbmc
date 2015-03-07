@@ -20,7 +20,7 @@
  *
  */
 
-#include "utils/StdString.h"
+#include <string>
 #include "system.h"
 #include "DVDDemuxPacket.h"
 
@@ -34,7 +34,10 @@ class CDVDInputStream;
 #if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
   #include "config.h"
 #endif
-#include "DllAvCodec.h"
+
+extern "C" {
+#include "libavcodec/avcodec.h"
+}
 
 #ifndef __GNUC__
 #pragma warning(pop)
@@ -44,7 +47,7 @@ enum AVDiscard;
 
 enum StreamType
 {
-  STREAM_NONE,    // if unknown
+  STREAM_NONE = 0,// if unknown
   STREAM_AUDIO,   // audio stream
   STREAM_VIDEO,   // video stream
   STREAM_DATA,    // data stream
@@ -57,7 +60,8 @@ enum StreamSource {
   STREAM_SOURCE_DEMUX         = 0x100,
   STREAM_SOURCE_NAV           = 0x200,
   STREAM_SOURCE_DEMUX_SUB     = 0x300,
-  STREAM_SOURCE_TEXT          = 0x400
+  STREAM_SOURCE_TEXT          = 0x400,
+  STREAM_SOURCE_VIDEOMUX      = 0x500
 };
 
 #define STREAM_SOURCE_MASK(a) ((a) & 0xf00)
@@ -76,7 +80,7 @@ public:
     codec = (AVCodecID)0; // AV_CODEC_ID_NONE
     codec_fourcc = 0;
     profile = FF_PROFILE_UNKNOWN;
-    level = 0;
+    level = FF_LEVEL_UNKNOWN;
     type = STREAM_NONE;
     source = STREAM_SOURCE_NONE;
     iDuration = 0;
@@ -127,14 +131,16 @@ public:
   int orig_type; // type of original source
 
   enum EFlags
-  { FLAG_NONE     = 0x0000 
-  , FLAG_DEFAULT  = 0x0001
-  , FLAG_DUB      = 0x0002
-  , FLAG_ORIGINAL = 0x0004
-  , FLAG_COMMENT  = 0x0008
-  , FLAG_LYRICS   = 0x0010
-  , FLAG_KARAOKE  = 0x0020
-  , FLAG_FORCED   = 0x0040
+  { FLAG_NONE             = 0x0000 
+  , FLAG_DEFAULT          = 0x0001
+  , FLAG_DUB              = 0x0002
+  , FLAG_ORIGINAL         = 0x0004
+  , FLAG_COMMENT          = 0x0008
+  , FLAG_LYRICS           = 0x0010
+  , FLAG_KARAOKE          = 0x0020
+  , FLAG_FORCED           = 0x0040
+  , FLAG_HEARING_IMPAIRED = 0x0080
+  , FLAG_VISUAL_IMPAIRED  = 0x0100
   } flags;
 };
 
@@ -269,9 +275,17 @@ public:
   virtual int GetChapter() { return 0; }
 
   /*
-   * Get the name of the current chapter
+   * Get the name of a chapter
+   * \param strChapterName[out] Name of chapter
+   * \param chapterIdx -1 for current chapter, else a chapter index
    */
-  virtual void GetChapterName(std::string& strChapterName) {}
+  virtual void GetChapterName(std::string& strChapterName, int chapterIdx=-1) {}
+
+  /*
+   * Get the position of a chapter
+   * \param chapterIdx -1 for current chapter, else a chapter index
+   */
+  virtual int64_t GetChapterPos(int chapterIdx=-1) { return 0; }
 
   /*
    * Set the playspeed, if demuxer can handle different
@@ -341,5 +355,5 @@ public:
   /*
    * return a user-presentable codec name of the given stream
    */
-  virtual void GetStreamCodecName(int iStreamId, CStdString &strName) {};
+  virtual void GetStreamCodecName(int iStreamId, std::string &strName) {};
 };

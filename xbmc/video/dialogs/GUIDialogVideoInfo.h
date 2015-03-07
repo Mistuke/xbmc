@@ -48,20 +48,31 @@ public:
 
   static int ManageVideoItem(const CFileItemPtr &item);
   static bool UpdateVideoItemTitle(const CFileItemPtr &pItem);
-  static bool MarkWatched(const CFileItemPtr &item, bool bMark);
+  static bool CanDeleteVideoItem(const CFileItemPtr &item);
+  static bool DeleteVideoItemFromDatabase(const CFileItemPtr &item, bool unavailable = false);
+  static bool DeleteVideoItem(const CFileItemPtr &item, bool unavailable = false);
 
+  static bool ManageMovieSets(const CFileItemPtr &item);
   static bool GetMoviesForSet(const CFileItem *setItem, CFileItemList &originalMovies, CFileItemList &selectedMovies);
   static bool GetSetForMovie(const CFileItem *movieItem, CFileItemPtr &selectedSet);
   static bool SetMovieSet(const CFileItem *movieItem, const CFileItem *selectedSet);
+
+  static bool GetItemsForTag(const std::string &strHeading, const std::string &type, CFileItemList &items, int idTag = -1, bool showAll = true);
+  static bool AddItemsToTag(const CFileItemPtr &tagItem);
+  static bool RemoveItemsFromTag(const CFileItemPtr &tagItem);
+
+  static bool ManageVideoItemArtwork(const CFileItemPtr &item, const MediaType &type);
+
+  static std::string GetLocalizedVideoType(const std::string &strType);
 protected:
   virtual void OnInitWindow();
   void Update();
-  void SetLabel(int iControl, const CStdString& strLabel);
+  void SetLabel(int iControl, const std::string& strLabel);
 
   // link cast to movies
   void ClearCastList();
-  void OnSearch(CStdString& strSearch);
-  void DoSearch(CStdString& strSearch, CFileItemList& items);
+  void OnSearch(std::string& strSearch);
+  void DoSearch(std::string& strSearch, CFileItemList& items);
   void OnSearchItemFound(const CFileItem* pItem);
   void Play(bool resume = false);
   void OnGetArt();
@@ -70,6 +81,11 @@ protected:
 
   static bool UpdateVideoItemSortTitle(const CFileItemPtr &pItem);
   static bool LinkMovieToTvShow(const CFileItemPtr &item, bool bRemove, CVideoDatabase &database);
+
+  /*! \brief Pop up a fanart chooser. Does not utilise remote URLs.
+   \param videoItem the item to choose fanart for.
+   */
+  static bool OnGetFanart(const CFileItemPtr &videoItem);
 
   CFileItemPtr m_movieItem;
   CFileItemList *m_castList;

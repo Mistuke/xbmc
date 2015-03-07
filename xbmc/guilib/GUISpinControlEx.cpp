@@ -19,6 +19,7 @@
  */
 
 #include "GUISpinControlEx.h"
+#include "utils/StringUtils.h"
 
 CGUISpinControlEx::CGUISpinControlEx(int parentID, int controlID, float posX, float posY, float width, float height, float spinWidth, float spinHeight, const CLabelInfo& spinInfo, const CTextureInfo &textureFocus, const CTextureInfo &textureNoFocus, const CTextureInfo& textureUp, const CTextureInfo& textureDown, const CTextureInfo& textureUpFocus, const CTextureInfo& textureDownFocus, const CLabelInfo& labelInfo, int iType)
     : CGUISpinControl(parentID, controlID, posX, posY, spinWidth, spinHeight, textureUp, textureDown, textureUpFocus, textureDownFocus, spinInfo, iType)
@@ -116,16 +117,14 @@ void CGUISpinControlEx::SetEnabled(bool bEnable)
   CGUISpinControl::SetEnabled(bEnable);
 }
 
-const CStdString CGUISpinControlEx::GetCurrentLabel() const
+const std::string CGUISpinControlEx::GetCurrentLabel() const
 {
   return CGUISpinControl::GetLabel();
 }
 
-CStdString CGUISpinControlEx::GetDescription() const
+std::string CGUISpinControlEx::GetDescription() const
 {
-  CStdString strLabel;
-  strLabel.Format("%s (%s)", m_buttonControl.GetDescription(), GetLabel());
-  return strLabel;
+  return StringUtils::Format("%s (%s)", m_buttonControl.GetDescription().c_str(), GetLabel().c_str());
 }
 
 void CGUISpinControlEx::SetItemInvalid(bool invalid)

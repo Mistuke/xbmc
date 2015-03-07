@@ -23,6 +23,7 @@
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
 #include "utils/StringUtils.h"
+#include "utils/URIUtils.h"
 
 #ifdef TARGET_WINDOWS
 #include <windows.h>
@@ -40,10 +41,9 @@ public:
   {
     Delete();
   }
-  bool Create(const CStdString &suffix)
+  bool Create(const std::string &suffix)
   {
     char tmp[MAX_PATH];
-    int fd;
 
     m_ptempFileDirectory = CSpecialProtocol::TranslatePath("special://temp/");
     m_ptempFilePath = m_ptempFileDirectory + "xbmctempfileXXXXXX";
@@ -56,7 +56,7 @@ public:
     strcpy(tmp, m_ptempFilePath.c_str());
 
 #ifdef TARGET_WINDOWS
-    if (!GetTempFileName(CSpecialProtocol::TranslatePath("special://temp/"),
+    if (!GetTempFileName(CSpecialProtocol::TranslatePath("special://temp/").c_str(),
                          "xbmctempfile", 0, tmp))
     {
       m_ptempFilePath = "";
@@ -64,6 +64,7 @@ public:
     }
     m_ptempFilePath = tmp;
 #else
+    int fd;
     if ((fd = mkstemps(tmp, suffix.length())) < 0)
     {
       m_ptempFilePath = "";
@@ -81,17 +82,17 @@ public:
     Close();
     return CFile::Delete(m_ptempFilePath);
   };
-  CStdString getTempFilePath() const
+  std::string getTempFilePath() const
   {
     return m_ptempFilePath;
   }
-  CStdString getTempFileDirectory() const
+  std::string getTempFileDirectory() const
   {
     return m_ptempFileDirectory;
   }
 private:
-  CStdString m_ptempFilePath;
-  CStdString m_ptempFileDirectory;
+  std::string m_ptempFilePath;
+  std::string m_ptempFileDirectory;
 };
 
 CXBMCTestUtils::CXBMCTestUtils()
@@ -105,26 +106,27 @@ CXBMCTestUtils &CXBMCTestUtils::Instance()
   return instance;
 }
 
-CStdString CXBMCTestUtils::ReferenceFilePath(CStdString const& path)
+std::string CXBMCTestUtils::ReferenceFilePath(const std::string& path)
 {
-  return CSpecialProtocol::TranslatePath("special://xbmc") + path;
+  return CSpecialProtocol::TranslatePath(URIUtils::AddFileToFolder("special://xbmc", path));
 }
 
 bool CXBMCTestUtils::SetReferenceFileBasePath()
 {
-  CStdString xbmcPath;
+  std::string xbmcPath;
   CUtil::GetHomePath(xbmcPath);
-  if (xbmcPath.IsEmpty())
+  if (xbmcPath.empty())
     return false;
 
-  /* Set xbmc path and xbmcbin path */
+  /* Set xbmc, xbmcbin and home path */
   CSpecialProtocol::SetXBMCPath(xbmcPath);
   CSpecialProtocol::SetXBMCBinPath(xbmcPath);
+  CSpecialProtocol::SetHomePath(URIUtils::AddFileToFolder(xbmcPath, "portable_data"));
 
   return true;
 }
 
-XFILE::CFile *CXBMCTestUtils::CreateTempFile(CStdString const& suffix)
+XFILE::CFile *CXBMCTestUtils::CreateTempFile(std::string const& suffix)
 {
   CTempFile *f = new CTempFile();
   if (f->Create(suffix))
@@ -143,7 +145,7 @@ bool CXBMCTestUtils::DeleteTempFile(XFILE::CFile *tempfile)
   return retval;
 }
 
-CStdString CXBMCTestUtils::TempFilePath(XFILE::CFile const* const tempfile)
+std::string CXBMCTestUtils::TempFilePath(XFILE::CFile const* const tempfile)
 {
   if (!tempfile)
     return "";
@@ -151,7 +153,7 @@ CStdString CXBMCTestUtils::TempFilePath(XFILE::CFile const* const tempfile)
   return f->getTempFilePath();
 }
 
-CStdString CXBMCTestUtils::TempFileDirectory(XFILE::CFile const* const tempfile)
+std::string CXBMCTestUtils::TempFileDirectory(XFILE::CFile const* const tempfile)
 {
   if (!tempfile)
     return "";
@@ -159,8 +161,8 @@ CStdString CXBMCTestUtils::TempFileDirectory(XFILE::CFile const* const tempfile)
   return f->getTempFileDirectory();
 }
 
-XFILE::CFile *CXBMCTestUtils::CreateCorruptedFile(CStdString const& strFileName,
-  CStdString const& suffix)
+XFILE::CFile *CXBMCTestUtils::CreateCorruptedFile(std::string const& strFileName,
+  std::string const& suffix)
 {
   XFILE::CFile inputfile, *tmpfile = CreateTempFile(suffix);
   unsigned char buf[20], tmpchar;
@@ -199,32 +201,32 @@ XFILE::CFile *CXBMCTestUtils::CreateCorruptedFile(CStdString const& strFileName,
 }
 
 
-std::vector<CStdString> &CXBMCTestUtils::getTestFileFactoryReadUrls()
+std::vector<std::string> &CXBMCTestUtils::getTestFileFactoryReadUrls()
 {
   return TestFileFactoryReadUrls;
 }
 
-std::vector<CStdString> &CXBMCTestUtils::getTestFileFactoryWriteUrls()
+std::vector<std::string> &CXBMCTestUtils::getTestFileFactoryWriteUrls()
 {
   return TestFileFactoryWriteUrls;
 }
 
-CStdString &CXBMCTestUtils::getTestFileFactoryWriteInputFile()
+std::string &CXBMCTestUtils::getTestFileFactoryWriteInputFile()
 {
   return TestFileFactoryWriteInputFile;
 }
 
-void CXBMCTestUtils::setTestFileFactoryWriteInputFile(CStdString const& file)
+void CXBMCTestUtils::setTestFileFactoryWriteInputFile(std::string const& file)
 {
   TestFileFactoryWriteInputFile = file;
 }
 
-std::vector<CStdString> &CXBMCTestUtils::getAdvancedSettingsFiles()
+std::vector<std::string> &CXBMCTestUtils::getAdvancedSettingsFiles()
 {
   return AdvancedSettingsFiles;
 }
 
-std::vector<CStdString> &CXBMCTestUtils::getGUISettingsFiles()
+std::vector<std::string> &CXBMCTestUtils::getGUISettingsFiles()
 {
   return GUISettingsFiles;
 }
@@ -276,7 +278,7 @@ static const char usage[] =
 void CXBMCTestUtils::ParseArgs(int argc, char **argv)
 {
   int i;
-  CStdString arg;
+  std::string arg;
   for (i = 1; i < argc; i++)
   {
     arg = argv[i];
@@ -289,7 +291,7 @@ void CXBMCTestUtils::ParseArgs(int argc, char **argv)
       arg = argv[++i];
       std::vector<std::string> urls = StringUtils::Split(arg, ",");
       std::vector<std::string>::iterator it;
-      for (it = urls.begin(); it < urls.end(); it++)
+      for (it = urls.begin(); it < urls.end(); ++it)
         TestFileFactoryReadUrls.push_back(*it);
     }
     else if (arg == "--add-testfilefactory-writeurl")
@@ -301,7 +303,7 @@ void CXBMCTestUtils::ParseArgs(int argc, char **argv)
       arg = argv[++i];
       std::vector<std::string> urls = StringUtils::Split(arg, ",");
       std::vector<std::string>::iterator it;
-      for (it = urls.begin(); it < urls.end(); it++)
+      for (it = urls.begin(); it < urls.end(); ++it)
         TestFileFactoryWriteUrls.push_back(*it);
     }
     else if (arg == "--set-testfilefactory-writeinputfile")
@@ -317,7 +319,7 @@ void CXBMCTestUtils::ParseArgs(int argc, char **argv)
       arg = argv[++i];
       std::vector<std::string> urls = StringUtils::Split(arg, ",");
       std::vector<std::string>::iterator it;
-      for (it = urls.begin(); it < urls.end(); it++)
+      for (it = urls.begin(); it < urls.end(); ++it)
         AdvancedSettingsFiles.push_back(*it);
     }
     else if (arg == "--add-guisettings-file")
@@ -329,7 +331,7 @@ void CXBMCTestUtils::ParseArgs(int argc, char **argv)
       arg = argv[++i];
       std::vector<std::string> urls = StringUtils::Split(arg, ",");
       std::vector<std::string>::iterator it;
-      for (it = urls.begin(); it < urls.end(); it++)
+      for (it = urls.begin(); it < urls.end(); ++it)
         GUISettingsFiles.push_back(*it);
     }
     else if (arg == "--set-probability")

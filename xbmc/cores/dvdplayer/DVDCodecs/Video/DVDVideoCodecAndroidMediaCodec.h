@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
 #include <queue>
 #include <vector>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "DVDVideoCodec.h"
 #include "DVDStreamInfo.h"
@@ -32,6 +32,7 @@
 class CJNISurface;
 class CJNISurfaceTexture;
 class CJNIMediaCodec;
+class CJNIMediaFormat;
 class CDVDMediaCodecOnFrameAvailable;
 class CJNIByteBuffer;
 class CBitstreamConverter;
@@ -48,9 +49,9 @@ class CDVDMediaCodecInfo
 public:
   CDVDMediaCodecInfo( int index,
                       unsigned int texture,
-                      boost::shared_ptr<CJNIMediaCodec> &codec,
-                      boost::shared_ptr<CJNISurfaceTexture> &surfacetexture,
-                      boost::shared_ptr<CDVDMediaCodecOnFrameAvailable> &frameready);
+                      std::shared_ptr<CJNIMediaCodec> &codec,
+                      std::shared_ptr<CJNISurfaceTexture> &surfacetexture,
+                      std::shared_ptr<CDVDMediaCodecOnFrameAvailable> &frameready);
 
   // reference counting
   CDVDMediaCodecInfo* Retain();
@@ -72,15 +73,16 @@ private:
 
   long                m_refs;
   bool                m_valid;
+  bool                m_isReleased;
   int                 m_index;
   unsigned int        m_texture;
   int64_t             m_timestamp;
   CCriticalSection    m_section;
   // shared_ptr bits, shared between
   // CDVDVideoCodecAndroidMediaCodec and LinuxRenderGLES.
-  boost::shared_ptr<CJNIMediaCodec> m_codec;
-  boost::shared_ptr<CJNISurfaceTexture> m_surfacetexture;
-  boost::shared_ptr<CDVDMediaCodecOnFrameAvailable> m_frameready;
+  std::shared_ptr<CJNIMediaCodec> m_codec;
+  std::shared_ptr<CJNISurfaceTexture> m_surfacetexture;
+  std::shared_ptr<CDVDMediaCodecOnFrameAvailable> m_frameready;
 };
 
 class CDVDVideoCodecAndroidMediaCodec : public CDVDVideoCodec
@@ -104,9 +106,9 @@ public:
 
 protected:
   void            FlushInternal(void);
-  void            ConfigureMediaCodec(void);
+  bool            ConfigureMediaCodec(void);
   int             GetOutputPicture(void);
-  void            OutputFormatChanged(void);
+  void            ConfigureOutputFormat(CJNIMediaFormat* mediaformat);
 
   // surface handling functions
   static void     CallbackInitSurfaceTexture(void*);
@@ -116,6 +118,7 @@ protected:
   CDVDStreamInfo  m_hints;
   std::string     m_mime;
   std::string     m_codecname;
+  int             m_colorFormat;
   const char     *m_formatname;
   bool            m_opened;
   bool            m_drop;
@@ -125,11 +128,11 @@ protected:
   // we need these as shared_ptr because CDVDVideoCodecAndroidMediaCodec
   // will get deleted before CLinuxRendererGLES is shut down and
   // CLinuxRendererGLES refs them via CDVDMediaCodecInfo.
-  boost::shared_ptr<CJNIMediaCodec> m_codec;
-  boost::shared_ptr<CJNISurfaceTexture> m_surfaceTexture;
-  boost::shared_ptr<CDVDMediaCodecOnFrameAvailable> m_frameAvailable;
+  std::shared_ptr<CJNIMediaCodec> m_codec;
+  std::shared_ptr<CJNISurfaceTexture> m_surfaceTexture;
+  std::shared_ptr<CDVDMediaCodecOnFrameAvailable> m_frameAvailable;
 
-  std::queue<amc_demux> m_demux;
+  amc_demux m_demux_pkt;
   std::vector<CJNIByteBuffer> m_input;
   std::vector<CJNIByteBuffer> m_output;
   std::vector<CDVDMediaCodecInfo*> m_inflight;

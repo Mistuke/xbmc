@@ -1,14 +1,14 @@
-# XBMC Media Center language file
+# Kodi Media Center language file
 # Addon Name: Confluence
 # Addon id: skin.confluence
-# Addon Provider: Jezz_X, Team XBMC
+# Addon Provider: Jezz_X, Team Kodi
 msgid ""
 msgstr ""
 "Project-Id-Version: XBMC Main\n"
 "Report-Msgid-Bugs-To: http://trac.xbmc.org/\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: XBMC Translation Team\n"
+"Last-Translator: Kodi Translation Team\n"
 "Language-Team: Burmese (http://www.transifex.com/projects/p/xbmc-main/language/my/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -23,6 +23,10 @@ msgstr "အလုပ်လုပ်နေသည်"
 msgctxt "#31005"
 msgid "Hide Information"
 msgstr "အချက်အလက်များကိုဖျောက်ထားမည်"
+
+msgctxt "#31008"
+msgid "Full screen"
+msgstr "မျက်နှာပြင်အပြည့် "
 
 msgctxt "#31009"
 msgid "Total Duration"
@@ -241,12 +245,20 @@ msgid "Enabled"
 msgstr "ဖွင့်ထားမည်"
 
 msgctxt "#31408"
-msgid "[B]CONFIGURE ADD-ONS[/B][CR][CR]Manage your installed Add-ons · Browse for and install Add-ons from xbmc.org[CR]Modify Add-on settings"
-msgstr "[B]ADD-ONS ပြုပြင်ခြင်း[/B][CR][CR] သွင်းထားသည့် Add-on များကို ထိန်းညှိခြင်း ။ xbmc.org မှ Add-on များကို သွင်းရန် ကြည့်ရှုခြင်း[CR]Add-on များကို ပြုပြင် ပြောင်းလဲခြင်း"
+msgid "[B]CONFIGURE ADD-ONS[/B][CR][CR]Manage your installed Add-ons · Browse for and install Add-ons from kodi.tv[CR]Modify Add-on settings"
+msgstr "[B]ADD-ONS ပြုပြင်ခြင်း[/B][CR][CR] သွင်းထားသည့် Add-on များကို ထိန်းညှိခြင်း ။ kodi.tv မှ Add-on များကို သွင်းရန် ကြည့်ရှုခြင်း[CR]Add-on များကို ပြုပြင် ပြောင်းလဲခြင်း"
 
 msgctxt "#31411"
 msgid "First run help...."
 msgstr "အကူအညီကိုကြိုတင်ဖွင့်ပါ"
+
+msgctxt "#31413"
+msgid "Local subtitle available"
+msgstr "Local စာတန်းထိုး များရနိုင်ပါသည်။"
+
+msgctxt "#31420"
+msgid "Login"
+msgstr "ဝင်ရန်"
 
 msgctxt "#31502"
 msgid "Live TV"
@@ -276,10 +288,14 @@ msgctxt "#31902"
 msgid "Hourly Forecast"
 msgstr "နာရီနှင့်အမျှ ခန့်မှန်းခြင်း"
 
-msgctxt "#31904"
-msgid "10 Day Forecast"
-msgstr "၁၀ ရက် ကြိုတင်ခန့်မှန်းခြင်း"
-
 msgctxt "#31905"
 msgid "Forecast"
 msgstr "ခန့်မှန်းခြင်း"
+
+msgctxt "#31910"
+msgid "Maps"
+msgstr "မြေပုံများ"
+
+msgctxt "#31952"
+msgid "TV"
+msgstr "TV"

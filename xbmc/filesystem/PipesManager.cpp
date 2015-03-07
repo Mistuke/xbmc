@@ -20,6 +20,7 @@
 
 #include "PipesManager.h"
 #include "threads/SingleLock.h"
+#include "utils/StringUtils.h"
 
 #ifndef min
 #define min(a,b) ((a) < (b) ? (a) : (b))
@@ -28,7 +29,7 @@
 using namespace XFILE;
 
 
-Pipe::Pipe(const CStdString &name, int nMaxSize)
+Pipe::Pipe(const std::string &name, int nMaxSize)
 {
   m_buffer.Create(nMaxSize);
   m_nRefCount = 1;
@@ -50,7 +51,7 @@ void Pipe::SetOpenThreashold(int threashold)
   m_nOpenThreashold = threashold;
 }
 
-const CStdString &Pipe::GetName() 
+const std::string &Pipe::GetName()
 {
   return m_strPipeName;
 }
@@ -256,7 +257,7 @@ void Pipe::RemoveListener(IPipeListener *l)
     if ( (*i) == l)
       i = m_listeners.erase(i);
     else
-      i++;
+      ++i;
   }
 }
 
@@ -280,18 +281,16 @@ PipesManager &PipesManager::GetInstance()
   return instance;
 }
 
-CStdString   PipesManager::GetUniquePipeName()
+std::string   PipesManager::GetUniquePipeName()
 {
   CSingleLock lock(m_lock);
-  CStdString id;
-  id.Format("pipe://%d/",m_nGenIdHelper++);
-  return id;
+  return StringUtils::Format("pipe://%d/", m_nGenIdHelper++);
 }
 
-XFILE::Pipe *PipesManager::CreatePipe(const CStdString &name, int nMaxPipeSize)
+XFILE::Pipe *PipesManager::CreatePipe(const std::string &name, int nMaxPipeSize)
 {
-  CStdString pName = name;
-  if (pName.IsEmpty())
+  std::string pName = name;
+  if (pName.empty())
     pName = GetUniquePipeName();
   
   CSingleLock lock(m_lock);
@@ -303,7 +302,7 @@ XFILE::Pipe *PipesManager::CreatePipe(const CStdString &name, int nMaxPipeSize)
   return p;
 }
 
-XFILE::Pipe *PipesManager::OpenPipe(const CStdString &name)
+XFILE::Pipe *PipesManager::OpenPipe(const std::string &name)
 {
   CSingleLock lock(m_lock);
   if (m_pipes.find(name) == m_pipes.end())
@@ -319,15 +318,15 @@ void         PipesManager::ClosePipe(XFILE::Pipe *pipe)
     return ;
   
   pipe->DecRef();
-  pipe->Close();
   if (pipe->RefCount() == 0)
   {
+    pipe->Close();
     m_pipes.erase(pipe->GetName());
     delete pipe;
   }
 }
 
-bool         PipesManager::Exists(const CStdString &name)
+bool         PipesManager::Exists(const std::string &name)
 {
   CSingleLock lock(m_lock);
   return (m_pipes.find(name) != m_pipes.end());

@@ -19,9 +19,7 @@
  *
  */
 
-#include "utils/StdString.h"
-#include "Interfaces/AESound.h"
-#include "ActiveAEResample.h"
+#include "cores/AudioEngine/Interfaces/AESound.h"
 #include "filesystem/File.h"
 
 class DllAvUtil;
@@ -53,15 +51,15 @@ public:
   void Finish();
   int GetChunkSize();
   int GetFileSize() { return m_fileSize; }
-  bool IsSeekPosible() { return m_isSeekPosible; }
+  bool IsSeekPossible() { return m_isSeekPossible; }
 
   static int Read(void *h, uint8_t* buf, int size);
-  static offset_t Seek(void *h, offset_t pos, int whence);
+  static int64_t Seek(void *h, int64_t pos, int whence);
 
 protected:
   std::string m_filename;
   XFILE::CFile *m_pFile;
-  bool m_isSeekPosible;
+  bool m_isSeekPossible;
   int m_fileSize;
   float m_volume;
 

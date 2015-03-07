@@ -32,10 +32,9 @@ public:
   virtual bool OnMessage(CGUIMessage& message);
   virtual bool OnBack(int actionID);
   virtual void OnInitWindow();
-  virtual void OnWindowLoaded();
   virtual void OnDeinitWindow(int nextWindowID);
 
-  static bool EditRule(CSmartPlaylistRule &rule, const CStdString& type="songs");
+  static bool EditRule(CSmartPlaylistRule &rule, const std::string& type="songs");
 
 protected:
   void OnField();
@@ -43,10 +42,9 @@ protected:
   void OnOK();
   void OnCancel();
   void UpdateButtons();
-  void AddOperatorLabel(CSmartPlaylistRule::SEARCH_OPERATOR op);
   void OnBrowse();
 
   CSmartPlaylistRule m_rule;
   bool m_cancelled;
-  CStdString m_type;
+  std::string m_type;
 };

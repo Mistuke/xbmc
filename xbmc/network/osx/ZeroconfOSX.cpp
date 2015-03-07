@@ -115,7 +115,7 @@ bool CZeroconfOSX::doPublishService(const std::string& fcr_identifier,
     CFRelease(netService);
     netService = NULL;
     CLog::Log(LOGERROR, "CZeroconfOSX::doPublishService CFNetServiceRegister returned "
-      "(domain = %d, error = %"PRId64")", (int)error.domain, (int64_t)error.error);
+      "(domain = %d, error = %" PRId64")", (int)error.domain, (int64_t)error.error);
   } else
   {
     CSingleLock lock(m_data_guard);
@@ -124,6 +124,32 @@ bool CZeroconfOSX::doPublishService(const std::string& fcr_identifier,
 
   return result;
 }
+
+bool CZeroconfOSX::doForceReAnnounceService(const std::string& fcr_identifier)
+{
+  bool ret = false;
+  CSingleLock lock(m_data_guard);
+  tServiceMap::iterator it = m_services.find(fcr_identifier);
+  if(it != m_services.end())
+  {
+    CFNetServiceRef service = it->second;
+
+    CFDataRef txtData = CFNetServiceGetTXTData(service);
+    // convert the txtdata back and forth is enough to trigger a reannounce later
+    CFDictionaryRef txtDict = CFNetServiceCreateDictionaryWithTXTData(NULL, txtData);
+    CFMutableDictionaryRef txtDictMutable =CFDictionaryCreateMutableCopy(NULL, 0, txtDict);
+    txtData = CFNetServiceCreateTXTDataWithDictionary(NULL, txtDictMutable);
+
+    // this triggers the reannounce
+    ret = CFNetServiceSetTXTData(service, txtData);
+
+    CFRelease(txtDictMutable);
+    CFRelease(txtDict);
+    CFRelease(txtData);
+  } 
+  return ret;
+}
+
 
 bool CZeroconfOSX::doRemoveService(const std::string& fcr_ident)
 {
@@ -158,7 +184,7 @@ void CZeroconfOSX::registerCallback(CFNetServiceRef theService, CFStreamError* e
         break;
       default:
         CLog::Log(LOGERROR, "CZeroconfOSX::registerCallback returned "
-          "(domain = %d, error = %"PRId64")", (int)error->domain, (int64_t)error->error);
+          "(domain = %d, error = %" PRId64")", (int)error->domain, (int64_t)error->error);
         break;
     }
     p_this->cancelRegistration(theService);
@@ -167,7 +193,10 @@ void CZeroconfOSX::registerCallback(CFNetServiceRef theService, CFStreamError* e
     for(tServiceMap::iterator it = p_this->m_services.begin(); it != p_this->m_services.end(); ++it)
     {
       if(it->second == theService)
+      {
         p_this->m_services.erase(it);
+        break;
+      }
     }
   }
 }

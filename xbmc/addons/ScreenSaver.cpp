@@ -18,6 +18,7 @@
  *
  */
 #include "ScreenSaver.h"
+#include "guilib/GraphicContext.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
 #include "settings/DisplaySettings.h"
 #include "utils/AlarmClock.h"
@@ -50,7 +51,7 @@ bool CScreenSaver::CreateScreenSaver()
     g_alarmClock.Stop(SCRIPT_ALARM, true);
 
     if (!CScriptInvocationManager::Get().Stop(LibPath()))
-      CScriptInvocationManager::Get().Execute(LibPath(), Clone());
+      CScriptInvocationManager::Get().ExecuteAsync(LibPath(), Clone());
     return true;
   }
  // pass it the screen width,height

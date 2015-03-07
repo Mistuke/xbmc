@@ -33,7 +33,7 @@ namespace XFILE
     CSlingboxFile();
     virtual ~CSlingboxFile();
     virtual bool Open(const CURL& url);
-    virtual unsigned int Read(void * buffer, int64_t size);
+    virtual ssize_t Read(void * buffer, size_t size);
     virtual void Close();
     virtual bool SkipNext();
     
@@ -56,7 +56,7 @@ namespace XFILE
   protected:
     struct
     {
-      CStdString strHostname;
+      std::string strHostname;
       int iVideoWidth;
       int iVideoHeight;
       int iVideoResolution;
@@ -70,7 +70,7 @@ namespace XFILE
       unsigned int uiCodeNumber[10];
     } m_sSlingboxSettings;
     
-    void LoadSettings(const CStdString& strSlingbox);
+    void LoadSettings(const std::string& strSlingbox);
     CSlingbox * m_pSlingbox;
   };
   

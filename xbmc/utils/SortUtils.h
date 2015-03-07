@@ -21,7 +21,7 @@
 
 #include <map>
 #include <string>
-#include "boost/shared_ptr.hpp"
+#include <memory>
 
 #include "DatabaseUtils.h"
 #include "SortFileItem.h"
@@ -91,6 +91,7 @@ typedef enum {
   SortByBitrate,
   SortByRandom,
   SortByChannel,
+  SortByChannelNumber,
   SortByDateTaken
 } SortBy;
 
@@ -107,15 +108,15 @@ typedef struct SortDescription {
   { }
 } SortDescription;
 
-typedef struct
+typedef struct GUIViewSortDetails
 {
   SortDescription m_sortDescription;
   int m_buttonLabel;
   LABEL_MASKS m_labelMasks;
-} SORT_METHOD_DETAILS;
+} GUIViewSortDetails;
 
 typedef DatabaseResult SortItem;
-typedef boost::shared_ptr<SortItem> SortItemPtr;
+typedef std::shared_ptr<SortItem> SortItemPtr;
 typedef std::vector<SortItemPtr> SortItems;
 
 class SortUtils
@@ -134,7 +135,7 @@ public:
   static void Sort(SortBy sortBy, SortOrder sortOrder, SortAttribute attributes, SortItems& items, int limitEnd = -1, int limitStart = 0);
   static void Sort(const SortDescription &sortDescription, DatabaseResults& items);
   static void Sort(const SortDescription &sortDescription, SortItems& items);
-  static bool SortFromDataset(const SortDescription &sortDescription, MediaType mediaType, const std::auto_ptr<dbiplus::Dataset> &dataset, DatabaseResults &results);
+  static bool SortFromDataset(const SortDescription &sortDescription, const MediaType &mediaType, const std::unique_ptr<dbiplus::Dataset> &dataset, DatabaseResults &results);
   
   static const Fields& GetFieldsForSorting(SortBy sortBy);
   static std::string RemoveArticles(const std::string &label);

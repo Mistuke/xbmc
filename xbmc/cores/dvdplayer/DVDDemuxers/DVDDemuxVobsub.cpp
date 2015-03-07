@@ -49,7 +49,7 @@ bool CDVDDemuxVobsub::Open(const string& filename, const string& subfilename)
 {
   m_Filename = filename;
 
-  auto_ptr<CDVDSubtitleStream> pStream(new CDVDSubtitleStream());
+  unique_ptr<CDVDSubtitleStream> pStream(new CDVDSubtitleStream());
   if(!pStream->Open(filename))
     return false;
 
@@ -195,7 +195,7 @@ bool CDVDDemuxVobsub::ParseDelay(SState& state, char* line)
 
 bool CDVDDemuxVobsub::ParseId(SState& state, char* line)
 {
-  auto_ptr<CStream> stream(new CStream(this));
+  unique_ptr<CStream> stream(new CStream(this));
 
   while(*line == ' ') line++;
   strncpy(stream->language, line, 2);
@@ -214,6 +214,7 @@ bool CDVDDemuxVobsub::ParseId(SState& state, char* line)
 
   stream->codec = AV_CODEC_ID_DVD_SUBTITLE;
   stream->iId = m_Streams.size();
+  stream->source = STREAM_SOURCE_DEMUX_SUB;
 
   state.id = stream->iId;
   m_Streams.push_back(stream.release());
@@ -236,7 +237,7 @@ bool CDVDDemuxVobsub::ParseTimestamp(SState& state, char* line)
   STimestamp timestamp;
 
   while(*line == ' ') line++;
-  if(sscanf(line, "%d:%d:%d:%d, filepos:%"PRIx64, &h, &m, &s, &ms, &timestamp.pos) != 5)
+  if(sscanf(line, "%d:%d:%d:%d, filepos:%" PRIx64, &h, &m, &s, &ms, &timestamp.pos) != 5)
     return false;
 
   timestamp.id  = state.id;

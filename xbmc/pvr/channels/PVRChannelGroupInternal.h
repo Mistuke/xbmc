@@ -21,6 +21,7 @@
  */
 
 #include "PVRChannelGroup.h"
+#include "utils/Observer.h"
 
 namespace PVR
 {
@@ -29,7 +30,7 @@ namespace PVR
 
   /** XBMC's internal group, the group containing all channels */
 
-  class CPVRChannelGroupInternal : public CPVRChannelGroup
+  class CPVRChannelGroupInternal : public CPVRChannelGroup, public Observer
   {
     friend class CPVRChannelGroups;
     friend class CPVRDatabase;
@@ -45,6 +46,8 @@ namespace PVR
 
     virtual ~CPVRChannelGroupInternal(void);
 
+    virtual void Notify(const Observable &obs, const ObservableMessage msg);
+
     /**
      * @brief The amount of channels in this container.
      * @return The amount of channels in this container.
@@ -52,39 +55,32 @@ namespace PVR
     int GetNumHiddenChannels() const { return m_iHiddenChannels; }
 
     /*!
-     * @brief Add or update a channel in this table.
-     * @param channel The channel to update.
-     * @return True if the channel was updated and persisted.
-     */
-    bool UpdateChannel(const CPVRChannel &channel);
-
-    /*!
      * @brief Add a channel to this internal group.
      * @param iChannelNumber The channel number to use for this channel or 0 to add it to the back.
      */
-    bool InsertInGroup(CPVRChannel &channel, int iChannelNumber = 0);
+    bool InsertInGroup(CPVRChannelPtr &channel, int iChannelNumber = 0);
 
     /*!
      * @brief Callback for add-ons to update a channel.
      * @param channel The updated channel.
-     * @return True if the channel has been updated succesfully, false otherwise.
+     * @return The new/updated channel.
      */
-    void UpdateFromClient(const CPVRChannel &channel, unsigned int iChannelNumber = 0);
+    CPVRChannelPtr UpdateFromClient(const CPVRChannelPtr &channel, unsigned int iChannelNumber = 0);
 
     /*!
      * @see CPVRChannelGroup::IsGroupMember
      */
-    bool IsGroupMember(const CPVRChannel &channel) const;
+    bool IsGroupMember(const CPVRChannelPtr &channel) const;
 
     /*!
      * @see CPVRChannelGroup::AddToGroup
      */
-    bool AddToGroup(CPVRChannel &channel, int iChannelNumber = 0);
+    bool AddToGroup(CPVRChannelPtr &channel, int iChannelNumber = 0);
 
     /*!
      * @see CPVRChannelGroup::RemoveFromGroup
      */
-    bool RemoveFromGroup(const CPVRChannel &channel);
+    bool RemoveFromGroup(const CPVRChannelPtr &channel);
 
     /*!
      * @see CPVRChannelGroup::MoveChannel
@@ -107,8 +103,6 @@ namespace PVR
      * @return True if all tables were created successfully, false otherwise.
      */
     bool CreateChannelEpgs(bool bForce = false);
-
-    bool AddNewChannel(const CPVRChannel &channel, unsigned int iChannelNumber = 0) { UpdateFromClient(channel, iChannelNumber); return true; }
 
   protected:
     /*!

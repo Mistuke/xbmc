@@ -23,6 +23,7 @@
 #include "guilib/LocalizeStrings.h"
 #include "video/VideoDatabase.h"
 #include "video/VideoDbUrl.h"
+#include "utils/StringUtils.h"
 
 using namespace XFILE::VIDEODATABASEDIRECTORY;
 using namespace std;
@@ -39,7 +40,7 @@ Node MovieChildren[] = {
                         { NODE_TYPE_TAGS,         "tags",       20459 }
                        };
 
-CDirectoryNodeMoviesOverview::CDirectoryNodeMoviesOverview(const CStdString& strName, CDirectoryNode* pParent)
+CDirectoryNodeMoviesOverview::CDirectoryNodeMoviesOverview(const std::string& strName, CDirectoryNode* pParent)
   : CDirectoryNode(NODE_TYPE_MOVIES_OVERVIEW, strName, pParent)
 {
 
@@ -48,16 +49,16 @@ CDirectoryNodeMoviesOverview::CDirectoryNodeMoviesOverview(const CStdString& str
 NODE_TYPE CDirectoryNodeMoviesOverview::GetChildType() const
 {
   for (unsigned int i = 0; i < sizeof(MovieChildren) / sizeof(Node); ++i)
-    if (GetName().Equals(MovieChildren[i].id.c_str()))
+    if (GetName() == MovieChildren[i].id)
       return MovieChildren[i].node;
   
   return NODE_TYPE_NONE;
 }
 
-CStdString CDirectoryNodeMoviesOverview::GetLocalizedName() const
+std::string CDirectoryNodeMoviesOverview::GetLocalizedName() const
 {
   for (unsigned int i = 0; i < sizeof(MovieChildren) / sizeof(Node); ++i)
-    if (GetName().Equals(MovieChildren[i].id.c_str()))
+    if (GetName() == MovieChildren[i].id)
       return g_localizeStrings.Get(MovieChildren[i].label);
   return "";
 }
@@ -78,7 +79,7 @@ bool CDirectoryNodeMoviesOverview::GetContent(CFileItemList& items) const
     }
 
     CVideoDbUrl itemUrl = videoUrl;
-    CStdString strDir; strDir.Format("%s/", MovieChildren[i].id);
+    std::string strDir = StringUtils::Format("%s/", MovieChildren[i].id.c_str());
     itemUrl.AppendPath(strDir);
 
     CFileItemPtr pItem(new CFileItem(itemUrl.ToString(), true));

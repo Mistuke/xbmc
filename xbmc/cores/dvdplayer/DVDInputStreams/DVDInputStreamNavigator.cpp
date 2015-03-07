@@ -78,7 +78,7 @@ bool CDVDInputStreamNavigator::Open(const char* strFile, const std::string& cont
   // libdvdcss fails if the file path contains VIDEO_TS.IFO or VIDEO_TS/VIDEO_TS.IFO
   // libdvdnav is still able to play without, so strip them.
 
-  CStdString path = strFile;
+  std::string path = strFile;
   if(URIUtils::GetFileName(path) == "VIDEO_TS.IFO")
     path = URIUtils::GetParentPath(path);
   URIUtils::RemoveSlashAtEnd(path);
@@ -187,8 +187,14 @@ bool CDVDInputStreamNavigator::Open(const char* strFile, const std::string& cont
     m_dll.dvdnav_get_next_cache_block(m_dvdnav,&buf_ptr,&event,&len);
     m_dll.dvdnav_sector_search(m_dvdnav, 0, SEEK_SET);
 
+    // first try title menu
     if(m_dll.dvdnav_menu_call(m_dvdnav, DVD_MENU_Title) != DVDNAV_STATUS_OK)
+    {
       CLog::Log(LOGERROR,"Error on dvdnav_menu_call(Title): %s\n", m_dll.dvdnav_err_to_string(m_dvdnav));
+      // next try root menu
+      if(m_dll.dvdnav_menu_call(m_dvdnav, DVD_MENU_Root) != DVDNAV_STATUS_OK )
+        CLog::Log(LOGERROR,"Error on dvdnav_menu_call(Root): %s\n", m_dll.dvdnav_err_to_string(m_dvdnav));
+    }
   }
 
   m_bEOF = false;
@@ -233,11 +239,23 @@ int CDVDInputStreamNavigator::Read(uint8_t* buf, int buf_size)
 
   int iBytesRead;
 
+  int NOPcount = 0;
   while(true) {
     int navresult = ProcessBlock(buf, &iBytesRead);
     if (navresult == NAVRESULT_HOLD)       return 0; // return 0 bytes read;
     else if (navresult == NAVRESULT_ERROR) return -1;
     else if (navresult == NAVRESULT_DATA)  return iBytesRead;
+    else if (navresult == NAVRESULT_NOP)
+    {
+      NOPcount++;
+      if (NOPcount == 1000) 
+      {
+        m_bEOF = true;
+        CLog::Log(LOGERROR,"CDVDInputStreamNavigator: Stopping playback due to infinite loop, caused by badly authored DVD navigation structure. Try enabling 'Attempt to skip introduction before DVD menu'.");
+        m_pDVDPlayer->OnDVDNavResult(NULL, DVDNAV_STOP);
+        return -1; // fail and stop playback.
+      }
+    }
   }
 
   return iBytesRead;
@@ -353,6 +371,14 @@ int CDVDInputStreamNavigator::ProcessBlock(uint8_t* dest_buffer, int* read)
 
         //libdvdnav never sets logical, why.. don't know..
         event->logical = GetActiveSubtitleStream();
+
+        /* correct stream ids for disabled subs if needed */
+        if(!IsSubtitleStreamEnabled())
+        {
+          event->physical_letterbox |= 0x80;
+          event->physical_pan_scan |= 0x80;
+          event->physical_wide |= 0x80;
+        }
 
         if(event->logical<0 && GetSubTitleStreamCount()>0)
         {
@@ -502,7 +528,7 @@ int CDVDInputStreamNavigator::ProcessBlock(uint8_t* dest_buffer, int* read)
           }
           m_iVobUnitCorrection += gap;
 
-          CLog::Log(LOGDEBUG, "DVDNAV_NAV_PACKET - DISCONTINUITY FROM:%"PRId64" TO:%"PRId64" DIFF:%"PRId64, (m_iVobUnitStop * 1000)/90, ((int64_t)pci->pci_gi.vobu_s_ptm*1000)/90, (gap*1000)/90);
+          CLog::Log(LOGDEBUG, "DVDNAV_NAV_PACKET - DISCONTINUITY FROM:%" PRId64" TO:%" PRId64" DIFF:%" PRId64, (m_iVobUnitStop * 1000)/90, ((int64_t)pci->pci_gi.vobu_s_ptm*1000)/90, (gap*1000)/90);
         }
 
         m_iVobUnitStart = pci->pci_gi.vobu_s_ptm;
@@ -826,7 +852,7 @@ bool CDVDInputStreamNavigator::GetSubtitleStreamInfo(const int iId, DVDNavStream
   int streamId = ConvertSubtitleStreamId_XBMCToExternal(iId);
   subp_attr_t subp_attributes;
 
-  if( m_dll.dvdnav_get_stitle_info(m_dvdnav, streamId, &subp_attributes) == DVDNAV_STATUS_OK )
+  if( m_dll.dvdnav_get_spu_attr(m_dvdnav, streamId, &subp_attributes) == DVDNAV_STATUS_OK )
   {
     SetSubtitleStreamName(info, subp_attributes);
 
@@ -835,7 +861,7 @@ bool CDVDInputStreamNavigator::GetSubtitleStreamInfo(const int iId, DVDNavStream
     lang[1] = (subp_attributes.lang_code & 255);
     lang[0] = (subp_attributes.lang_code >> 8) & 255;
 
-    CStdString temp;
+    std::string temp;
     g_LangCodeExpander.ConvertToThreeCharCode(temp, lang);
     info.language = temp;
 
@@ -1012,7 +1038,7 @@ bool CDVDInputStreamNavigator::GetAudioStreamInfo(const int iId, DVDNavStreamInf
   int streamId = ConvertAudioStreamId_XBMCToExternal(iId);
   audio_attr_t audio_attributes;
 
-  if( m_dll.dvdnav_get_audio_info(m_dvdnav, streamId, &audio_attributes) == DVDNAV_STATUS_OK )
+  if( m_dll.dvdnav_get_audio_attr(m_dvdnav, streamId, &audio_attributes) == DVDNAV_STATUS_OK )
   {
     SetAudioStreamName(info, audio_attributes);
 
@@ -1021,7 +1047,7 @@ bool CDVDInputStreamNavigator::GetAudioStreamInfo(const int iId, DVDNavStreamInf
     lang[1] = (audio_attributes.lang_code & 255);
     lang[0] = (audio_attributes.lang_code >> 8) & 255;
 
-    CStdString temp;
+    std::string temp;
     g_LangCodeExpander.ConvertToThreeCharCode(temp, lang);
     info.language = temp;
 
@@ -1428,4 +1454,27 @@ bool CDVDInputStreamNavigator::GetDVDSerialString(std::string& serialStr)
   m_dll.dvdnav_get_serial_string(m_dvdnav, &str);
   serialStr.assign(str);
   return true;
+}
+
+int64_t CDVDInputStreamNavigator::GetChapterPos(int ch)
+{
+  if (ch == -1 || ch > GetChapterCount()) 
+    ch = GetChapter();
+
+  if (ch <= 1)
+    return 0;
+
+  uint64_t* times = NULL;
+  uint64_t duration;
+
+  m_dll.dvdnav_describe_title_chapters(m_dvdnav, m_iTitle, &times, &duration);
+
+  int64_t result = 0;
+  
+  if (times)
+  {
+    result = times[ch - 2] / 90000;
+    m_dll.dvdnav_free(times);
+  }  
+  return result;
 }

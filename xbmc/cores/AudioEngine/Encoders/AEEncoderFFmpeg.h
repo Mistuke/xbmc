@@ -20,14 +20,14 @@
  */
 
 #include "cores/AudioEngine/Interfaces/AEEncoder.h"
-#include "cores/AudioEngine/Utils/AERemap.h"
 #include "cores/AudioEngine/Utils/AEPackIEC61937.h"
+
+extern "C" {
+#include "libswresample/swresample.h"
+}
 
 /* ffmpeg re-defines this, so undef it to squash the warning */
 #undef restrict
-#include "DllAvCodec.h"
-#include "DllAvFormat.h"
-#include "DllSwResample.h"
 
 class CAEEncoderFFmpeg: public IAEEncoder
 {
@@ -35,7 +35,7 @@ public:
   CAEEncoderFFmpeg();
   virtual ~CAEEncoderFFmpeg();
 
-  virtual bool IsCompatible(AEAudioFormat format);
+  virtual bool IsCompatible(const AEAudioFormat& format);
   virtual bool Initialize(AEAudioFormat &format, bool allow_planar_input = false);
   virtual void Reset();
 
@@ -48,11 +48,6 @@ public:
   virtual int GetData(uint8_t **data);
   virtual double GetDelay(unsigned int bufferSize);
 private:
-  DllAvCodec  m_dllAvCodec;
-  DllAvFormat m_dllAvFormat;
-  DllAvUtil   m_dllAvUtil;
-  DllSwResample m_dllSwResample;
-
   std::string                m_CodecName;
   AVCodecID                  m_CodecID;
   unsigned int              m_BitRate;

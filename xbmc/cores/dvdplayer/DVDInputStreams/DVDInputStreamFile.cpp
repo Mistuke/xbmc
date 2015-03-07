@@ -54,13 +54,34 @@ bool CDVDInputStreamFile::Open(const char* strFile, const std::string& content)
 
   unsigned int flags = READ_TRUNCATED | READ_BITRATE | READ_CHUNKED;
 
-  if ( g_advancedSettings.m_alwaysForceBuffer && 
-       !URIUtils::IsOnDVD(strFile) && 
-       !URIUtils::IsBluray(strFile) )
-    flags |= READ_CACHED; 
+  /*
+   * There are 4 buffer modes available (configurable in as.xml)
+   * 0) Buffer all internet filesystems (like 2 but additionally also ftp, webdav, etc.) (default)
+   * 1) Buffer all filesystems (including local)
+   * 2) Only buffer true internet filesystems (streams) (http, etc.)
+   * 3) No buffer
+   */
+  if (!URIUtils::IsOnDVD(strFile) && !URIUtils::IsBluray(strFile)) // Never cache these
+  {
+    if (g_advancedSettings.m_networkBufferMode == 0 || g_advancedSettings.m_networkBufferMode == 2)
+    {
+      if (URIUtils::IsInternetStream(CURL(strFile), (g_advancedSettings.m_networkBufferMode == 0) ) )
+        flags |= READ_CACHED;
+    }
+    else if (g_advancedSettings.m_networkBufferMode == 1)
+    {
+      flags |= READ_CACHED; // In buffer mode 1 force cache for (almost) all files
+    }
+  }
 
+  if (!(flags & READ_CACHED))
+    flags |= READ_NO_CACHE; // Make sure CFile honors our no-cache hint
 
-  if (content == "video/mp4" || content == "video/x-msvideo" || content == "video/avi")
+  if (content == "video/mp4" ||
+      content == "video/x-msvideo" ||
+      content == "video/avi" ||
+      content == "video/x-matroska" ||
+      content == "video/x-matroska-3d")
     flags |= READ_MULTI_STREAM;
 
   // open file in binary mode
@@ -74,7 +95,7 @@ bool CDVDInputStreamFile::Open(const char* strFile, const std::string& content)
   if (m_pFile->GetImplemenation() && (content.empty() || content == "application/octet-stream"))
     m_content = m_pFile->GetImplemenation()->GetContent();
 
-  m_eof = true;
+  m_eof = false;
   return true;
 }
 
@@ -96,12 +117,16 @@ int CDVDInputStreamFile::Read(uint8_t* buf, int buf_size)
 {
   if(!m_pFile) return -1;
 
-  unsigned int ret = m_pFile->Read(buf, buf_size);
+  ssize_t ret = m_pFile->Read(buf, buf_size);
+
+  if (ret < 0)
+    return -1; // player will retry read in case of error until playback is stopped
 
   /* we currently don't support non completing reads */
-  if( ret == 0 ) m_eof = true;
+  if (ret == 0) 
+    m_eof = true;
 
-  return (int)(ret & 0xFFFFFFFF);
+  return (int)ret;
 }
 
 int64_t CDVDInputStreamFile::Seek(int64_t offset, int whence)

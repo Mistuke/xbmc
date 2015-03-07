@@ -17,9 +17,11 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#include <cstdlib>
+
 #include "PosixMountProvider.h"
 #include "utils/RegExp.h"
-#include "utils/StdString.h"
 #include "utils/URIUtils.h"
 #include "utils/log.h"
 
@@ -36,10 +38,10 @@ void CPosixMountProvider::Initialize()
 
 void CPosixMountProvider::GetDrives(VECSOURCES &drives)
 {
-  std::vector<CStdString> result;
+  std::vector<std::string> result;
 
   CRegExp reMount;
-#if defined(TARGET_DARWIN)
+#if defined(TARGET_DARWIN) || defined(TARGET_FREEBSD)
   reMount.RegComp("on (.+) \\(([^,]+)");
 #else
   reMount.RegComp("on (.+) type ([^ ]+)");
@@ -90,9 +92,9 @@ void CPosixMountProvider::GetDrives(VECSOURCES &drives)
   }
 }
 
-std::vector<CStdString> CPosixMountProvider::GetDiskUsage()
+std::vector<std::string> CPosixMountProvider::GetDiskUsage()
 {
-  std::vector<CStdString> result;
+  std::vector<std::string> result;
   char line[1024];
 
 #if defined(TARGET_DARWIN)
@@ -125,6 +127,19 @@ std::vector<CStdString> CPosixMountProvider::GetDiskUsage()
   }
 
   return result;
+}
+
+bool CPosixMountProvider::Eject(const std::string& mountpath)
+{
+  // just go ahead and try to umount the disk
+  // if it does umount, life is good, if not, no loss.
+  std::string cmd = "umount \"" + mountpath + "\"";
+  int status = system(cmd.c_str());
+
+  if (status == 0)
+    return true;
+
+  return false;
 }
 
 bool CPosixMountProvider::PumpDriveChangeEvents(IStorageEventsCallback *callback)

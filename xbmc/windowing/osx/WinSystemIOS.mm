@@ -33,29 +33,57 @@
 #include "settings/DisplaySettings.h"
 #include "guilib/GraphicContext.h"
 #include "guilib/Texture.h"
+#include "utils/StringUtils.h"
+#include "guilib/DispResource.h"
+#include "threads/SingleLock.h"
+#include "video/videosync/VideoSyncIos.h"
 #include <vector>
 #undef BOOL
 
 #import <Foundation/Foundation.h>
 #import <OpenGLES/ES2/gl.h>
 #import <OpenGLES/ES2/glext.h>
+#import <QuartzCore/CADisplayLink.h>
+
 #if defined(TARGET_DARWIN_IOS_ATV2)
-#import "atv2/XBMCController.h"
+#import "atv2/KodiController.h"
 #else
 #import "ios/XBMCController.h"
 #endif
+#import "osx/IOSScreenManager.h"
 #include "osx/DarwinUtils.h"
 #import <dlfcn.h>
+
+// IOSDisplayLinkCallback is declared in the lower part of the file
+@interface IOSDisplayLinkCallback : NSObject
+{
+@private CVideoSyncIos *_videoSyncImpl;
+}
+@property (nonatomic, setter=SetVideoSyncImpl:) CVideoSyncIos *_videoSyncImpl;
+- (void) runDisplayLink;
+@end
+
+struct CADisplayLinkWrapper
+{
+  CADisplayLink* impl;
+  IOSDisplayLinkCallback *callbackClass;
+};
 
 CWinSystemIOS::CWinSystemIOS() : CWinSystemBase()
 {
   m_eWindowSystem = WINDOW_SYSTEM_IOS;
 
   m_iVSyncErrors = 0;
+  m_bIsBackgrounded = false;
+  m_pDisplayLink = new CADisplayLinkWrapper;
+  m_pDisplayLink->callbackClass = [[IOSDisplayLinkCallback alloc] init];
+  
 }
 
 CWinSystemIOS::~CWinSystemIOS()
 {
+  [m_pDisplayLink->callbackClass release];
+  delete m_pDisplayLink;
 }
 
 bool CWinSystemIOS::InitWindowSystem()
@@ -68,7 +96,7 @@ bool CWinSystemIOS::DestroyWindowSystem()
   return true;
 }
 
-bool CWinSystemIOS::CreateNewWindow(const CStdString& name, bool fullScreen, RESOLUTION_INFO& res, PHANDLE_EVENT_FUNC userFunction)
+bool CWinSystemIOS::CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res, PHANDLE_EVENT_FUNC userFunction)
 {
   //NSLog(@"%s", __PRETTY_FUNCTION__);
 	
@@ -166,6 +194,16 @@ bool CWinSystemIOS::SwitchToVideoMode(int width, int height, double refreshrate,
 int CWinSystemIOS::GetNumScreens()
 {
   return [[UIScreen screens] count];
+}
+
+int CWinSystemIOS::GetCurrentScreen()
+{
+  int idx = 0;
+  if ([[IOSScreenManager sharedInstance] isExternalScreen])
+  {
+    idx = 1;
+  }
+  return idx;
 }
 
 bool CWinSystemIOS::GetScreenResolution(int* w, int* h, double* fps, int screenIdx)
@@ -267,7 +305,7 @@ void CWinSystemIOS::FillInVideoModes()
       //mode str by doing it without appending "Full Screen".
       //this is what linux does - though it feels that there shouldn't be
       //the same resolution twice... - thats why i add a FIXME here.
-      res.strMode.Format("%dx%d @ %.2f", w, h, refreshrate);
+      res.strMode = StringUtils::Format("%dx%d @ %.2f", w, h, refreshrate);
       g_graphicsContext.ResetOverscan(res);
       CDisplaySettings::Get().AddResolutionInfo(res);
     }
@@ -279,13 +317,13 @@ bool CWinSystemIOS::IsExtSupported(const char* extension)
   if(strncmp(extension, "EGL_", 4) != 0)
     return CRenderSystemGLES::IsExtSupported(extension);
 
-  CStdString name;
+  std::string name;
 
   name  = " ";
   name += extension;
   name += " ";
 
-  return m_eglext.find(name) != string::npos;
+  return m_eglext.find(name) != std::string::npos;
 }
 
 bool CWinSystemIOS::BeginRender()
@@ -306,19 +344,79 @@ bool CWinSystemIOS::EndRender()
   return rtn;
 }
 
-void CWinSystemIOS::InitDisplayLink(void)
+void CWinSystemIOS::Register(IDispResource *resource)
 {
+  CSingleLock lock(m_resourceSection);
+  m_resources.push_back(resource);
 }
+
+void CWinSystemIOS::Unregister(IDispResource* resource)
+{
+  CSingleLock lock(m_resourceSection);
+  std::vector<IDispResource*>::iterator i = find(m_resources.begin(), m_resources.end(), resource);
+  if (i != m_resources.end())
+    m_resources.erase(i);
+}
+
+void CWinSystemIOS::OnAppFocusChange(bool focus)
+{
+  CSingleLock lock(m_resourceSection);
+  m_bIsBackgrounded = !focus;
+  CLog::Log(LOGDEBUG, "CWinSystemIOS::OnAppFocusChange: %d", focus ? 1 : 0);
+  for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); i++)
+    (*i)->OnAppFocusChange(focus);
+}
+
+//--------------------------------------------------------------
+//-------------------DisplayLink stuff
+@implementation IOSDisplayLinkCallback
+@synthesize _videoSyncImpl;
+//--------------------------------------------------------------
+- (void) runDisplayLink;
+{
+  NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
+  if (_videoSyncImpl != nil)
+  {
+    _videoSyncImpl->IosVblankHandler();
+  }
+  [pool release];
+}
+@end
+
+bool CWinSystemIOS::InitDisplayLink(CVideoSyncIos *syncImpl)
+{
+  //init with the appropriate display link for the
+  //used screen
+  if([[IOSScreenManager sharedInstance] isExternalScreen])
+  {
+    fprintf(stderr,"InitDisplayLink on external");
+  }
+  else
+  {
+    fprintf(stderr,"InitDisplayLink on internal");
+  }
+  
+  unsigned int currentScreenIdx = [[IOSScreenManager sharedInstance] GetScreenIdx];
+  UIScreen * currentScreen = [[UIScreen screens] objectAtIndex:currentScreenIdx];
+  [m_pDisplayLink->callbackClass SetVideoSyncImpl:syncImpl];
+  m_pDisplayLink->impl = [currentScreen displayLinkWithTarget:m_pDisplayLink->callbackClass selector:@selector(runDisplayLink)];
+  
+  [m_pDisplayLink->impl setFrameInterval:1];
+  [m_pDisplayLink->impl addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
+  return m_pDisplayLink->impl != nil;
+}
+
 void CWinSystemIOS::DeinitDisplayLink(void)
 {
+  if (m_pDisplayLink->impl)
+  {
+    [m_pDisplayLink->impl invalidate];
+    m_pDisplayLink->impl = nil;
+    [m_pDisplayLink->callbackClass SetVideoSyncImpl:nil];
+  }
 }
-double CWinSystemIOS::GetDisplayLinkFPS(void)
-{
-  double fps;
-
-  fps = [g_xbmcController getDisplayLinkFPS];
-  return fps;
-}
+//------------DispalyLink stuff end
+//--------------------------------------------------------------
 
 bool CWinSystemIOS::PresentRenderImpl(const CDirtyRegionList &dirty)
 {
@@ -347,7 +445,7 @@ void CWinSystemIOS::ShowOSMouse(bool show)
 
 bool CWinSystemIOS::HasCursor()
 {
-  if( DarwinIsAppleTV2() )
+  if( CDarwinUtils::IsAppleTV2() )
   {
     return true;
   }

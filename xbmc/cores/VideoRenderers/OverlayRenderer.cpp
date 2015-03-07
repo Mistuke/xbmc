@@ -25,6 +25,7 @@
 #include "cores/dvdplayer/DVDCodecs/Overlay/DVDOverlayImage.h"
 #include "cores/dvdplayer/DVDCodecs/Overlay/DVDOverlaySpu.h"
 #include "cores/dvdplayer/DVDCodecs/Overlay/DVDOverlaySSA.h"
+#include "cores/dvdplayer/DVDCodecs/Overlay/DVDOverlayText.h"
 #include "cores/VideoRenderers/RenderManager.h"
 #include "guilib/GraphicContext.h"
 #include "Application.h"
@@ -35,12 +36,13 @@
 #include "settings/DisplaySettings.h"
 #include "threads/SingleLock.h"
 #include "utils/MathUtils.h"
+#include "OverlayRendererUtil.h"
+#include "OverlayRendererGUI.h"
 #if defined(HAS_GL) || defined(HAS_GLES)
 #include "OverlayRendererGL.h"
 #elif defined(HAS_DX)
 #include "OverlayRendererDX.h"
 #endif
-
 
 using namespace OVERLAY;
 
@@ -171,6 +173,7 @@ void CRenderer::Render(int idx)
 
   Release(m_cleanup);
 
+  std::vector<COverlay*> render;
   SElementV& list = m_buffers[idx];
   for(SElementV::iterator it = list.begin(); it != list.end(); ++it)
   {
@@ -183,14 +186,37 @@ void CRenderer::Render(int idx)
 
     if(!o)
       continue;
+ 
+    render.push_back(o);
+  }
 
-    Render(o);
+  float total_height = 0.0f;
+  for (std::vector<COverlay*>::iterator it = render.begin(); it != render.end(); ++it)
+  {
+    COverlay* o = *it;
+    o->PrepareRender();
+    if (o->m_align == COverlay::ALIGN_SUBTITLE)
+      total_height += o->m_height;
+  }
+
+  for (std::vector<COverlay*>::iterator it = render.begin(); it != render.end(); ++it)
+  {
+    COverlay* o = *it;
+
+    float adjust_height = 0.0f;
+    if (o->m_align == COverlay::ALIGN_SUBTITLE)
+    {
+      total_height -= o->m_height;
+      adjust_height = -total_height;
+    }
+
+    Render(o, adjust_height);
 
     o->Release();
   }
 }
 
-void CRenderer::Render(COverlay* o)
+void CRenderer::Render(COverlay* o, float adjust_height)
 {
   CRect rs, rd, rv;
   RESOLUTION_INFO res;
@@ -274,7 +300,28 @@ void CRenderer::Render(COverlay* o)
 
   }
 
+  state.x += GetStereoscopicDepth();
+  state.y += adjust_height;
+
   o->Render(state);
+}
+
+bool CRenderer::HasOverlay(int idx)
+{
+  bool hasOverlay = false;
+
+  CSingleLock lock(m_section);
+
+  SElementV& list = m_buffers[idx];
+  for(SElementV::iterator it = list.begin(); it != list.end(); ++it)
+  {
+    if (it->overlay || it->overlay_dvd)
+    {
+      hasOverlay = true;
+      break;
+    }
+  }
+  return hasOverlay;
 }
 
 COverlay* CRenderer::Convert(CDVDOverlaySSA* o, double pts)
@@ -331,6 +378,9 @@ COverlay* CRenderer::Convert(CDVDOverlay* o, double pts)
   else if(o->IsOverlayType(DVDOVERLAY_TYPE_SPU))
     r = new COverlayImageDX((CDVDOverlaySpu*)o);
 #endif
+
+  if(!r && o->IsOverlayType(DVDOVERLAY_TYPE_TEXT))
+    r = new COverlayText((CDVDOverlayText*)o);
 
   if(r)
     o->m_overlay = r->Acquire();

@@ -21,7 +21,7 @@
 #include "GUIRadioButtonControl.h"
 #include "GUIInfoManager.h"
 #include "GUIFontManager.h"
-#include "Key.h"
+#include "input/Key.h"
 
 CGUIRadioButtonControl::CGUIRadioButtonControl(int parentID, int controlID, float posX, float posY, float width, float height,
     const CTextureInfo& textureFocus, const CTextureInfo& textureNoFocus,
@@ -36,7 +36,6 @@ CGUIRadioButtonControl::CGUIRadioButtonControl(int parentID, int controlID, floa
 {
   m_radioPosX = 0;
   m_radioPosY = 0;
-  m_toggleSelect = 0;
   m_imgRadioOnFocus.SetAspectRatio(CAspectRatio::AR_KEEP);
   m_imgRadioOnNoFocus.SetAspectRatio(CAspectRatio::AR_KEEP);
   m_imgRadioOffFocus.SetAspectRatio(CAspectRatio::AR_KEEP);
@@ -72,7 +71,7 @@ void CGUIRadioButtonControl::Process(unsigned int currentTime, CDirtyRegionList 
   if (m_toggleSelect)
   {
     // ask our infoManager whether we are selected or not...
-    bool selected = g_infoManager.GetBoolValue(m_toggleSelect);
+    bool selected = m_toggleSelect->Get();
 
     if (selected != m_bSelected)
     {
@@ -185,9 +184,9 @@ void CGUIRadioButtonControl::SetHeight(float height)
   SetPosition(GetXPosition(), GetYPosition());
 }
 
-CStdString CGUIRadioButtonControl::GetDescription() const
+std::string CGUIRadioButtonControl::GetDescription() const
 {
-  CStdString strLabel = CGUIButtonControl::GetDescription();
+  std::string strLabel = CGUIButtonControl::GetDescription();
   if (m_bSelected)
     strLabel += " (*)";
   else
@@ -205,7 +204,7 @@ bool CGUIRadioButtonControl::UpdateColors()
   return changed;
 }
 
-void CGUIRadioButtonControl::SetToggleSelect(const CStdString &toggleSelect)
+void CGUIRadioButtonControl::SetToggleSelect(const std::string &toggleSelect)
 {
   m_toggleSelect = g_infoManager.Register(toggleSelect, GetParentID());
 }

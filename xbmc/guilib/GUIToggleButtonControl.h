@@ -53,14 +53,14 @@ public:
   virtual void SetHeight(float height);
   void SetLabel(const std::string& strLabel);
   void SetAltLabel(const std::string& label);
-  virtual CStdString GetDescription() const;
-  void SetToggleSelect(const CStdString &toggleSelect);
+  virtual std::string GetDescription() const;
+  void SetToggleSelect(const std::string &toggleSelect);
   void SetAltClickActions(const CGUIAction &clickActions);
 
 protected:
   virtual bool UpdateColors();
   virtual void OnClick();
   CGUIButtonControl m_selectButton;
-  unsigned int m_toggleSelect;
+  INFO::InfoPtr m_toggleSelect;
 };
 #endif

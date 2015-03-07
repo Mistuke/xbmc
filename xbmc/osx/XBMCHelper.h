@@ -23,7 +23,7 @@
 
 #if !defined(__arm__)
 
-#include "settings/ISettingCallback.h"
+#include "settings/lib/ISettingCallback.h"
 
 enum AppleRemoteOptions
 {
@@ -57,6 +57,7 @@ private:
   XBMCHelper(XBMCHelper const& );
   XBMCHelper& operator=(XBMCHelper const&);
 
+  void HandleLaunchAgent();
   void Install();
   void Uninstall();
 

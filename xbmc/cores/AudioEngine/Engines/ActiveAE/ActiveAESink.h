@@ -22,11 +22,11 @@
 #include "threads/Event.h"
 #include "threads/Thread.h"
 #include "utils/ActorProtocol.h"
-#include "Interfaces/AE.h"
-#include "Interfaces/AESink.h"
-#include "AESinkFactory.h"
-#include "ActiveAEResample.h"
-#include "Utils/AEConvert.h"
+#include "cores/AudioEngine/Interfaces/AE.h"
+#include "cores/AudioEngine/Interfaces/AESink.h"
+#include "cores/AudioEngine/AESinkFactory.h"
+#include "cores/AudioEngine/Interfaces/AEResample.h"
+#include "cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.h"
 
 namespace ActiveAE
 {
@@ -41,6 +41,14 @@ struct SinkConfig
   const std::string *device;
 };
 
+struct SinkReply
+{
+  AEAudioFormat format;
+  float cacheTotal;
+  float latency;
+  bool hasVolume;
+};
+
 class CSinkControlProtocol : public Protocol
 {
 public:
@@ -49,8 +57,8 @@ public:
   {
     CONFIGURE,
     UNCONFIGURE,
-    SILENCEMODE,
-    ISCOMPATIBLE,
+    STREAMING,
+    APPFOCUSED,
     VOLUME,
     FLUSH,
     TIMEOUT,
@@ -88,7 +96,9 @@ public:
   std::string GetDefaultDevice(bool passthrough);
   void Start();
   void Dispose();
-  bool HasVolume();
+  AEDeviceType GetDeviceType(const std::string &device);
+  bool HasPassthroughDevice();
+  bool SupportsFormat(const std::string &device, AEDataFormat format, int samplerate);
   CSinkControlProtocol m_controlPort;
   CSinkDataProtocol m_dataPort;
 
@@ -99,12 +109,10 @@ protected:
   void GetDeviceFriendlyName(std::string &device);
   void OpenSink();
   void ReturnBuffers();
-  bool IsCompatible(const AEAudioFormat format, const std::string &device);
+  void SetSilenceTimer();
 
   unsigned int OutputSamples(CSampleBuffer* samples);
-  void ConvertInit(CSampleBuffer* samples);
-  inline void EnsureConvertBuffer(CSampleBuffer* samples);
-  inline uint8_t* Convert(CSampleBuffer* samples);
+  void SwapInit(CSampleBuffer* samples);
 
   void GenerateNoise();
 
@@ -114,19 +122,19 @@ protected:
   bool m_bStateMachineSelfTrigger;
   int m_extTimeout;
   bool m_extError;
-  bool m_extSilence;
+  unsigned int m_extSilenceTimeout;
+  bool m_extAppFocused;
+  bool m_extStreaming;
+  XbmcThreads::EndTime m_extSilenceTimer;
 
   CSampleBuffer m_sampleOfSilence;
-  uint8_t *m_convertBuffer;
-  int m_convertBufferSampleSize;
-  CAEConvert::AEConvertFrFn m_convertFn;
   enum
   {
-    CHECK_CONVERT,
+    CHECK_SWAP,
     NEED_CONVERT,
     NEED_BYTESWAP,
-    SKIP_CONVERT,
-  } m_convertState;
+    SKIP_SWAP,
+  } m_swapState;
 
   std::string m_deviceFriendlyName;
   std::string m_device;
@@ -135,6 +143,7 @@ protected:
   AEAudioFormat m_sinkFormat, m_requestedFormat;
   CEngineStats *m_stats;
   float m_volume;
+  int m_sinkLatency;
 };
 
 }

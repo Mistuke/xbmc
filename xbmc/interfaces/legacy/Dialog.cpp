@@ -29,6 +29,7 @@
 #include "dialogs/GUIDialogKaiToast.h"
 #include "ModuleXbmcgui.h"
 #include "guilib/GUIKeyboardFactory.h"
+#include "utils/StringUtils.h"
 
 #define ACTIVE_WINDOW g_windowManager.GetActiveWindow()
 
@@ -38,7 +39,7 @@ namespace XBMCAddon
   {
     static void XBMCWaitForThreadMessage(int message, int param1, int param2)
     {
-      ThreadMessage tMsg = {(DWORD)message, (DWORD)param1, (DWORD)param2};
+      ThreadMessage tMsg = {(DWORD)message, param1, param2};
       CApplicationMessenger::Get().SendMessage(tMsg, true);
     }
 
@@ -153,13 +154,13 @@ namespace XBMCAddon
                                 const String& defaultt ) throw (WindowException)
     {
       DelayedCallGuard dcguard(languageHook);
-      CStdString value;
+      std::string value;
       std::string mask = maskparam;
       VECSOURCES *shares = CMediaSourceSettings::Get().GetSources(s_shares);
       if (!shares) 
         throw WindowException("Error: GetSources given %s is NULL.",s_shares.c_str());
 
-      if (useFileDirectories && (!maskparam.empty() && !maskparam.size() == 0))
+      if (useFileDirectories && !maskparam.empty())
         mask += "|.rar|.zip";
 
       value = defaultt;
@@ -178,25 +179,20 @@ namespace XBMCAddon
     {
       DelayedCallGuard dcguard(languageHook);
       VECSOURCES *shares = CMediaSourceSettings::Get().GetSources(s_shares);
-      CStdStringArray tmpret;
+      std::vector<String> valuelist;
       String lmask = mask;
       if (!shares) 
         throw WindowException("Error: GetSources given %s is NULL.",s_shares.c_str());
 
-      if (useFileDirectories && (!lmask.empty() && !(lmask.size() == 0)))
+      if (useFileDirectories && !lmask.empty())
         lmask += "|.rar|.zip";
 
       if (type == 1)
-        CGUIDialogFileBrowser::ShowAndGetFileList(*shares, lmask, heading, tmpret, useThumbs, useFileDirectories);
+        CGUIDialogFileBrowser::ShowAndGetFileList(*shares, lmask, heading, valuelist, useThumbs, useFileDirectories);
       else if (type == 2)
-        CGUIDialogFileBrowser::ShowAndGetImageList(*shares, heading, tmpret);
+        CGUIDialogFileBrowser::ShowAndGetImageList(*shares, heading, valuelist);
       else
         throw WindowException("Error: Cannot retreive multuple directories using browse %s is NULL.",s_shares.c_str());
-
-      std::vector<String> valuelist;
-      int index = 0;
-      for (CStdStringArray::iterator iter = tmpret.begin(); iter != tmpret.end(); ++iter)
-        valuelist[index++] = (*iter);
 
       return valuelist;
     }
@@ -204,7 +200,7 @@ namespace XBMCAddon
     String Dialog::numeric(int inputtype, const String& heading, const String& defaultt)
     {
       DelayedCallGuard dcguard(languageHook);
-      CStdString value;
+      std::string value;
       SYSTEMTIME timedate;
       GetLocalTime(&timedate);
 
@@ -214,13 +210,13 @@ namespace XBMCAddon
         {
           if (!defaultt.empty() && defaultt.size() == 10)
           {
-            CStdString sDefault = defaultt;
-            timedate.wDay = atoi(sDefault.Left(2));
-            timedate.wMonth = atoi(sDefault.Mid(3,4));
-            timedate.wYear = atoi(sDefault.Right(4));
+            std::string sDefault = defaultt;
+            timedate.wDay = atoi(sDefault.substr(0, 2).c_str());
+            timedate.wMonth = atoi(sDefault.substr(3, 4).c_str());
+            timedate.wYear = atoi(sDefault.substr(sDefault.size() - 4).c_str());
           }
           if (CGUIDialogNumeric::ShowAndGetDate(timedate, heading))
-            value.Format("%2d/%2d/%4d", timedate.wDay, timedate.wMonth, timedate.wYear);
+            value = StringUtils::Format("%2d/%2d/%4d", timedate.wDay, timedate.wMonth, timedate.wYear);
           else
             return emptyString;
         }
@@ -228,12 +224,12 @@ namespace XBMCAddon
         {
           if (!defaultt.empty() && defaultt.size() == 5)
           {
-            CStdString sDefault = defaultt;
-            timedate.wHour = atoi(sDefault.Left(2));
-            timedate.wMinute = atoi(sDefault.Right(2));
+            std::string sDefault = defaultt;
+            timedate.wHour = atoi(sDefault.substr(0, 2).c_str());
+            timedate.wMinute = atoi(sDefault.substr(3, 2).c_str());
           }
           if (CGUIDialogNumeric::ShowAndGetTime(timedate, heading))
-            value.Format("%2d:%02d", timedate.wHour, timedate.wMinute);
+            value = StringUtils::Format("%2d:%02d", timedate.wHour, timedate.wMinute);
           else
             return emptyString;
         }
@@ -257,7 +253,7 @@ namespace XBMCAddon
     {
       DelayedCallGuard dcguard(languageHook);
 
-      CStdString strIcon = getNOTIFICATION_INFO();
+      std::string strIcon = getNOTIFICATION_INFO();
       int iTime = TOAST_DISPLAY_TIME;
 
       if (time > 0)
@@ -265,11 +261,11 @@ namespace XBMCAddon
       if (!icon.empty())
         strIcon = icon;
       
-      if (strIcon.Equals(getNOTIFICATION_INFO()))
+      if (strIcon == getNOTIFICATION_INFO())
         CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, heading, message, iTime, sound);
-      else if (strIcon.Equals(getNOTIFICATION_WARNING()))
+      else if (strIcon == getNOTIFICATION_WARNING())
         CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Warning, heading, message, iTime, sound);
-      else if (strIcon.Equals(getNOTIFICATION_ERROR()))
+      else if (strIcon == getNOTIFICATION_ERROR())
         CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Error, heading, message, iTime, sound);
       else
         CGUIDialogKaiToast::QueueNotification(strIcon, heading, message, iTime, sound);
@@ -278,7 +274,7 @@ namespace XBMCAddon
     String Dialog::input(const String& heading, const String& defaultt, int type, int option, int autoclose) throw (WindowException)
     {
       DelayedCallGuard dcguard(languageHook);
-      CStdString value(defaultt);
+      std::string value(defaultt);
       SYSTEMTIME timedate;
       GetLocalTime(&timedate);
 
@@ -286,7 +282,7 @@ namespace XBMCAddon
       {
         case INPUT_ALPHANUM:
           {
-            bool bHiddenInput = option & ALPHANUM_HIDE_INPUT;
+            bool bHiddenInput = (option & ALPHANUM_HIDE_INPUT) == ALPHANUM_HIDE_INPUT;
             if (!CGUIKeyboardFactory::ShowAndGetInput(value, heading, true, bHiddenInput, autoclose))
               value = emptyString;
           }
@@ -301,13 +297,13 @@ namespace XBMCAddon
           {
             if (!defaultt.empty() && defaultt.size() == 10)
             {
-              CStdString sDefault = defaultt;
-              timedate.wDay = atoi(sDefault.Left(2));
-              timedate.wMonth = atoi(sDefault.Mid(3,4));
-              timedate.wYear = atoi(sDefault.Right(4));
+              std::string sDefault = defaultt;
+              timedate.wDay = atoi(sDefault.substr(0, 2).c_str());
+              timedate.wMonth = atoi(sDefault.substr(3, 4).c_str());
+              timedate.wYear = atoi(sDefault.substr(sDefault.size() - 4).c_str());
             }
             if (CGUIDialogNumeric::ShowAndGetDate(timedate, heading))
-              value.Format("%2d/%2d/%4d", timedate.wDay, timedate.wMonth, timedate.wYear);
+              value = StringUtils::Format("%2d/%2d/%4d", timedate.wDay, timedate.wMonth, timedate.wYear);
             else
               value = emptyString;
           }
@@ -316,12 +312,12 @@ namespace XBMCAddon
           {
             if (!defaultt.empty() && defaultt.size() == 5)
             {
-              CStdString sDefault = defaultt;
-              timedate.wHour = atoi(sDefault.Left(2));
-              timedate.wMinute = atoi(sDefault.Right(2));
+              std::string sDefault = defaultt;
+              timedate.wHour = atoi(sDefault.substr(0, 2).c_str());
+              timedate.wMinute = atoi(sDefault.substr(3, 2).c_str());
             }
             if (CGUIDialogNumeric::ShowAndGetTime(timedate, heading))
-              value.Format("%2d:%02d", timedate.wHour, timedate.wMinute);
+              value = StringUtils::Format("%2d:%02d", timedate.wHour, timedate.wMinute);
             else
               value = emptyString;
           }
@@ -344,6 +340,7 @@ namespace XBMCAddon
             if (!bResult)
               value = emptyString;
           }
+          break;
         default:
           value = emptyString;
           break;
@@ -358,7 +355,7 @@ namespace XBMCAddon
     {
       XBMC_TRACE;
 
-      if (dlg)
+      if (dlg && open)
       {
         DelayedCallGuard dg;
         dlg->Close();
@@ -376,6 +373,7 @@ namespace XBMCAddon
         throw WindowException("Error: Window is NULL, this is not possible :-)");
 
       dlg = pDialog;
+      open = true;
 
       pDialog->SetHeading(heading);
 
@@ -394,10 +392,10 @@ namespace XBMCAddon
                                 const String& line3) throw (WindowException)
     {
       DelayedCallGuard dcguard(languageHook);
-      CGUIDialogProgress* pDialog= dlg;
+      CGUIDialogProgress* pDialog = dlg;
 
       if (pDialog == NULL)
-        throw WindowException("Error: Window is NULL, this is not possible :-)");
+        throw WindowException("Dialog not created.");
 
       if (percent >= 0 && percent <= 100)
       {
@@ -420,11 +418,16 @@ namespace XBMCAddon
     void DialogProgress::close()
     {
       DelayedCallGuard dcguard(languageHook);
+      if (dlg == NULL)
+        throw WindowException("Dialog not created.");
       dlg->Close();
+      open = false;
     }
 
     bool DialogProgress::iscanceled()
     {
+      if (dlg == NULL)
+        throw WindowException("Dialog not created.");
       return dlg->IsCanceled();
     }
 
@@ -434,7 +437,7 @@ namespace XBMCAddon
     {
       XBMC_TRACE;
 
-      if (dlg)
+      if (dlg && open)
       {
         DelayedCallGuard dg;
         dlg->Close();
@@ -454,6 +457,7 @@ namespace XBMCAddon
 
       dlg = pDialog;
       handle = pHandle;
+      open = true;
 
       pHandle->SetTitle(heading);
       if (!message.empty())
@@ -463,11 +467,10 @@ namespace XBMCAddon
     void DialogProgressBG::update(int percent, const String& heading, const String& message) throw (WindowException)
     {
       DelayedCallGuard dcguard(languageHook);
-      CGUIDialogExtendedProgressBar* pDialog = dlg;
       CGUIDialogProgressBarHandle* pHandle = handle;
 
-      if (pDialog == NULL)
-        throw WindowException("Error: Window is NULL, this is not possible :-)");
+      if (pHandle == NULL)
+        throw WindowException("Dialog not created.");
 
       if (percent >= 0 && percent <= 100)
         pHandle->SetPercentage((float)percent);
@@ -480,11 +483,16 @@ namespace XBMCAddon
     void DialogProgressBG::close()
     {
       DelayedCallGuard dcguard(languageHook);
+      if (handle == NULL)
+        throw WindowException("Dialog not created.");
       handle->MarkFinished();
+      open = false;
     }
 
     bool DialogProgressBG::isFinished()
     {
+      if (handle == NULL)
+        throw WindowException("Dialog not created.");
       return handle->IsFinished();
     }
 

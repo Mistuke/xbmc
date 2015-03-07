@@ -1,22 +1,22 @@
 /*
-*      Copyright (C) 2005-2013 Team XBMC
-*      http://www.xbmc.org
-*
-*  This Program is free software; you can redistribute it and/or modify
-*  it under the terms of the GNU General Public License as published by
-*  the Free Software Foundation; either version 2, or (at your option)
-*  any later version.
-*
-*  This Program is distributed in the hope that it will be useful,
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-*  GNU General Public License for more details.
-*
-*  You should have received a copy of the GNU General Public License
-*  along with XBMC; see the file COPYING.  If not, see
-*  <http://www.gnu.org/licenses/>.
-*
-*/
+ *      Copyright (C) 2005-2013 Team XBMC
+ *      http://xbmc.org
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
+ *
+ */
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
 
@@ -27,6 +27,7 @@
 #include "EventListener.h"
 #include "Pointer.h"
 #include "PointerProcessor.h"
+#include "Util.h"
 
 xbmc::PointerProcessor::PointerProcessor(IEventListener &listener,
                                          ICursorManager &manager) :
@@ -72,7 +73,7 @@ void xbmc::PointerProcessor::Button(uint32_t serial,
     { WaylandRightButton, 3 }
   };
 
-  size_t buttonTableSize = sizeof(buttonTable) / sizeof(buttonTable[0]);
+  size_t buttonTableSize = ARRAY_SIZE(buttonTable);
 
   /* Find the xbmc button number that corresponds to the evdev
    * button that we just received. There may be some buttons we don't

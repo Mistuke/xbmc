@@ -4,7 +4,9 @@ SRCS      += Context.cpp
 SRCS      += BroadcastReceiver.cpp
 SRCS      += Intent.cpp
 SRCS      += PackageManager.cpp
+SRCS      += AudioFormat.cpp
 SRCS      += AudioManager.cpp
+SRCS      += AudioTrack.cpp
 SRCS      += PowerManager.cpp
 SRCS      += WakeLock.cpp
 SRCS      += Environment.cpp
@@ -47,6 +49,8 @@ SRCS      += SurfaceTexture.cpp
 SRCS      += View.cpp
 SRCS      += Window.cpp
 SRCS      += Build.cpp
+SRCS      += KeyCharacterMap.cpp
+SRCS      += Activity.cpp
 
 LIB        = jni.a
 

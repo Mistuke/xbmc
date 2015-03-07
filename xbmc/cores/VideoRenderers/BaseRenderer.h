@@ -29,7 +29,7 @@
 
 #define MAX_PLANES 3
 #define MAX_FIELDS 3
-#define NUM_BUFFERS 3
+#define NUM_BUFFERS 6
 
 class CSetting;
 
@@ -63,6 +63,7 @@ enum RenderMethods
   RENDER_METHOD_SOFTWARE,
   RENDER_METHOD_D3D_PS,
   RENDER_METHOD_DXVA,
+  RENDER_METHOD_DXVAHD,
   RENDER_OVERLAYS        = 99   // to retain compatibility
 };
 
@@ -88,10 +89,12 @@ public:
   /**
    * Returns number of references a single buffer can retain when rendering a single frame
    */
-  virtual unsigned int GetProcessorSize() { return 0; }
+  virtual unsigned int GetOptimalBufferSize() { return 0; }
   virtual unsigned int GetMaxBufferSize() { return 0; }
   virtual void         SetBufferSize(int numBuffers) { }
   virtual void         ReleaseBuffer(int idx) { }
+  virtual bool         NeedBufferForRef(int idx) { return false; }
+  virtual bool         IsGuiLayer() { return true; }
 
   virtual bool Supports(ERENDERFEATURE feature) { return false; }
 
@@ -101,7 +104,7 @@ public:
   virtual void RegisterRenderUpdateCallBack(const void *ctx, RenderUpdateCallBackFn fn);
   virtual void RegisterRenderFeaturesCallBack(const void *ctx, RenderFeaturesCallBackFn fn);
 
-  static void SettingOptionsRenderMethodsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current);
+  static void SettingOptionsRenderMethodsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
 
 protected:
   void       ChooseBestResolution(float fps);
@@ -139,6 +142,7 @@ protected:
 
   // rendering flags
   unsigned m_iFlags;
+  ERenderFormat m_format;
 
   const void* m_RenderUpdateCallBackCtx;
   RenderUpdateCallBackFn m_RenderUpdateCallBackFn;

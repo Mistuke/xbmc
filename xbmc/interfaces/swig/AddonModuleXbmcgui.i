@@ -28,7 +28,7 @@
 #include "interfaces/legacy/WindowDialog.h"
 #include "interfaces/legacy/Dialog.h"
 #include "interfaces/legacy/WindowXML.h"
-#include "guilib/Key.h"
+#include "input/Key.h"
 
 using namespace XBMCAddon;
 using namespace xbmcgui;
@@ -43,11 +43,16 @@ using namespace xbmcgui;
 // not part of what swig parses.
 %feature("knownbasetypes") XBMCAddon::xbmcgui "AddonClass,AddonCallback"
 
+%feature("knownapitypes") XBMCAddon::xbmcgui "XBMCAddon::xbmc::InfoTagVideo,xbmc::InfoTagMusic"
+
 %include "interfaces/legacy/swighelper.h"
+%include "interfaces/legacy/AddonString.h"
 
 %include "interfaces/legacy/ModuleXbmcgui.h"
 
 %include "interfaces/legacy/Exception.h"
+
+%include "interfaces/legacy/Dictionary.h"
 
 %include "interfaces/legacy/ListItem.h"
 
@@ -111,4 +116,4 @@ using namespace xbmcgui;
 
 %include "interfaces/legacy/WindowXML.h"
 
-%include "guilib/Key.h"
+%include "input/Key.h"

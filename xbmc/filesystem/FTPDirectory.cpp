@@ -33,14 +33,14 @@ using namespace XFILE;
 CFTPDirectory::CFTPDirectory(void){}
 CFTPDirectory::~CFTPDirectory(void){}
 
-bool CFTPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items)
+bool CFTPDirectory::GetDirectory(const CURL& url2, CFileItemList &items)
 {
   CCurlFile reader;
 
-  CURL url(strPath);
+  CURL url(url2);
 
-  CStdString path = url.GetFileName();
-  if( !path.IsEmpty() && !StringUtils::EndsWith(path, "/") )
+  std::string path = url.GetFileName();
+  if( !path.empty() && !StringUtils::EndsWith(path, "/") )
   {
     path += "/";
     url.SetFileName(path);
@@ -49,12 +49,12 @@ bool CFTPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items
   if (!reader.Open(url))
     return false;
 
-  bool serverNotUseUTF8 = url.GetProtocolOption("utf8").Equals("0");
+  bool serverNotUseUTF8 = url.GetProtocolOption("utf8") == "0";
 
   char buffer[MAX_PATH + 1024];
   while( reader.ReadString(buffer, sizeof(buffer)) )
   {
-    CStdString strBuffer = buffer;
+    std::string strBuffer = buffer;
 
     StringUtils::RemoveCRLF(strBuffer);
 
@@ -68,10 +68,10 @@ bool CFTPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items
         continue;
 
       /* buffer name */
-      CStdString name;
+      std::string name;
       name.assign(parse.getName());
 
-      if( name.Equals("..") || name.Equals(".") )
+      if( name == ".." || name == "." )
         continue;
 
       // server returned filename could in utf8 or non-utf8 encoding
@@ -79,7 +79,7 @@ bool CFTPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items
       g_charsetConverter.unknownToUTF8(name);
 
       // convert got empty result, ignore it
-      if (name.IsEmpty())
+      if (name.empty())
         continue;
 
       if (serverNotUseUTF8 || name != parse.getName())
@@ -92,7 +92,7 @@ bool CFTPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items
       CFileItemPtr pItem(new CFileItem(name));
 
       pItem->m_bIsFolder = (bool)(parse.getFlagtrycwd() != 0);
-      CStdString filePath = path + name;
+      std::string filePath = path + name;
       if (pItem->m_bIsFolder)
         URIUtils::AddSlashAtEnd(filePath);
 
@@ -110,14 +110,14 @@ bool CFTPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items
   return true;
 }
 
-bool CFTPDirectory::Exists(const char* strPath)
+bool CFTPDirectory::Exists(const CURL& url)
 {
   // make sure ftp dir ends with slash,
   // curl need to known it's a dir to check ftp directory existence.
-  CStdString file = strPath;
+  std::string file = url.Get();
   URIUtils::AddSlashAtEnd(file);
 
   CCurlFile ftp;
-  CURL url(file);
-  return ftp.Exists(url);
+  CURL url2(file);
+  return ftp.Exists(url2);
 }

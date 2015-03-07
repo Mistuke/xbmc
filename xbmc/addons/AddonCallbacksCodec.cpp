@@ -21,8 +21,12 @@
 #include "Application.h"
 #include "Addon.h"
 #include "AddonCallbacksCodec.h"
-#include "DllAvCodec.h"
-#include "DllAvFormat.h"
+#include "utils/StringUtils.h"
+
+extern "C" {
+#include "libavcodec/avcodec.h"
+#include "libavformat/avformat.h"
+}
 
 namespace ADDON
 {
@@ -43,7 +47,10 @@ public:
     if (strlen(strCodecName) == 0)
       return retVal;
 
-    std::map<std::string, xbmc_codec_t>::const_iterator it = m_lookup.find(CStdString(strCodecName).ToUpper());
+    std::string strUpperCodecName = strCodecName;
+    StringUtils::ToUpper(strUpperCodecName);
+
+    std::map<std::string, xbmc_codec_t>::const_iterator it = m_lookup.find(strUpperCodecName);
     if (it != m_lookup.end())
       retVal = it->second;
 
@@ -53,27 +60,20 @@ public:
 private:
   CCodecIds(void)
   {
-    DllAvCodec  dllAvCodec;
-    DllAvFormat dllAvFormat;
-
-    // load ffmpeg and register formats
-    if (!dllAvCodec.Load() || !dllAvFormat.Load())
-    {
-      CLog::Log(LOGWARNING, "failed to load ffmpeg");
-      return;
-    }
-    dllAvFormat.av_register_all();
-
     // get ids and names
     AVCodec* codec = NULL;
     xbmc_codec_t tmp;
-    while ((codec = dllAvCodec.av_codec_next(codec)))
+    while ((codec = av_codec_next(codec)))
     {
-      if (dllAvCodec.av_codec_is_decoder(codec))
+      if (av_codec_is_decoder(codec))
       {
         tmp.codec_type = (xbmc_codec_type_t)codec->type;
         tmp.codec_id   = codec->id;
-        m_lookup.insert(std::make_pair(CStdString(codec->name).ToUpper(), tmp));
+
+        std::string strUpperCodecName = codec->name;
+        StringUtils::ToUpper(strUpperCodecName);
+
+        m_lookup.insert(std::make_pair(strUpperCodecName, tmp));
       }
     }
 
@@ -81,6 +81,11 @@ private:
     tmp.codec_type = XBMC_CODEC_TYPE_SUBTITLE;
     tmp.codec_id   = AV_CODEC_ID_DVB_TELETEXT;
     m_lookup.insert(std::make_pair("TELETEXT", tmp));
+
+    // rds is not returned by av_codec_next. we got our own decoder
+    tmp.codec_type = XBMC_CODEC_TYPE_RDS;
+    tmp.codec_id   = AV_CODEC_ID_NONE;
+    m_lookup.insert(std::make_pair("RDS", tmp));
   }
 
   std::map<std::string, xbmc_codec_t> m_lookup;

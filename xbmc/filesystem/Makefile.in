@@ -25,8 +25,6 @@ SRCS += FileFactory.cpp
 SRCS += FileReaderFile.cpp
 SRCS += FTPDirectory.cpp
 SRCS += FTPParse.cpp
-SRCS += HDDirectory.cpp
-SRCS += HDFile.cpp
 SRCS += HDHomeRunDirectory.cpp
 SRCS += HDHomeRunFile.cpp
 SRCS += HTSPDirectory.cpp
@@ -52,11 +50,15 @@ SRCS += MythFile.cpp
 SRCS += MythSession.cpp
 SRCS += NSFFileDirectory.cpp
 SRCS += OGGFileDirectory.cpp
+SRCS += OverrideDirectory.cpp
+SRCS += OverrideFile.cpp
 SRCS += PlaylistDirectory.cpp
 SRCS += PlaylistFileDirectory.cpp
 SRCS += PipeFile.cpp
 SRCS += PipesManager.cpp
 SRCS += PluginDirectory.cpp
+SRCS += posix/PosixDirectory.cpp
+SRCS += posix/PosixFile.cpp
 SRCS += PVRFile.cpp
 SRCS += PVRDirectory.cpp
 SRCS += RSSDirectory.cpp
@@ -105,7 +107,7 @@ SRCS += RarManager.cpp
 endif
 
 ifeq (@USE_LIBSMBCLIENT@,1)
-SRCS += SmbFile.cpp
+SRCS += SMBFile.cpp
 SRCS += SMBDirectory.cpp
 endif
 
@@ -121,9 +123,11 @@ endif
 
 ifeq (@HAVE_LIBBLURAY@,1)
 SRCS += BlurayDirectory.cpp
+SRCS += BlurayFile.cpp
 endif
 
 ifeq (@USE_UPNP@,1)
+INCLUDES+=-I@abs_top_srcdir@/lib/libUPnP
 INCLUDES+=-I@abs_top_srcdir@/lib/libUPnP/Platinum/Source/Core
 INCLUDES+=-I@abs_top_srcdir@/lib/libUPnP/Platinum/Source/Platinum
 INCLUDES+=-I@abs_top_srcdir@/lib/libUPnP/Platinum/Source/Devices/MediaConnect

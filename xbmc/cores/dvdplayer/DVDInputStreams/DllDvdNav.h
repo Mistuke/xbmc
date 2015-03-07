@@ -86,8 +86,6 @@ public:
   virtual int8_t dvdnav_get_active_audio_stream(dvdnav_t *self)=0;
   virtual uint16_t dvdnav_audio_stream_to_lang(dvdnav_t *self, uint8_t stream)=0;
   virtual vm_t* dvdnav_get_vm(dvdnav_t *self)=0;
-  virtual int dvdnav_get_nr_of_subtitle_streams(dvdnav_t *self)=0;
-  virtual int dvdnav_get_nr_of_audio_streams(dvdnav_t *self)=0;
   virtual int dvdnav_get_button_info(dvdnav_t* self, int alpha[2][4], int color[2][4])=0;
   virtual int8_t dvdnav_get_audio_logical_stream(dvdnav_t *self, uint8_t audio_num)=0;
   virtual dvdnav_status_t dvdnav_set_region_mask(dvdnav_t *self, int32_t region_mask)=0;
@@ -97,10 +95,8 @@ public:
   virtual dvdnav_status_t dvdnav_get_number_of_parts(dvdnav_t *self, int32_t title, int32_t *parts)=0;
   virtual dvdnav_status_t dvdnav_title_play(dvdnav_t *self, int32_t title)=0;
   virtual dvdnav_status_t dvdnav_part_play(dvdnav_t *self, int32_t title, int32_t part)=0;
-  virtual dvdnav_status_t dvdnav_subpicture_change(dvdnav_t *self, int32_t subpicture)=0;
-  virtual dvdnav_status_t dvdnav_audio_change(dvdnav_t *self, int32_t audio)=0;
-  virtual dvdnav_status_t dvdnav_get_audio_info(dvdnav_t * self, int32_t streamid, audio_attr_t* audio_attributes)=0;
-  virtual dvdnav_status_t dvdnav_get_stitle_info(dvdnav_t * self, int32_t streamid, subp_attr_t* stitle_attributes)=0;
+  virtual dvdnav_status_t dvdnav_get_audio_attr(dvdnav_t * self, int32_t streamid, audio_attr_t* audio_attributes)=0;
+  virtual dvdnav_status_t dvdnav_get_spu_attr(dvdnav_t * self, int32_t streamid, subp_attr_t* stitle_attributes)=0;
   virtual dvdnav_status_t dvdnav_time_search(dvdnav_t * self, uint64_t timepos)=0;
   virtual int64_t dvdnav_convert_time(dvd_time_t *time)=0;
   virtual dvdnav_status_t dvdnav_get_state(dvdnav_t *self, dvd_state_t *save_state)=0;
@@ -110,6 +106,8 @@ public:
   virtual dvdnav_status_t dvdnav_mouse_select(dvdnav_t *self, pci_t *pci, int32_t x, int32_t y)=0;
   virtual dvdnav_status_t dvdnav_get_title_string(dvdnav_t *self, const char **title_str)=0;
   virtual dvdnav_status_t dvdnav_get_serial_string(dvdnav_t *self, const char **serial_str)=0;
+  virtual uint32_t dvdnav_describe_title_chapters(dvdnav_t* self, uint32_t title, uint64_t** times, uint64_t* duration)=0;
+  virtual void dvdnav_free(void* pdata) = 0;
 };
 
 #if (defined USE_STATIC_LIBDVDNAV)
@@ -195,10 +193,6 @@ public:
         { return ::dvdnav_audio_stream_to_lang(self, stream); }
     virtual vm_t* dvdnav_get_vm(dvdnav_t *self)
         { return ::dvdnav_get_vm(self); }
-    virtual int dvdnav_get_nr_of_subtitle_streams(dvdnav_t *self)
-        { return ::dvdnav_get_nr_of_subtitle_streams(self); }
-    virtual int dvdnav_get_nr_of_audio_streams(dvdnav_t *self)
-        { return ::dvdnav_get_nr_of_audio_streams(self); }
     virtual int dvdnav_get_button_info(dvdnav_t* self, int alpha[2][4], int color[2][4])
         { return ::dvdnav_get_button_info(self, alpha, color); }
     virtual int8_t dvdnav_get_audio_logical_stream(dvdnav_t *self, uint8_t audio_num)
@@ -217,14 +211,10 @@ public:
         { return ::dvdnav_title_play(self, title); }
     virtual dvdnav_status_t dvdnav_part_play(dvdnav_t *self, int32_t title, int32_t part)
         { return ::dvdnav_part_play(self, title, part); }
-    virtual dvdnav_status_t dvdnav_subpicture_change(dvdnav_t *self, int32_t subpicture)
-        { return ::dvdnav_subpicture_change(self, subpicture); }
-    virtual dvdnav_status_t dvdnav_audio_change(dvdnav_t *self, int32_t audio)
-        { return ::dvdnav_audio_change(self, audio); }
-    virtual dvdnav_status_t dvdnav_get_audio_info(dvdnav_t * self, int32_t streamid, audio_attr_t* audio_attributes)
-        { return ::dvdnav_get_audio_info(self, streamid, audio_attributes); }
-    virtual dvdnav_status_t dvdnav_get_stitle_info(dvdnav_t * self, int32_t streamid, subp_attr_t* stitle_attributes)
-        { return ::dvdnav_get_stitle_info(self, streamid, stitle_attributes); }
+    virtual dvdnav_status_t dvdnav_get_audio_attr(dvdnav_t * self, int32_t streamid, audio_attr_t* audio_attributes)
+        { return ::dvdnav_get_audio_attr(self, streamid, audio_attributes); }
+    virtual dvdnav_status_t dvdnav_get_spu_attr(dvdnav_t * self, int32_t streamid, subp_attr_t* stitle_attributes)
+        { return ::dvdnav_get_spu_attr(self, streamid, stitle_attributes); }
     virtual dvdnav_status_t dvdnav_time_search(dvdnav_t * self, uint64_t timepos)
         { return ::dvdnav_time_search(self, timepos); }
     virtual int64_t dvdnav_convert_time(dvd_time_t *time)
@@ -243,6 +233,10 @@ public:
         { return ::dvdnav_get_title_string(self, title_str); }
     virtual dvdnav_status_t dvdnav_get_serial_string(dvdnav_t *self, const char **serial_str)
         { return ::dvdnav_get_serial_string(self, serial_str); }
+    virtual uint32_t dvdnav_describe_title_chapters(dvdnav_t* self, uint32_t title, uint64_t** times, uint64_t* duration)
+        { return ::dvdnav_describe_title_chapters(self, title, times, duration); }
+    virtual void dvdnav_free(void* data)
+        { return ::dvdnav_free(data); }
 
     // DLL faking.
     virtual bool ResolveExports() { return true; }
@@ -294,8 +288,6 @@ class DllDvdNav : public DllDynamic, DllDvdNavInterface
   DEFINE_METHOD1(int8_t, dvdnav_get_active_audio_stream, (dvdnav_t *p1))
   DEFINE_METHOD2(uint16_t, dvdnav_audio_stream_to_lang, (dvdnav_t *p1, uint8_t p2))
   DEFINE_METHOD1(vm_t*, dvdnav_get_vm, (dvdnav_t *p1))
-  DEFINE_METHOD1(int, dvdnav_get_nr_of_subtitle_streams, (dvdnav_t *p1))
-  DEFINE_METHOD1(int, dvdnav_get_nr_of_audio_streams, (dvdnav_t *p1))
   DEFINE_METHOD3(int, dvdnav_get_button_info, (dvdnav_t* p1, int p2[2][4], int p3[2][4]))
   DEFINE_METHOD2(int8_t, dvdnav_get_audio_logical_stream, (dvdnav_t *p1, uint8_t p2))
   DEFINE_METHOD2(dvdnav_status_t, dvdnav_set_region_mask, (dvdnav_t *p1, int32_t p2))
@@ -305,10 +297,8 @@ class DllDvdNav : public DllDynamic, DllDvdNavInterface
   DEFINE_METHOD3(dvdnav_status_t, dvdnav_get_number_of_parts, (dvdnav_t *p1, int32_t p2, int32_t *p3))
   DEFINE_METHOD2(dvdnav_status_t, dvdnav_title_play, (dvdnav_t *p1, int32_t p2))
   DEFINE_METHOD3(dvdnav_status_t, dvdnav_part_play, (dvdnav_t *p1, int32_t p2, int32_t p3))
-  DEFINE_METHOD2(dvdnav_status_t, dvdnav_subpicture_change, (dvdnav_t *p1, int32_t p2))
-  DEFINE_METHOD2(dvdnav_status_t, dvdnav_audio_change, (dvdnav_t *p1, int32_t p2))
-  DEFINE_METHOD3(dvdnav_status_t, dvdnav_get_audio_info, (dvdnav_t * p1, int32_t p2, audio_attr_t* p3))
-  DEFINE_METHOD3(dvdnav_status_t, dvdnav_get_stitle_info, (dvdnav_t * p1, int32_t p2, subp_attr_t* p3))
+  DEFINE_METHOD3(dvdnav_status_t, dvdnav_get_audio_attr, (dvdnav_t * p1, int32_t p2, audio_attr_t* p3))
+  DEFINE_METHOD3(dvdnav_status_t, dvdnav_get_spu_attr, (dvdnav_t * p1, int32_t p2, subp_attr_t* p3))
   DEFINE_METHOD2(dvdnav_status_t, dvdnav_time_search, (dvdnav_t * p1, uint64_t p2))
   DEFINE_METHOD3(dvdnav_status_t, dvdnav_jump_to_sector_by_time, (dvdnav_t * p1, uint64_t p2, int32_t p3))
   DEFINE_METHOD1(int64_t, dvdnav_convert_time, (dvd_time_t *p1))
@@ -319,6 +309,8 @@ class DllDvdNav : public DllDynamic, DllDvdNavInterface
   DEFINE_METHOD4(dvdnav_status_t, dvdnav_mouse_select, (dvdnav_t *p1, pci_t *p2, int32_t p3, int32_t p4))
   DEFINE_METHOD2(dvdnav_status_t, dvdnav_get_title_string, (dvdnav_t *p1, const char **p2))
   DEFINE_METHOD2(dvdnav_status_t, dvdnav_get_serial_string, (dvdnav_t *p1, const char **p2))
+  DEFINE_METHOD4(uint32_t, dvdnav_describe_title_chapters, (dvdnav_t* p1, uint32_t p2, uint64_t** p3, uint64_t* p4))
+  DEFINE_METHOD1(void, dvdnav_free, (void *p1))
   BEGIN_METHOD_RESOLVE()
     RESOLVE_METHOD(dvdnav_open)
     RESOLVE_METHOD(dvdnav_close)
@@ -358,8 +350,6 @@ class DllDvdNav : public DllDynamic, DllDvdNavInterface
     RESOLVE_METHOD(dvdnav_get_active_audio_stream)
     RESOLVE_METHOD(dvdnav_audio_stream_to_lang)
     RESOLVE_METHOD(dvdnav_get_vm)
-    RESOLVE_METHOD(dvdnav_get_nr_of_subtitle_streams)
-    RESOLVE_METHOD(dvdnav_get_nr_of_audio_streams)
     RESOLVE_METHOD(dvdnav_get_button_info)
     RESOLVE_METHOD(dvdnav_get_audio_logical_stream)
     RESOLVE_METHOD(dvdnav_set_region_mask)
@@ -369,10 +359,8 @@ class DllDvdNav : public DllDynamic, DllDvdNavInterface
     RESOLVE_METHOD(dvdnav_get_number_of_parts)
     RESOLVE_METHOD(dvdnav_title_play)
     RESOLVE_METHOD(dvdnav_part_play)
-    RESOLVE_METHOD(dvdnav_subpicture_change)
-    RESOLVE_METHOD(dvdnav_audio_change)
-    RESOLVE_METHOD(dvdnav_get_audio_info)
-    RESOLVE_METHOD(dvdnav_get_stitle_info)
+    RESOLVE_METHOD(dvdnav_get_audio_attr)
+    RESOLVE_METHOD(dvdnav_get_spu_attr)
     RESOLVE_METHOD(dvdnav_time_search)
     RESOLVE_METHOD(dvdnav_jump_to_sector_by_time)
     RESOLVE_METHOD(dvdnav_convert_time)
@@ -383,6 +371,8 @@ class DllDvdNav : public DllDynamic, DllDvdNavInterface
     RESOLVE_METHOD(dvdnav_mouse_select)
     RESOLVE_METHOD(dvdnav_get_title_string)
     RESOLVE_METHOD(dvdnav_get_serial_string)
+    RESOLVE_METHOD(dvdnav_describe_title_chapters)
+    RESOLVE_METHOD(dvdnav_free)
 END_METHOD_RESOLVE()
 };
 

@@ -37,32 +37,28 @@ CUDFDirectory::~CUDFDirectory(void)
 {
 }
 
-bool CUDFDirectory::GetDirectory(const CStdString& strPath,
+bool CUDFDirectory::GetDirectory(const CURL& url,
                                  CFileItemList &items)
 {
-  CStdString strRoot, strSub;
-  CURL url;
-  if(strPath.Left(6) == "udf://")
-  {
-    url.Parse(strPath);
-    CURL url(strPath);
+  std::string strRoot, strSub;
+  CURL url2(url);
+  if (!url2.IsProtocol("udf"))
+  { // path to an image
+    url2.Reset();
+    url2.SetProtocol("udf");
+    url2.SetHostName(url.Get());
   }
-  else
-  {
-    url.SetProtocol("udf");
-    url.SetHostName(strPath);
-  }
-  strRoot  = url.Get();
-  strSub   = url.GetFileName();
+  strRoot  = url2.Get();
+  strSub   = url2.GetFileName();
 
   URIUtils::AddSlashAtEnd(strRoot);
   URIUtils::AddSlashAtEnd(strSub);
 
   udf25 udfIsoReader;
-  if(!udfIsoReader.Open(url.GetHostName()))
+  if(!udfIsoReader.Open(url2.GetHostName().c_str()))
      return false;
 
-  udf_dir_t *dirp = udfIsoReader.OpenDir(strSub);
+  udf_dir_t *dirp = udfIsoReader.OpenDir(strSub.c_str());
 
   if (dirp == NULL)
     return false;
@@ -72,7 +68,7 @@ bool CUDFDirectory::GetDirectory(const CStdString& strPath,
   {
     if (dp->d_type == DVD_DT_DIR)
     {
-      CStdString strDir = (char*)dp->d_name;
+      std::string strDir = (char*)dp->d_name;
       if (strDir != "." && strDir != "..")
       {
         CFileItemPtr pItem(new CFileItem((char*)dp->d_name));
@@ -100,10 +96,10 @@ bool CUDFDirectory::GetDirectory(const CStdString& strPath,
   return true;
 }
 
-bool CUDFDirectory::Exists(const char* strPath)
+bool CUDFDirectory::Exists(const CURL& url)
 {
   CFileItemList items;
-  if (GetDirectory(strPath,items))
+  if (GetDirectory(url, items))
     return true;
 
   return false;

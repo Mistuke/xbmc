@@ -21,13 +21,13 @@
 # for sending input events.
 #
 # The original script and documentation regarding the remote can be found at:
-#   http://forum.xbmc.org/showthread.php?t=28765
+#   http://forum.kodi.tv/showthread.php?tid=28765
 #
 #
 # TODO:
 #    1. Send keepalive ping at least once every 60 seconds to prevent timeouts
 #    2. Permanent pairing
-#    3. Detect if XBMC has been restarted (non trivial until broadcasting is
+#    3. Detect if Kodi has been restarted (non trivial until broadcasting is
 #       implemented, until then maybe the HELO packet could be used instead of
 #       PING as keepalive
 #
@@ -43,10 +43,10 @@ try:
     ICON_PATH = "../../icons/"
 except:
     # fallback to system wide modules
-    from xbmc.xbmcclient import *
-    from xbmc.ps3.keymaps import keymap_remote as g_keymap # look here to change the keymapping
-    from xbmc.bt.bt import *
-    from xbmc.defs import *
+    from kodi.xbmcclient import *
+    from kodi.ps3.keymaps import keymap_remote as g_keymap # look here to change the keymapping
+    from kodi.bt.bt import *
+    from kodi.defs import *
 
 import os
 import time

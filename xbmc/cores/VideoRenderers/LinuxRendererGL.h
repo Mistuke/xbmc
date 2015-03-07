@@ -1,6 +1,3 @@
-#ifndef LINUXRENDERERGL_RENDERER
-#define LINUXRENDERERGL_RENDERER
-
 /*
  *      Copyright (C) 2007-2013 Team XBMC
  *      http://xbmc.org
@@ -20,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "system.h"
 
@@ -41,7 +40,7 @@ class CRenderCapture;
 class CBaseTexture;
 namespace Shaders { class BaseYUV2RGBShader; }
 namespace Shaders { class BaseVideoFilterShader; }
-namespace VAAPI   { struct CHolder; }
+namespace VAAPI   { class CVaapiRenderPicture; }
 namespace VDPAU   { class CVdpauRenderPicture; }
 
 #undef ALIGN
@@ -112,8 +111,6 @@ extern YUVCOEF yuv_coef_bt709;
 extern YUVCOEF yuv_coef_ebu;
 extern YUVCOEF yuv_coef_smtp240m;
 
-class DllSwScale;
-
 class CLinuxRendererGL : public CBaseRenderer
 {
 public:
@@ -138,13 +135,13 @@ public:
   virtual void         ReleaseBuffer(int idx);
   virtual void         SetBufferSize(int numBuffers) { m_NumYV12Buffers = numBuffers; }
   virtual unsigned int GetMaxBufferSize() { return NUM_BUFFERS; }
-  virtual unsigned int GetProcessorSize();
+  virtual unsigned int GetOptimalBufferSize();
 
 #ifdef HAVE_LIBVDPAU
   virtual void         AddProcessor(VDPAU::CVdpauRenderPicture* vdpau, int index);
 #endif
 #ifdef HAVE_LIBVA
-  virtual void         AddProcessor(VAAPI::CHolder& holder, int index);
+  virtual void         AddProcessor(VAAPI::CVaapiRenderPicture* vaapi, int index);
 #endif
 #ifdef TARGET_DARWIN
   virtual void         AddProcessor(struct __CVBuffer *cvBufferRef, int index);
@@ -220,9 +217,8 @@ protected:
   void RenderFromFBO();
   void RenderSinglePass(int renderBuffer, int field); // single pass glsl renderer
   void RenderSoftware(int renderBuffer, int field);   // single pass s/w yuv2rgb renderer
-  void RenderVDPAU(int renderBuffer, int field);      // render using vdpau hardware
+  void RenderRGB(int renderBuffer, int field);      // render using vdpau/vaapi hardware
   void RenderProgressiveWeave(int renderBuffer, int field); // render using vdpau hardware
-  void RenderVAAPI(int renderBuffer, int field);      // render using vdpau hardware
 
   struct
   {
@@ -238,7 +234,6 @@ protected:
   bool m_bValidated;
   std::vector<ERenderFormat> m_formats;
   bool m_bImageReady;
-  ERenderFormat m_format;
   GLenum m_textureTarget;
   unsigned short m_renderMethod;
   RenderQuality m_renderQuality;
@@ -285,7 +280,7 @@ protected:
     VDPAU::CVdpauRenderPicture *vdpau;
 #endif
 #ifdef HAVE_LIBVA
-    VAAPI::CHolder& vaapi;
+    VAAPI::CVaapiRenderPicture *vaapi;
 #endif
 #ifdef TARGET_DARWIN_OSX
     struct __CVBuffer *cvBufferRef;
@@ -313,7 +308,6 @@ protected:
   float m_clearColour;
 
   // software scale library (fallback if required gl version is not available)
-  DllSwScale        *m_dllSwScale;
   BYTE              *m_rgbBuffer;  // if software scale is used, this will hold the result image
   unsigned int       m_rgbBufferSize;
   GLuint             m_rgbPbo;
@@ -331,7 +325,7 @@ protected:
 
 
 inline int NP2( unsigned x ) {
-#if defined(TARGET_POSIX) && !defined(__POWERPC__) && !defined(__PPC__) && !defined(__arm__)
+#if defined(TARGET_POSIX) && !defined(__POWERPC__) && !defined(__PPC__) && !defined(__arm__) && !defined(__mips__)
   // If there are any issues compiling this, just append a ' && 0'
   // to the above to make it '#if defined(TARGET_POSIX) && 0'
 
@@ -357,6 +351,4 @@ inline int NP2( unsigned x ) {
     return ++x;
 #endif
 }
-#endif
-
 #endif

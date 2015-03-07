@@ -72,14 +72,14 @@ class CTextureInfo
 {
 public:
   CTextureInfo();
-  CTextureInfo(const CStdString &file);
+  CTextureInfo(const std::string &file);
   CTextureInfo& operator=(const CTextureInfo &right);
   bool       useLarge;
   CRect      border;          // scaled  - unneeded if we get rid of scale on load
   int        orientation;     // orientation of the texture (0 - 7 == EXIForientation - 1)
-  CStdString diffuse;         // diffuse overlay texture
+  std::string diffuse;         // diffuse overlay texture
   CGUIInfoColor diffuseColor; // diffuse color
-  CStdString filename;        // main texture file
+  std::string filename;        // main texture file
 };
 
 class CGUITextureBase
@@ -103,10 +103,11 @@ public:
   bool SetPosition(float x, float y);
   bool SetWidth(float width);
   bool SetHeight(float height);
-  bool SetFileName(const CStdString &filename);
+  bool SetFileName(const std::string &filename);
+  void SetUseCache(const bool useCache = true);
   bool SetAspectRatio(const CAspectRatio &aspect);
 
-  const CStdString& GetFileName() const { return m_info.filename; };
+  const std::string& GetFileName() const { return m_info.filename; };
   float GetTextureWidth() const { return m_frameWidth; };
   float GetTextureHeight() const { return m_frameHeight; };
   float GetWidth() const { return m_width; };
@@ -146,7 +147,7 @@ protected:
 
   CRect m_vertex;       // vertex coords to render
   bool m_invalid;       // if true, we need to recalculate
-
+  bool m_use_cache;
   unsigned char m_alpha;
 
   float m_frameWidth, m_frameHeight;          // size in pixels of the actual frame within the texture

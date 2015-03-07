@@ -22,65 +22,29 @@
 #include "osx/CocoaInterface.h"
 #include "DVDVideoCodec.h"
 #include "DVDCodecs/DVDCodecUtils.h"
+#include "utils/log.h"
 #include "VDA.h"
 
 extern "C" {
-  #include <libavcodec/vda.h>
+  #include "libavcodec/vda.h"
 }
 
 using namespace std;
 using namespace VDA;
 
-
-static void RelBufferS(AVCodecContext *avctx, AVFrame *pic)
-{ ((CDecoder*)((CDVDVideoCodecFFmpeg*)avctx->opaque)->GetHardware())->RelBuffer(avctx, pic); }
-
-static int GetBufferS(AVCodecContext *avctx, AVFrame *pic) 
-{  return ((CDecoder*)((CDVDVideoCodecFFmpeg*)avctx->opaque)->GetHardware())->GetBuffer(avctx, pic); }
+static int GetBufferS(AVCodecContext *avctx, AVFrame *pic, int flags)
+{  return ((CDecoder*)((CDVDVideoCodecFFmpeg*)avctx->opaque)->GetHardware())->GetBuffer(avctx, pic, flags); }
 
 CDecoder::CDecoder()
-: m_renderbuffers_count(0)
+: m_renderbuffers_count(3)
 {
-  m_ctx = (vda_context*)calloc(1, sizeof(vda_context));
+  m_ctx = av_vda_alloc_context();
 }
 
 CDecoder::~CDecoder()
 {
   Close();
-  free(m_ctx);
-}
-
-void CDecoder::RelBuffer(AVCodecContext *avctx, AVFrame *pic)
-{
-  CVPixelBufferRef cv_buffer = (CVPixelBufferRef)pic->data[3];
-  CVPixelBufferRelease(cv_buffer);
-
-  for (int i = 0; i < 4; i++)
-    pic->data[i] = NULL;
-}
-
-int CDecoder::GetBuffer(AVCodecContext *avctx, AVFrame *pic)
-{
-  pic->type = FF_BUFFER_TYPE_USER;
-  pic->data[0] = (uint8_t *)1;
-  return 0;
-}
-
-static void vda_decoder_callback (void *vda_hw_ctx,
-                                  CFDictionaryRef user_info,
-                                  OSStatus status,
-                                  uint32_t infoFlags,
-                                  CVImageBufferRef image_buffer)
-{
-  struct vda_context *vda_ctx = (struct vda_context *)vda_hw_ctx;
-
-  if (!image_buffer)
-    return;
-
-  if (vda_ctx->cv_pix_fmt_type != CVPixelBufferGetPixelFormatType(image_buffer))
-    return;
-
-  vda_ctx->cv_buffer = CVPixelBufferRetain(image_buffer);
+  av_free(m_ctx);
 }
 
 bool CDecoder::Create(AVCodecContext *avctx)
@@ -94,9 +58,7 @@ bool CDecoder::Create(AVCodecContext *avctx)
   CFMutableDictionaryRef buffer_attributes;
   CFMutableDictionaryRef io_surface_properties;
   CFNumberRef cv_pix_fmt;
-
-  m_ctx->priv_bitstream = NULL;
-  m_ctx->priv_allocated_size = 0;
+  int32_t fmt = 'avc1', pix_fmt = kCVPixelFormatType_422YpCbCr8;
 
   /* Each VCL NAL in the bitstream sent to the decoder
    * is preceded by a 4 bytes length header.
@@ -123,9 +85,9 @@ bool CDecoder::Create(AVCodecContext *avctx)
                                           &kCFTypeDictionaryKeyCallBacks,
                                           &kCFTypeDictionaryValueCallBacks);
 
-  height   = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &m_ctx->height);
-  width    = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &m_ctx->width);
-  format   = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &m_ctx->format);
+  height   = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &avctx->height);
+  width    = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &avctx->width);
+  format   = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &fmt);
 
   CFDictionarySetValue(config_info, kVDADecoderConfiguration_Height      , height);
   CFDictionarySetValue(config_info, kVDADecoderConfiguration_Width       , width);
@@ -142,7 +104,7 @@ bool CDecoder::Create(AVCodecContext *avctx)
                                                     &kCFTypeDictionaryValueCallBacks);
   cv_pix_fmt  = CFNumberCreate(kCFAllocatorDefault,
                                kCFNumberSInt32Type,
-                               &m_ctx->cv_pix_fmt_type);
+                               &pix_fmt);
   CFDictionarySetValue(buffer_attributes,
                        kCVPixelBufferPixelFormatTypeKey,
                        cv_pix_fmt);
@@ -152,8 +114,8 @@ bool CDecoder::Create(AVCodecContext *avctx)
 
   status = VDADecoderCreate(config_info,
                             buffer_attributes,
-                            (VDADecoderOutputCallback*)vda_decoder_callback,
-                            m_ctx,
+                            (VDADecoderOutputCallback*)m_ctx->output_callback,
+                            avctx,
                             &m_ctx->decoder);
 
   CFRelease(height);
@@ -180,14 +142,13 @@ void CDecoder::Close()
   if (m_ctx->decoder)
     status = VDADecoderDestroy(m_ctx->decoder);
   m_ctx->decoder = NULL;
-  av_freep(&m_ctx->priv_bitstream);
 }
 
 bool CDecoder::Open(AVCodecContext *avctx, enum PixelFormat fmt, unsigned int surfaces)
 {
   Close();
 
-  if(fmt != AV_PIX_FMT_VDA_VLD)
+  if(fmt != AV_PIX_FMT_VDA)
     return false;
 
   if(avctx->codec_id != AV_CODEC_ID_H264)
@@ -220,22 +181,11 @@ bool CDecoder::Open(AVCodecContext *avctx, enum PixelFormat fmt, unsigned int su
     return false;
   }
 
-  /* init vda */
-  memset(m_ctx, 0, sizeof(struct vda_context));
-  m_ctx->width  = avctx->width;
-  m_ctx->height = avctx->height;
-  m_ctx->format = 'avc1';
-  m_ctx->use_sync_decoding = 1;
-  m_ctx->cv_pix_fmt_type = kCVPixelFormatType_422YpCbCr8;
-
   if (!Create(avctx))
     return false;
 
   avctx->pix_fmt         = fmt;
   avctx->hwaccel_context = m_ctx;
-  avctx->get_buffer      = GetBufferS;
-  avctx->release_buffer  = RelBufferS;
-
   return true;
 }
 

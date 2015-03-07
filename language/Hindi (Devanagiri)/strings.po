@@ -1,11 +1,11 @@
-# XBMC Media Center language file
+# Kodi Media Center language file
 msgid ""
 msgstr ""
 "Project-Id-Version: XBMC Main\n"
 "Report-Msgid-Bugs-To: http://trac.xbmc.org/\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: XBMC Translation Team\n"
+"Last-Translator: Kodi Translation Team\n"
 "Language-Team: Hindi (Devanagiri) (http://www.transifex.com/projects/p/xbmc-main/language/hi/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -15,7 +15,7 @@ msgstr ""
 
 msgctxt "#0"
 msgid "Programs"
-msgstr "करिअक्रम"
+msgstr "कार्यक्रम"
 
 msgctxt "#1"
 msgid "Pictures"
@@ -38,8 +38,8 @@ msgid "Settings"
 msgstr "सेट्टिंग"
 
 msgctxt "#6"
-msgid "XBMC SVN"
-msgstr " XBMC स्वं "
+msgid "Kodi SVN"
+msgstr " Kodi स्वं "
 
 msgctxt "#7"
 msgid "File manager"
@@ -50,7 +50,7 @@ msgid "Weather"
 msgstr "मौसम"
 
 msgctxt "#9"
-msgid "xbmc media center"
+msgid "Kodi media center"
 msgstr "क्स्बम्क मीडिया प्लयेर  "
 
 msgctxt "#11"
@@ -205,6 +205,30 @@ msgctxt "#62"
 msgid "Dec"
 msgstr "देक"
 
+msgctxt "#83"
+msgid "W"
+msgstr "टेके"
+
+msgctxt "#88"
+msgid "South"
+msgstr "दक्षिण"
+
+msgctxt "#89"
+msgid "North"
+msgstr "उत्तर"
+
+msgctxt "#90"
+msgid "West"
+msgstr "पश्चिम"
+
+msgctxt "#91"
+msgid "East"
+msgstr "पूर्व"
+
+msgctxt "#92"
+msgid "Variable"
+msgstr "वेरिएबल"
+
 msgctxt "#98"
 msgid "View: Auto"
 msgstr "द्रिस्तिकों: ऑटो"
@@ -301,10 +325,6 @@ msgctxt "#121"
 msgid "Confirm file move"
 msgstr "पक्का करना फाइल हटाना"
 
-msgctxt "#122"
-msgid "Confirm file delete?"
-msgstr "पक्का करना फाइल मिटाना?"
-
 msgctxt "#123"
 msgid "Copy these files?"
 msgstr "निकल करना ये फिल्स"
@@ -373,6 +393,14 @@ msgctxt "#139"
 msgid "Temperatures:"
 msgstr "तापमान: "
 
+msgctxt "#140"
+msgid "CPU:"
+msgstr "सी.पी.यू"
+
+msgctxt "#141"
+msgid "GPU:"
+msgstr "जी.पी.यू"
+
 msgctxt "#142"
 msgid "Time:"
 msgstr "वक्त:"
@@ -381,9 +409,45 @@ msgctxt "#143"
 msgid "Current:"
 msgstr "वर्तमाना:"
 
+msgctxt "#144"
+msgid "Build:"
+msgstr "गठन"
+
+msgctxt "#145"
+msgid "Network:"
+msgstr "नेटवर्क"
+
+msgctxt "#146"
+msgid "Type:"
+msgstr "टाइप"
+
+msgctxt "#147"
+msgid "Static"
+msgstr "स्थिर"
+
+msgctxt "#148"
+msgid "DHCP"
+msgstr "डी अच् सी पी"
+
+msgctxt "#149"
+msgid "MAC address"
+msgstr "मैक एड्रेस"
+
 msgctxt "#150"
 msgid "IP address"
 msgstr "IP पता"
+
+msgctxt "#151"
+msgid "Link:"
+msgstr "कड़ी"
+
+msgctxt "#152"
+msgid "Half duplex"
+msgstr "हाफ डुप्लेक्स"
+
+msgctxt "#153"
+msgid "Full duplex"
+msgstr "फुल डुप्लेक्स"
 
 msgctxt "#154"
 msgid "Storage"
@@ -436,6 +500,10 @@ msgstr "कद अंधार है"
 msgctxt "#166"
 msgid "Skin"
 msgstr "विषय"
+
+msgctxt "#167"
+msgid "Cancel file operations"
+msgstr "फ़ाइल कार्रवाई रद्द करे"
 
 msgctxt "#169"
 msgid "Resolution"
@@ -689,10 +757,6 @@ msgctxt "#251"
 msgid "Select destination directory"
 msgstr "चुन्लेना अभिप्राय की निदेशिका"
 
-msgctxt "#252"
-msgid "Output stereo to all speakers"
-msgstr "ओउत्पुत सभी वक्तों करने के लिए स्तेरेओ"
-
 msgctxt "#253"
 msgid "Number of channels"
 msgstr "मर्गें की संख्या"
@@ -722,8 +786,8 @@ msgid "Waiting for start..."
 msgstr "प्रस्थान रोका देना रहा है..."
 
 msgctxt "#263"
-msgid "Allow control of XBMC via HTTP"
-msgstr "XBMC की नियंत्रण घराना विया HTTP"
+msgid "Allow control of Kodi via HTTP"
+msgstr "Kodi की नियंत्रण घराना विया HTTP"
 
 msgctxt "#264"
 msgid "Record"
@@ -961,14 +1025,6 @@ msgctxt "#336"
 msgid "Framerate conversion"
 msgstr "फ्रेमरेट रूपांतरण"
 
-msgctxt "#337"
-msgid "Audio output"
-msgstr "ऑडियो आउटपुट"
-
-msgctxt "#339"
-msgid "Optical/Coax"
-msgstr "ऑप्टिकल / मनाना"
-
 msgctxt "#340"
 msgid "Various artists"
 msgstr "विभिन्न कलाकारों"
@@ -992,10 +1048,6 @@ msgstr "एक्टर्स"
 msgctxt "#345"
 msgid "Year"
 msgstr "वर्ष"
-
-msgctxt "#346"
-msgid "Boost volume level on downmix"
-msgstr "दोव्न्मिक्स पर वॉल्यूम स्तर बूस्ट"
 
 msgctxt "#350"
 msgid "Programs"
@@ -1438,8 +1490,8 @@ msgid "Audio options"
 msgstr "ऑडियो विकल्प"
 
 msgctxt "#482"
-msgid "About XBMC"
-msgstr "XBMC के बारे में"
+msgid "About Kodi"
+msgstr "Kodi के बारे में"
 
 msgctxt "#485"
 msgid "Delete album"
@@ -2238,8 +2290,8 @@ msgid "Wireless network name (ESSID)"
 msgstr "वायरलेस नेटवर्क नाम (ESSID)"
 
 msgctxt "#791"
-msgid "Allow programs on this system to control XBMC"
-msgstr "इस सिस्टम पर प्रोग्रामों XBMC नियंत्रण करने दें"
+msgid "Allow programs on this system to control Kodi"
+msgstr "इस सिस्टम पर प्रोग्रामों Kodi नियंत्रण करने दें"
 
 msgctxt "#792"
 msgid "Port"
@@ -2250,8 +2302,8 @@ msgid "Port range"
 msgstr "पोर्ट रेंज"
 
 msgctxt "#794"
-msgid "Allow programs on other systems to control XBMC"
-msgstr "अन्य प्रणालियों पर कार्यक्रमों XBMC नियंत्रण करने दें"
+msgid "Allow programs on other systems to control Kodi"
+msgstr "अन्य प्रणालियों पर कार्यक्रमों Kodi नियंत्रण करने दें"
 
 msgctxt "#795"
 msgid "Initial repeat delay (ms)"
@@ -2278,8 +2330,8 @@ msgid "Unable to connect"
 msgstr "कनेक्ट करने में असमर्थ"
 
 msgctxt "#1002"
-msgid "XBMC was unable to connect to the network location."
-msgstr "XBMC के लिए नेटवर्क स्थान से कनेक्ट करने में असमर्थ था."
+msgid "Kodi was unable to connect to the network location."
+msgstr "Kodi के लिए नेटवर्क स्थान से कनेक्ट करने में असमर्थ था."
 
 msgctxt "#1003"
 msgid "This could be due to the network not being connected."
@@ -2441,10 +2493,6 @@ msgctxt "#1043"
 msgid "Program Add-ons"
 msgstr "कार्यक्रम परिवर्धन"
 
-msgctxt "#1044"
-msgid "Set plugin thumb"
-msgstr "पप्लगइन अंगूठा सेट करें"
-
 msgctxt "#1045"
 msgid "Add-on settings"
 msgstr "इसके अतिरिक्त सेटिंग्स"
@@ -2585,6 +2633,14 @@ msgctxt "#1235"
 msgid "Programs & pictures & video"
 msgstr "प्रोग्राम्स और तस्वीरें और वीडियो"
 
+msgctxt "#1381"
+msgid "Extreme"
+msgstr "चरम"
+
+msgctxt "#1390"
+msgid "Settings"
+msgstr "सेट्टिंग"
+
 msgctxt "#1403"
 msgid "Sun"
 msgstr "सुन"
@@ -2593,9 +2649,17 @@ msgctxt "#1418"
 msgid "Thunderstorms"
 msgstr "गरज"
 
+msgctxt "#1427"
+msgid "Smoke"
+msgstr "धुंधला"
+
 msgctxt "#1450"
 msgid "Put display to sleep when idle"
 msgstr "जब नींद निष्क्रिय प्रदर्शित रखो"
+
+msgctxt "#10000"
+msgid "Home"
+msgstr "प्रारंभ"
 
 msgctxt "#10001"
 msgid "Programs"
@@ -2628,6 +2692,18 @@ msgstr "अलेक्हें"
 msgctxt "#10025"
 msgid "Videos"
 msgstr "विडियो"
+
+msgctxt "#10036"
+msgid "Basic"
+msgstr "बुनियादी"
+
+msgctxt "#10037"
+msgid "Standard"
+msgstr "मानक"
+
+msgctxt "#10038"
+msgid "Advanced"
+msgstr "उन्नत"
 
 msgctxt "#10134"
 msgid "Favourites"
@@ -2717,6 +2793,26 @@ msgctxt "#13280"
 msgid "Video"
 msgstr "विडियो"
 
+msgctxt "#13281"
+msgid "Hardware"
+msgstr "हार्डवेयर"
+
+msgctxt "#13283"
+msgid "Operating system:"
+msgstr "प्रचालन तंत्र:"
+
+msgctxt "#13284"
+msgid "CPU speed:"
+msgstr "सी.पी.यू"
+
+msgctxt "#13286"
+msgid "Video encoder:"
+msgstr "वीडियो एनकोडर:"
+
+msgctxt "#13303"
+msgid "Fonts"
+msgstr "फ़ॉन्ट"
+
 msgctxt "#13305"
 msgid "Show RSS news feeds"
 msgstr "दिखाएँ आरएसएस समाचार फ़ीड"
@@ -2741,6 +2837,10 @@ msgctxt "#13327"
 msgid "Karaoke"
 msgstr "कराओके"
 
+msgctxt "#13340"
+msgid "Leave as is"
+msgstr "मानक"
+
 msgctxt "#13346"
 msgid "Movie information"
 msgstr "मूवी जानकारी"
@@ -2760,6 +2860,10 @@ msgstr "स्वचालित रूप से थंबनेल उत्�
 msgctxt "#13387"
 msgid "Track naming template - right"
 msgstr "ट्रैक नामकरण टेम्पलेट - ठीक है"
+
+msgctxt "#13388"
+msgid "Preset"
+msgstr "मानक"
 
 msgctxt "#13398"
 msgid "Shortcuts"
@@ -2825,14 +2929,6 @@ msgctxt "#14022"
 msgid "Library"
 msgstr "पुस्तकालय"
 
-msgctxt "#14028"
-msgid "Internet"
-msgstr "इंटरनेट"
-
-msgctxt "#14032"
-msgid "Internet"
-msgstr "इंटरनेट"
-
 msgctxt "#14036"
 msgid "Services"
 msgstr "सेवाएँ"
@@ -2893,6 +2989,10 @@ msgctxt "#14095"
 msgid "Power saving"
 msgstr "बिजली बचाने के"
 
+msgctxt "#14096"
+msgid "Rip"
+msgstr "ठुर्स"
+
 msgctxt "#14098"
 msgid "Play"
 msgstr "खेलना"
@@ -2929,9 +3029,25 @@ msgctxt "#19031"
 msgid "Next"
 msgstr "अगला"
 
+msgctxt "#19150"
+msgid "Tu"
+msgstr "मार्च  "
+
+msgctxt "#19154"
+msgid "Sa"
+msgstr "सैट"
+
+msgctxt "#19155"
+msgid "Su"
+msgstr "धुंधला"
+
 msgctxt "#19177"
 msgid "Playback"
 msgstr "प्लेबैक"
+
+msgctxt "#19190"
+msgid "Background"
+msgstr "पृष्ठभूमि"
 
 msgctxt "#19607"
 msgid "Fashion"
@@ -3025,6 +3141,10 @@ msgctxt "#20331"
 msgid "File"
 msgstr "फ़ाइल"
 
+msgctxt "#20334"
+msgid "Folder"
+msgstr "फोल्डर"
+
 msgctxt "#20342"
 msgid "Movies"
 msgstr "सिनेमा"
@@ -3033,17 +3153,21 @@ msgctxt "#20369"
 msgid "Show plot for unwatched items"
 msgstr "उन्वात्चेद मदों के लिए साजिश दिखाएँ"
 
+msgctxt "#20388"
+msgid "Studios"
+msgstr "स्टूडियो"
+
 msgctxt "#20393"
 msgid "Music video information"
 msgstr "संगीत वीडियो की जानकारी"
 
+msgctxt "#20397"
+msgid "Go to album"
+msgstr "एल्बम"
+
 msgctxt "#20402"
 msgid "Download actor thumbnails when adding to library"
 msgstr "अभिनेता थंबनेल डाउनलोड जब पुस्तकालय को जोड़ने"
-
-msgctxt "#20412"
-msgid "Flatten TV shows"
-msgstr "टीवी शो समतल"
 
 msgctxt "#20433"
 msgid "Extract thumbnails and video information"
@@ -3056,14 +3180,6 @@ msgstr "दिखाएँ छुपी फ़ाइलें और निर�
 msgctxt "#21360"
 msgid "Share video and music libraries through UPnP"
 msgstr "शेयर और UPnP के माध्यम से वीडियो संगीत पुस्तकालयों"
-
-msgctxt "#21366"
-msgid "Subtitle folder"
-msgstr "उपशीर्षक फ़ोल्डर"
-
-msgctxt "#21369"
-msgid "Enable mouse and Touch Screen support"
-msgstr "माउस सक्षम"
 
 msgctxt "#21372"
 msgid "Forced DVD player region"
@@ -3109,6 +3225,34 @@ msgctxt "#21806"
 msgid "Comment"
 msgstr "टिप्पणी"
 
+msgctxt "#21826"
+msgid "Aperture"
+msgstr "डिस्क उद्घताना"
+
+msgctxt "#21862"
+msgid "Caption"
+msgstr "शीर्षक"
+
+msgctxt "#21863"
+msgid "Author"
+msgstr "रचयिता"
+
+msgctxt "#21864"
+msgid "Headline"
+msgstr "शीर्षक"
+
+msgctxt "#21865"
+msgid "Special instructions"
+msgstr "विशेष निर्देश"
+
+msgctxt "#21866"
+msgid "Category"
+msgstr "श्रेणी"
+
+msgctxt "#21870"
+msgid "Source"
+msgstr "फ़ॉन्ट"
+
 msgctxt "#21874"
 msgid "State"
 msgstr "क्षेत्र"
@@ -3118,8 +3262,8 @@ msgid "Country"
 msgstr "देश"
 
 msgctxt "#21881"
-msgid "Allow control of XBMC via UPnP"
-msgstr "XBMC के UPnP के माध्यम से नियंत्रण की अनुमति दें"
+msgid "Allow control of Kodi via UPnP"
+msgstr "Kodi के UPnP के माध्यम से नियंत्रण की अनुमति दें"
 
 msgctxt "#21883"
 msgid "Saved music"
@@ -3217,6 +3361,10 @@ msgctxt "#24018"
 msgid "Services"
 msgstr "सेवाएँ"
 
+msgctxt "#24023"
+msgid "Disabled"
+msgstr "विकलांग"
+
 msgctxt "#24027"
 msgid "Weather"
 msgstr "मौसम"
@@ -3246,9 +3394,41 @@ msgid "Background"
 msgstr "पृष्ठभूमि"
 
 msgctxt "#34100"
-msgid "Speaker Configuration"
-msgstr "वक्ता विन्यास"
+msgid "Number of channels"
+msgstr "मर्गें की संख्या"
 
 msgctxt "#35502"
 msgid "Name"
 msgstr "नाम"
+
+msgctxt "#36428"
+msgid "Record"
+msgstr "लिखना"
+
+msgctxt "#36502"
+msgid "Disabled"
+msgstr "विकलांग"
+
+msgctxt "#36508"
+msgid "Hardware Based"
+msgstr "हार्डवेयर"
+
+msgctxt "#36912"
+msgid "video"
+msgstr "विडियो"
+
+msgctxt "#36913"
+msgid "videos"
+msgstr "विडियो"
+
+msgctxt "#36918"
+msgid "album"
+msgstr "एल्बम"
+
+msgctxt "#36920"
+msgid "song"
+msgstr "संगीता"
+
+msgctxt "#36921"
+msgid "songs"
+msgstr "गीतें"

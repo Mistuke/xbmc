@@ -3,11 +3,13 @@ SRCS += AliasShortcutUtils.cpp
 SRCS += Archive.cpp
 SRCS += AsyncFileCopy.cpp
 SRCS += AutoPtrHandle.cpp
+SRCS += auto_buffer.cpp
 SRCS += Base64.cpp
 SRCS += BitstreamConverter.cpp
 SRCS += BitstreamStats.cpp
 SRCS += BooleanLogic.cpp
 SRCS += CharsetConverter.cpp
+SRCS += CharsetDetection.cpp
 SRCS += CPUInfo.cpp
 SRCS += Crc32.cpp
 SRCS += CryptThreading.cpp
@@ -28,6 +30,7 @@ SRCS += HTMLTable.cpp
 SRCS += HTMLUtil.cpp
 SRCS += HttpHeader.cpp
 SRCS += HttpParser.cpp
+SRCS += HttpRangeUtils.cpp
 SRCS += HttpResponse.cpp
 SRCS += InfoLoader.cpp
 SRCS += JobManager.cpp
@@ -42,12 +45,15 @@ SRCS += Mime.cpp
 SRCS += Observer.cpp
 SRCS += PerformanceSample.cpp
 SRCS += PerformanceStats.cpp
+SRCS += posix/PosixInterfaceForCLog.cpp
 SRCS += POUtils.cpp
+SRCS += ProgressJob.cpp
 SRCS += RecentlyAddedJob.cpp
 SRCS += RegExp.cpp
 SRCS += RingBuffer.cpp
 SRCS += RssManager.cpp
 SRCS += RssReader.cpp
+SRCS += SaveFileStateJob.cpp
 SRCS += ScraperParser.cpp
 SRCS += ScraperUrl.cpp
 SRCS += Screenshot.cpp
@@ -71,10 +77,17 @@ SRCS += Vector.cpp
 SRCS += Weather.cpp
 SRCS += XBMCTinyXML.cpp
 SRCS += XMLUtils.cpp
+SRCS += Utf8Utils.cpp
+SRCS += XSLTUtils.cpp
 SRCS += ActorProtocol.cpp 
+SRCS += SysfsUtils.cpp
 
 ifeq (@USE_OPENGLES@,1)
 SRCS += AMLUtils.cpp
+endif
+
+ifeq (@USE_LIBAMCODEC@,1)
+SRCS += ScreenshotAML.cpp
 endif
 
 LIB   = utils.a

@@ -57,6 +57,8 @@ CBaseRenderer::CBaseRenderer()
 
   m_RenderUpdateCallBackFn = NULL;
   m_RenderUpdateCallBackCtx = NULL;
+  m_RenderFeaturesCallBackFn = NULL;
+  m_RenderFeaturesCallBackCtx = NULL;
 }
 
 CBaseRenderer::~CBaseRenderer()
@@ -299,8 +301,8 @@ RESOLUTION CBaseRenderer::GetResolution() const
 
 float CBaseRenderer::GetAspectRatio() const
 {
-  float width = (float)m_sourceWidth - CMediaSettings::Get().GetCurrentVideoSettings().m_CropLeft - CMediaSettings::Get().GetCurrentVideoSettings().m_CropRight;
-  float height = (float)m_sourceHeight - CMediaSettings::Get().GetCurrentVideoSettings().m_CropTop - CMediaSettings::Get().GetCurrentVideoSettings().m_CropBottom;
+  float width = (float)m_sourceWidth;
+  float height = (float)m_sourceHeight;
   return m_sourceFrameRatio * width / height * m_sourceHeight / m_sourceWidth;
 }
 
@@ -441,6 +443,12 @@ void CBaseRenderer::CalcNormalDisplayRect(float offsetX, float offsetY, float sc
   newWidth *= zoomAmount;
   newHeight *= zoomAmount;
 
+  // if we are less than one pixel off use the complete screen instead
+  if (std::abs(newWidth - screenWidth) < 1.0f)
+    newWidth = screenWidth;
+  if (std::abs(newHeight - screenHeight) < 1.0f)
+    newHeight = screenHeight;
+
   // Centre the movie
   float posY = (screenHeight - newHeight) / 2;
   float posX = (screenWidth - newWidth) / 2;
@@ -578,10 +586,21 @@ void CBaseRenderer::ManageDisplay()
   switch(stereo_mode)
   {
     case CONF_FLAGS_STEREO_MODE_TAB:
-      if     (stereo_view == RENDER_STEREO_VIEW_LEFT)
-        m_sourceRect.y2 *= 0.5f;
-      else if(stereo_view == RENDER_STEREO_VIEW_RIGHT)
-        m_sourceRect.y1 += m_sourceRect.y2*0.5f;
+      // Those are flipped in y
+      if (m_format == RENDER_FMT_CVBREF || m_format == RENDER_FMT_EGLIMG || m_format == RENDER_FMT_MEDIACODEC)
+      {
+        if (stereo_view == RENDER_STEREO_VIEW_LEFT)
+          m_sourceRect.y1 += m_sourceRect.y2*0.5f;
+        else if(stereo_view == RENDER_STEREO_VIEW_RIGHT)
+          m_sourceRect.y2 *= 0.5f;
+      }
+      else
+      {
+        if (stereo_view == RENDER_STEREO_VIEW_LEFT)
+          m_sourceRect.y2 *= 0.5f;
+        else if(stereo_view == RENDER_STEREO_VIEW_RIGHT)
+          m_sourceRect.y1 += m_sourceRect.y2*0.5f;
+      }
       break;
 
     case CONF_FLAGS_STEREO_MODE_SBS:
@@ -594,11 +613,6 @@ void CBaseRenderer::ManageDisplay()
     default:
       break;
   }
-
-  m_sourceRect.x1 += (float)CMediaSettings::Get().GetCurrentVideoSettings().m_CropLeft;
-  m_sourceRect.y1 += (float)CMediaSettings::Get().GetCurrentVideoSettings().m_CropTop;
-  m_sourceRect.x2 -= (float)CMediaSettings::Get().GetCurrentVideoSettings().m_CropRight;
-  m_sourceRect.y2 -= (float)CMediaSettings::Get().GetCurrentVideoSettings().m_CropBottom;
 
   CalcNormalDisplayRect(view.x1, view.y1, view.Width(), view.Height(), GetAspectRatio() * CDisplaySettings::Get().GetPixelRatio(), CDisplaySettings::Get().GetZoomAmount(), CDisplaySettings::Get().GetVerticalShift());
 }
@@ -700,7 +714,7 @@ void CBaseRenderer::SetViewMode(int viewMode)
       newHeight = screenHeight;
     }
     // now work out the zoom amount so that no zoom is done
-    CDisplaySettings::Get().SetZoomAmount((m_sourceHeight - CMediaSettings::Get().GetCurrentVideoSettings().m_CropTop - CMediaSettings::Get().GetCurrentVideoSettings().m_CropBottom) / newHeight);
+    CDisplaySettings::Get().SetZoomAmount(m_sourceHeight / newHeight);
   }
   else if (CMediaSettings::Get().GetCurrentVideoSettings().m_ViewMode == ViewModeCustom)
   {
@@ -726,11 +740,13 @@ void CBaseRenderer::MarkDirty()
   g_windowManager.MarkDirty(m_destRect);
 }
 
-void CBaseRenderer::SettingOptionsRenderMethodsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current)
+void CBaseRenderer::SettingOptionsRenderMethodsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
 {
   list.push_back(make_pair(g_localizeStrings.Get(13416), RENDER_METHOD_AUTO));
 
 #ifdef HAS_DX
+  if (CSysInfo::IsWindowsVersionAtLeast(CSysInfo::WindowsVersionWin7))
+    list.push_back(make_pair(g_localizeStrings.Get(16326), RENDER_METHOD_DXVAHD));
   list.push_back(make_pair(g_localizeStrings.Get(16319), RENDER_METHOD_DXVA));
   list.push_back(make_pair(g_localizeStrings.Get(13431), RENDER_METHOD_D3D_PS));
   list.push_back(make_pair(g_localizeStrings.Get(13419), RENDER_METHOD_SOFTWARE));

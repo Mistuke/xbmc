@@ -20,9 +20,12 @@
  */
 
 #include "AEAudioFormat.h"
-#include "utils/StdString.h"
 #include "PlatformDefs.h"
 #include <math.h>
+
+extern "C" {
+#include "libavutil/samplefmt.h"
+}
 
 #ifdef TARGET_WINDOWS
 #if _M_IX86_FP>0 && !defined(__SSE__)
@@ -49,21 +52,85 @@
   #define MEMALIGN(b, x) __declspec(align(b)) x
 #endif
 
-#define AUDIO_IS_BITSTREAM(x) ((x) == AUDIO_IEC958 || (x) == AUDIO_HDMI)
-
-enum AudioOutputs
-{
-  AUDIO_ANALOG  = 0,
-  AUDIO_IEC958,
-  AUDIO_HDMI
-};
-
 // AV sync options
 enum AVSync
 {
   SYNC_DISCON   = 0,
   SYNC_SKIPDUP,
   SYNC_RESAMPLE
+};
+
+struct AEDelayStatus
+{
+  AEDelayStatus()
+  : delay(0.0)
+  , tick(0)
+  {}
+
+  void   SetDelay(double d);
+  double GetDelay();
+
+  double       delay;   /*!< delay in sink currently */
+  int64_t      tick;    /*!< timestamp when delay was calculated */
+};
+
+/**
+ * @brief lockless consistency guaranteeer
+ *
+ * Requires write to be a higher priority thread
+ *
+ * use in writer:
+ *   m_locker.enter();
+ *   update_stuff();
+ *   m_locker.leave();
+ *
+ * use in reader:
+ *   CAESpinLock lock(m_locker);
+ *   do {
+ *     get_stuff();
+ *   } while(lock.retry());
+ */
+
+class CAESpinSection
+{
+public:
+  CAESpinSection()
+  : m_enter(0)
+  , m_leave(0)
+  {}
+
+  void enter() { m_enter++; }
+  void leave() { m_leave = m_enter; }
+
+protected:
+  friend class CAESpinLock;
+  volatile unsigned int m_enter;
+  volatile unsigned int m_leave;
+};
+
+class CAESpinLock
+{
+public:
+  CAESpinLock(CAESpinSection& section)
+  : m_section(section)
+  , m_begin(section.m_enter)
+  {}
+
+  bool retry()
+  {
+    if(m_section.m_enter != m_begin
+    || m_section.m_enter != m_section.m_leave)
+    {
+      m_begin = m_section.m_enter;
+      return true;
+    }
+    else
+      return false;
+  }
+
+private:
+  CAESpinSection& m_section;
+  unsigned int    m_begin;
 };
 
 class CAEUtil
@@ -81,6 +148,7 @@ public:
   static const char*             GetStdChLayoutName(const enum AEStdChLayout layout);
   static const unsigned int      DataFormatToBits  (const enum AEDataFormat dataFormat);
   static const unsigned int      DataFormatToUsedBits (const enum AEDataFormat dataFormat);
+  static const unsigned int      DataFormatToDitherBits(const enum AEDataFormat dataFormat);
   static const char*             DataFormatToStr   (const enum AEDataFormat dataFormat);
 
   /*! \brief convert a volume percentage (as a proportion) to a dB gain
@@ -117,7 +185,17 @@ public:
    */
   static inline const float GainToScale(const float dB)
   {
-    return pow(10.0f, dB/20);
+    float val = 0.0f; 
+    // we need to make sure that our lowest db returns plain zero
+    if (dB > -60.0f) 
+      val = pow(10.0f, dB/20); 
+
+    // in order to not introduce computing overhead for nearly zero
+    // values of dB e.g. -0.01 or -0.001 we clamp to top
+    if (val >= 0.99f)
+      val = 1.0f;
+
+    return val;
   }
 
   /*! \brief convert a scale factor to dB gain for audio manipulation
@@ -146,4 +224,9 @@ public:
   static void  FloatRand4(const float min, const float max, float result[4], __m128 *sseresult = NULL);
 
   static bool S16NeedsByteSwap(AEDataFormat in, AEDataFormat out);
+
+  static uint64_t GetAVChannelLayout(CAEChannelInfo &info);
+  static AVSampleFormat GetAVSampleFormat(AEDataFormat format);
+  static uint64_t GetAVChannel(enum AEChannel aechannel);
+  static int GetAVChannelIndex(enum AEChannel aechannel, uint64_t layout);
 };

@@ -33,7 +33,7 @@
 
 #include "input/MouseStat.h"
 #include "input/XBMC_keysym.h"
-#include "guilib/Key.h"
+#include "input/Key.h"
 #include "windowing/XBMC_events.h"
 #include <android/log.h>
 
@@ -46,6 +46,7 @@
 #include "ApplicationMessenger.h"
 #include "utils/StringUtils.h"
 #include "AppParamParser.h"
+#include "XbmcContext.h"
 #include <android/bitmap.h>
 #include "android/jni/JNIThreading.h"
 #include "android/jni/BroadcastReceiver.h"
@@ -70,6 +71,8 @@
 #include "android/jni/Cursor.h"
 #include "android/jni/ContentResolver.h"
 #include "android/jni/MediaStore.h"
+#include "android/jni/Build.h"
+#include "CompileInfo.h"
 
 #define GIGABYTES       1073741824
 
@@ -86,10 +89,13 @@ ANativeActivity *CXBMCApp::m_activity = NULL;
 ANativeWindow* CXBMCApp::m_window = NULL;
 int CXBMCApp::m_batteryLevel = 0;
 int CXBMCApp::m_initialVolume = 0;
+CCriticalSection CXBMCApp::m_applicationsMutex;
+std::vector<androidPackage> CXBMCApp::m_applications;
+
 
 CXBMCApp::CXBMCApp(ANativeActivity* nativeActivity)
-  : CJNIContext(nativeActivity)
-  , CJNIBroadcastReceiver("org/xbmc/xbmc/XBMCBroadcastReceiver")
+  : CJNIApplicationMainActivity(nativeActivity)
+  , CJNIBroadcastReceiver("org/xbmc/kodi/XBMCBroadcastReceiver")
   , m_wakeLock(NULL)
 {
   m_activity = nativeActivity;
@@ -110,6 +116,12 @@ CXBMCApp::~CXBMCApp()
 void CXBMCApp::onStart()
 {
   android_printf("%s: ", __PRETTY_FUNCTION__);
+
+  // non-aml boxes will ignore this intent broadcast.
+  // setup aml scalers to play video as is, unscaled.
+  CJNIIntent intent_aml_video_on = CJNIIntent("android.intent.action.REALVIDEO_ON");
+  sendBroadcast(intent_aml_video_on);
+
   if (!m_firstrun)
   {
     android_printf("%s: Already running, ignoring request to start", __PRETTY_FUNCTION__);
@@ -128,6 +140,12 @@ void CXBMCApp::onResume()
   CJNIIntentFilter batteryFilter;
   batteryFilter.addAction("android.intent.action.BATTERY_CHANGED");
   registerReceiver(*this, batteryFilter);
+
+  // Clear the applications cache. We could have installed/deinstalled apps
+  {
+    CSingleLock lock(m_applicationsMutex);
+    m_applications.clear();
+  }
 }
 
 void CXBMCApp::onPause()
@@ -138,6 +156,10 @@ void CXBMCApp::onPause()
   SetSystemVolume(m_initialVolume);
 
   unregisterReceiver(*this);
+
+  // non-aml boxes will ignore this intent broadcast.
+  CJNIIntent intent_aml_video_off = CJNIIntent("android.intent.action.REALVIDEO_OFF");
+  sendBroadcast(intent_aml_video_off);
 }
 
 void CXBMCApp::onStop()
@@ -241,7 +263,10 @@ bool CXBMCApp::getWakeLock()
   if (m_wakeLock)
     return true;
 
-  m_wakeLock = new CJNIWakeLock(CJNIPowerManager(getSystemService("power")).newWakeLock("org.xbmc.xbmc"));
+  std::string appName = CCompileInfo::GetAppName();
+  StringUtils::ToLower(appName);
+  std::string className = "org.xbmc." + appName;
+  m_wakeLock = new CJNIWakeLock(CJNIPowerManager(getSystemService("power")).newWakeLock(className.c_str()));
 
   return true;
 }
@@ -251,11 +276,13 @@ void CXBMCApp::run()
   int status = 0;
 
   SetupEnv();
-  
+  XBMC::Context context;
+
   m_initialVolume = GetSystemVolume();
 
   CJNIIntent startIntent = getIntent();
-  android_printf("XBMC Started with action: %s\n",startIntent.getAction().c_str());
+
+  android_printf("%s Started with action: %s\n", CCompileInfo::GetAppName(), startIntent.getAction().c_str());
 
   std::string filenameToPlay = GetFilenameFromIntent(startIntent);
   if (!filenameToPlay.empty())
@@ -263,7 +290,7 @@ void CXBMCApp::run()
     int argc = 2;
     const char** argv = (const char**) malloc(argc*sizeof(char*));
 
-    std::string exe_name("XBMC");
+    std::string exe_name(CCompileInfo::GetAppName());
     argv[0] = exe_name.c_str();
     argv[1] = filenameToPlay.c_str();
 
@@ -295,8 +322,8 @@ void CXBMCApp::run()
 void CXBMCApp::XBMC_Pause(bool pause)
 {
   android_printf("XBMC_Pause(%s)", pause ? "true" : "false");
-  // Only send the PAUSE action if we are pausing XBMC and something is currently playing
-  if (pause && g_application.m_pPlayer->IsPlaying() && !g_application.m_pPlayer->IsPaused())
+  // Only send the PAUSE action if we are pausing XBMC and video is currently playing
+  if (pause && g_application.m_pPlayer->IsPlayingVideo() && !g_application.m_pPlayer->IsPaused())
     CApplicationMessenger::Get().SendAction(CAction(ACTION_PAUSE), WINDOW_INVALID, true);
 }
 
@@ -327,7 +354,7 @@ int CXBMCApp::android_printf(const char *format, ...)
   // For use before CLog is setup by XBMC_Run()
   va_list args;
   va_start(args, format);
-  int result = __android_log_vprint(ANDROID_LOG_VERBOSE, "XBMC", format, args);
+  int result = __android_log_vprint(ANDROID_LOG_VERBOSE, "Kodi", format, args);
   va_end(args);
   return result;
 }
@@ -347,22 +374,29 @@ int CXBMCApp::GetDPI()
   return dpi;
 }
 
-bool CXBMCApp::ListApplications(vector<androidPackage> *applications)
+std::vector<androidPackage> CXBMCApp::GetApplications()
 {
-  CJNIList<CJNIApplicationInfo> packageList = GetPackageManager().getInstalledApplications(CJNIPackageManager::GET_ACTIVITIES);
-  int numPackages = packageList.size();
-  for (int i = 0; i < numPackages; i++)
+  CSingleLock lock(m_applicationsMutex);
+  if (m_applications.empty())
   {
-    androidPackage newPackage;
-    newPackage.packageName = packageList.get(i).packageName;
-    newPackage.packageLabel = GetPackageManager().getApplicationLabel(packageList.get(i)).toString();
-    CJNIIntent intent = GetPackageManager().getLaunchIntentForPackage(newPackage.packageName);
-    if (!intent || !intent.hasCategory("android.intent.category.LAUNCHER"))
-      continue;
+    CJNIList<CJNIApplicationInfo> packageList = GetPackageManager().getInstalledApplications(CJNIPackageManager::GET_ACTIVITIES);
+    int numPackages = packageList.size();
+    for (int i = 0; i < numPackages; i++)
+    {
+      androidPackage newPackage;
+      newPackage.packageName = packageList.get(i).packageName;
+      newPackage.packageLabel = GetPackageManager().getApplicationLabel(packageList.get(i)).toString();
+      CJNIIntent intent = GetPackageManager().getLaunchIntentForPackage(newPackage.packageName);
+      if (!intent && CJNIBuild::SDK_INT >= 21)
+        intent = GetPackageManager().getLeanbackLaunchIntentForPackage(newPackage.packageName);
+      if (!intent)
+        continue;
 
-    applications->push_back(newPackage);
+      m_applications.push_back(newPackage);
+    }
   }
-  return true;
+
+  return m_applications;
 }
 
 bool CXBMCApp::GetIconSize(const string &packageName, int *width, int *height)
@@ -401,17 +435,34 @@ bool CXBMCApp::HasLaunchIntent(const string &package)
 // Note intent, dataType, dataURI all default to ""
 bool CXBMCApp::StartActivity(const string &package, const string &intent, const string &dataType, const string &dataURI)
 {
-  CJNIIntent newIntent = GetPackageManager().getLaunchIntentForPackage(package);
+  CJNIIntent newIntent = intent.empty() ?
+    GetPackageManager().getLaunchIntentForPackage(package) :
+    CJNIIntent(intent);
+
+  if (!newIntent && CJNIBuild::SDK_INT >= 21)
+    newIntent = GetPackageManager().getLeanbackLaunchIntentForPackage(package);
   if (!newIntent)
     return false;
 
   if (!dataURI.empty())
-    newIntent.setData(dataURI);
+  {
+    CJNIURI jniURI = CJNIURI::parse(dataURI);
 
-  if (!intent.empty())
-    newIntent.setAction(intent);
+    if (!jniURI)
+      return false;
 
-   startActivity(newIntent);
+    newIntent.setDataAndType(jniURI, dataType); 
+  }
+
+  newIntent.setPackage(package);
+  startActivity(newIntent);
+  if (xbmc_jnienv()->ExceptionCheck())
+  {
+    CLog::Log(LOGERROR, "CXBMCApp::StartActivity - ExceptionOccurred launching %s", package.c_str());
+    xbmc_jnienv()->ExceptionClear();
+    return false;
+  }
+
   return true;
 }
 
@@ -572,26 +623,41 @@ void CXBMCApp::onNewIntent(CJNIIntent intent)
 void CXBMCApp::SetupEnv()
 {
   setenv("XBMC_ANDROID_SYSTEM_LIBS", CJNISystem::getProperty("java.library.path").c_str(), 0);
-  setenv("XBMC_ANDROID_DATA", getApplicationInfo().dataDir.c_str(), 0);
   setenv("XBMC_ANDROID_LIBS", getApplicationInfo().nativeLibraryDir.c_str(), 0);
   setenv("XBMC_ANDROID_APK", getPackageResourcePath().c_str(), 0);
 
-  std::string cacheDir = getCacheDir().getAbsolutePath();
-  setenv("XBMC_BIN_HOME", (cacheDir + "/apk/assets").c_str(), 0);
-  setenv("XBMC_HOME", (cacheDir + "/apk/assets").c_str(), 0);
+  std::string appName = CCompileInfo::GetAppName();
+  StringUtils::ToLower(appName);
+  std::string className = "org.xbmc." + appName;
 
-  std::string externalDir;
-  CJNIFile androidPath = getExternalFilesDir("");
-  if (!androidPath)
-    androidPath = getDir("org.xbmc.xbmc", 1);
+  std::string xbmcHome = CJNISystem::getProperty("xbmc.home", "");
+  if (xbmcHome.empty())
+  {
+    std::string cacheDir = getCacheDir().getAbsolutePath();
+    setenv("KODI_BIN_HOME", (cacheDir + "/apk/assets").c_str(), 0);
+    setenv("KODI_HOME", (cacheDir + "/apk/assets").c_str(), 0);
+  }
+  else
+  {
+    setenv("KODI_BIN_HOME", (xbmcHome + "/assets").c_str(), 0);
+    setenv("KODI_HOME", (xbmcHome + "/assets").c_str(), 0);
+  }
 
-  if (androidPath)
-    externalDir = androidPath.getAbsolutePath();
+  std::string externalDir = CJNISystem::getProperty("xbmc.data", "");
+  if (externalDir.empty())
+  {
+    CJNIFile androidPath = getExternalFilesDir("");
+    if (!androidPath)
+      androidPath = getDir(className.c_str(), 1);
+
+    if (androidPath)
+      externalDir = androidPath.getAbsolutePath();
+  }
 
   if (!externalDir.empty())
     setenv("HOME", externalDir.c_str(), 0);
   else
-    setenv("HOME", getenv("XBMC_TEMP"), 0);
+    setenv("HOME", getenv("KODI_TEMP"), 0);
 }
 
 std::string CXBMCApp::GetFilenameFromIntent(const CJNIIntent &intent)

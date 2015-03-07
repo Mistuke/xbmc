@@ -20,12 +20,12 @@
 
 #include "JobManager.h"
 #include <algorithm>
+#include <functional>
 #include <stdexcept>
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 
 #include "system.h"
-
 
 using namespace std;
 
@@ -120,7 +120,7 @@ void CJobQueue::CancelJob(const CJob *job)
   }
 }
 
-void CJobQueue::AddJob(CJob *job)
+bool CJobQueue::AddJob(CJob *job)
 {
   CSingleLock lock(m_section);
   // check if we have this job already.  If so, we're done.
@@ -128,7 +128,7 @@ void CJobQueue::AddJob(CJob *job)
       find(m_processing.begin(), m_processing.end(), job) != m_processing.end())
   {
     delete job;
-    return;
+    return false;
   }
 
   if (m_lifo)
@@ -136,6 +136,8 @@ void CJobQueue::AddJob(CJob *job)
   else
     m_jobQueue.push_front(CJobPointer(job));
   QueueNextJob();
+
+  return true;
 }
 
 void CJobQueue::QueueNextJob()
@@ -159,6 +161,10 @@ void CJobQueue::CancelJobs()
   m_processing.clear();
 }
 
+bool CJobQueue::IsProcessing() const
+{
+  return !m_processing.empty() || !m_jobQueue.empty();
+}
 
 bool CJobQueue::QueueEmpty() const
 {
@@ -320,7 +326,7 @@ bool CJobManager::IsProcessing(const CJob::PRIORITY &priority) const
   if (m_pauseJobs)
     return false;
 
-  for(Processing::const_iterator it = m_processing.begin(); it < m_processing.end(); it++)
+  for(Processing::const_iterator it = m_processing.begin(); it < m_processing.end(); ++it)
   {
     if (priority == it->m_priority)
       return true;
@@ -336,7 +342,7 @@ int CJobManager::IsProcessing(const std::string &type) const
   if (m_pauseJobs)
     return 0;
 
-  for(Processing::const_iterator it = m_processing.begin(); it < m_processing.end(); it++)
+  for(Processing::const_iterator it = m_processing.begin(); it < m_processing.end(); ++it)
   {
     if (type == std::string(it->m_job->GetType()))
       jobsMatched++;
@@ -425,7 +431,7 @@ void CJobManager::RemoveWorker(const CJobWorker *worker)
     m_workers.erase(i); // workers auto-delete
 }
 
-unsigned int CJobManager::GetMaxWorkers(CJob::PRIORITY priority) const
+unsigned int CJobManager::GetMaxWorkers(CJob::PRIORITY priority)
 {
   static const unsigned int max_workers = 5;
   return max_workers - (CJob::PRIORITY_HIGH - priority);

@@ -37,14 +37,14 @@ CMusicDatabaseFile::~CMusicDatabaseFile(void)
   Close();
 }
 
-CStdString CMusicDatabaseFile::TranslateUrl(const CURL& url)
+std::string CMusicDatabaseFile::TranslateUrl(const CURL& url)
 {
   CMusicDatabase musicDatabase;
   if (!musicDatabase.Open())
     return "";
 
-  CStdString strFileName=URIUtils::GetFileName(url.Get());
-  CStdString strExtension = URIUtils::GetExtension(strFileName);
+  std::string strFileName=URIUtils::GetFileName(url.Get());
+  std::string strExtension = URIUtils::GetExtension(strFileName);
   URIUtils::RemoveExtension(strFileName);
 
   if (!StringUtils::IsNaturalNumber(strFileName))
@@ -56,6 +56,7 @@ CStdString CMusicDatabaseFile::TranslateUrl(const CURL& url)
   if (!musicDatabase.GetSong(idSong, song))
     return "";
 
+  StringUtils::ToLower(strExtension);
   if (!URIUtils::HasExtension(song.strFileName, strExtension))
     return "";
 
@@ -69,7 +70,7 @@ bool CMusicDatabaseFile::Open(const CURL& url)
 
 bool CMusicDatabaseFile::Exists(const CURL& url)
 {
-  return !TranslateUrl(url).IsEmpty();
+  return !TranslateUrl(url).empty();
 }
 
 int CMusicDatabaseFile::Stat(const CURL& url, struct __stat64* buffer)
@@ -77,7 +78,7 @@ int CMusicDatabaseFile::Stat(const CURL& url, struct __stat64* buffer)
   return m_file.Stat(TranslateUrl(url), buffer);
 }
 
-unsigned int CMusicDatabaseFile::Read(void* lpBuf, int64_t uiBufSize)
+ssize_t CMusicDatabaseFile::Read(void* lpBuf, size_t uiBufSize)
 {
   return m_file.Read(lpBuf, uiBufSize);
 }

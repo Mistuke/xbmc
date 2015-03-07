@@ -18,6 +18,8 @@
  *
  */
 
+#include <cstdlib>
+
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -63,21 +65,21 @@
 #include "Util.h"
 #include "utils/StringUtils.h"
 #include "utils/log.h"
+#include "utils/StringUtils.h"
 
 using namespace std;
 
-CNetworkInterfaceLinux::CNetworkInterfaceLinux(CNetworkLinux* network, CStdString interfaceName, char interfaceMacAddrRaw[6])
-
+CNetworkInterfaceLinux::CNetworkInterfaceLinux(CNetworkLinux* network, std::string interfaceName, char interfaceMacAddrRaw[6]):
+  m_interfaceName(interfaceName),
+  m_interfaceMacAdr(StringUtils::Format("%02X:%02X:%02X:%02X:%02X:%02X",
+                                        (uint8_t)interfaceMacAddrRaw[0],
+                                        (uint8_t)interfaceMacAddrRaw[1],
+                                        (uint8_t)interfaceMacAddrRaw[2],
+                                        (uint8_t)interfaceMacAddrRaw[3],
+                                        (uint8_t)interfaceMacAddrRaw[4],
+                                        (uint8_t)interfaceMacAddrRaw[5]))
 {
    m_network = network;
-   m_interfaceName = interfaceName;
-   m_interfaceMacAdr.Format("%02X:%02X:%02X:%02X:%02X:%02X",
-                  (uint8_t)interfaceMacAddrRaw[0],
-                  (uint8_t)interfaceMacAddrRaw[1],
-                  (uint8_t)interfaceMacAddrRaw[2],
-                  (uint8_t)interfaceMacAddrRaw[3],
-                  (uint8_t)interfaceMacAddrRaw[4],
-                  (uint8_t)interfaceMacAddrRaw[5]);
    memcpy(m_interfaceMacAddrRaw, interfaceMacAddrRaw, sizeof(m_interfaceMacAddrRaw));
 }
 
@@ -85,7 +87,7 @@ CNetworkInterfaceLinux::~CNetworkInterfaceLinux(void)
 {
 }
 
-CStdString& CNetworkInterfaceLinux::GetName(void)
+std::string& CNetworkInterfaceLinux::GetName(void)
 {
    return m_interfaceName;
 }
@@ -133,7 +135,7 @@ bool CNetworkInterfaceLinux::IsConnected()
    return iRunning && (0 != memcmp(ifr.ifr_addr.sa_data+sizeof(short), &zero, sizeof(int)));
 }
 
-CStdString CNetworkInterfaceLinux::GetMacAddress()
+std::string CNetworkInterfaceLinux::GetMacAddress()
 {
   return m_interfaceMacAdr;
 }
@@ -143,9 +145,9 @@ void CNetworkInterfaceLinux::GetMacAddressRaw(char rawMac[6])
   memcpy(rawMac, m_interfaceMacAddrRaw, 6);
 }
 
-CStdString CNetworkInterfaceLinux::GetCurrentIPAddress(void)
+std::string CNetworkInterfaceLinux::GetCurrentIPAddress(void)
 {
-   CStdString result = "";
+   std::string result;
 
    struct ifreq ifr;
    strcpy(ifr.ifr_name, m_interfaceName.c_str());
@@ -158,9 +160,9 @@ CStdString CNetworkInterfaceLinux::GetCurrentIPAddress(void)
    return result;
 }
 
-CStdString CNetworkInterfaceLinux::GetCurrentNetmask(void)
+std::string CNetworkInterfaceLinux::GetCurrentNetmask(void)
 {
-   CStdString result = "";
+   std::string result;
 
    struct ifreq ifr;
    strcpy(ifr.ifr_name, m_interfaceName.c_str());
@@ -173,9 +175,9 @@ CStdString CNetworkInterfaceLinux::GetCurrentNetmask(void)
    return result;
 }
 
-CStdString CNetworkInterfaceLinux::GetCurrentWirelessEssId(void)
+std::string CNetworkInterfaceLinux::GetCurrentWirelessEssId(void)
 {
-   CStdString result = "";
+   std::string result;
 
 #if defined(TARGET_LINUX)
    char essid[IW_ESSID_MAX_SIZE + 1];
@@ -195,27 +197,27 @@ CStdString CNetworkInterfaceLinux::GetCurrentWirelessEssId(void)
    return result;
 }
 
-CStdString CNetworkInterfaceLinux::GetCurrentDefaultGateway(void)
+std::string CNetworkInterfaceLinux::GetCurrentDefaultGateway(void)
 {
-   CStdString result = "";
+   std::string result;
 
 #if defined(TARGET_DARWIN)
   FILE* pipe = popen("echo \"show State:/Network/Global/IPv4\" | scutil | grep Router", "r");
+  Sleep(100);
   if (pipe)
   {
-    CStdString tmpStr;
+    std::string tmpStr;
     char buffer[256] = {'\0'};
     if (fread(buffer, sizeof(char), sizeof(buffer), pipe) > 0 && !ferror(pipe))
     {
       tmpStr = buffer;
-      result = tmpStr.Mid(11);
-    }
-    else
-    {
-      CLog::Log(LOGWARNING, "Unable to determine gateway");
+      if (tmpStr.length() >= 11)
+        result = tmpStr.substr(11);
     }
     pclose(pipe);
   }
+  if (result.empty())
+    CLog::Log(LOGWARNING, "Unable to determine gateway");
 #elif defined(TARGET_FREEBSD)
    size_t needed;
    int mib[6];
@@ -354,7 +356,7 @@ CNetworkInterface* CNetworkLinux::GetFirstConnectedInterface(void)
 }
 
 
-void CNetworkLinux::GetMacAddress(CStdString interfaceName, char rawMac[6])
+void CNetworkLinux::GetMacAddress(const std::string& interfaceName, char rawMac[6])
 {
   memset(rawMac, 0, 6);
 #if defined(TARGET_DARWIN) || defined(TARGET_FREEBSD)
@@ -375,7 +377,7 @@ void CNetworkLinux::GetMacAddress(CStdString interfaceName, char rawMac[6])
 
   for(interface = list; interface != NULL; interface = interface->ifa_next)
   {
-    if(CStdString(interface->ifa_name).Equals(interfaceName))
+    if(interfaceName == interface->ifa_name)
     {
       if ( (interface->ifa_addr->sa_family == AF_LINK) && (((const struct sockaddr_dl *) interface->ifa_addr)->sdl_type == IFT_ETHER) ) 
       {
@@ -458,7 +460,7 @@ void CNetworkLinux::queryInterfaceList()
       p[n] = 0;
 
       // save the result
-      CStdString interfaceName = p;
+      std::string interfaceName = p;
       GetMacAddress(interfaceName, macAddrRaw);
       m_interfaces.push_back(new CNetworkInterfaceLinux(this, interfaceName, macAddrRaw));
    }
@@ -467,28 +469,32 @@ void CNetworkLinux::queryInterfaceList()
 #endif
 }
 
-std::vector<CStdString> CNetworkLinux::GetNameServers(void)
+std::vector<std::string> CNetworkLinux::GetNameServers(void)
 {
-   std::vector<CStdString> result;
+   std::vector<std::string> result;
 
 #if defined(TARGET_DARWIN)
-  //only finds the primary dns (0 :)
-  FILE* pipe = popen("scutil --dns | grep \"nameserver\\[0\\]\" | tail -n1", "r");
+  FILE* pipe = popen("scutil --dns | grep \"nameserver\" | tail -n2", "r");
+  Sleep(100);
   if (pipe)
   {
-    CStdString tmpStr;
+    vector<std::string> tmpStr;
     char buffer[256] = {'\0'};
     if (fread(buffer, sizeof(char), sizeof(buffer), pipe) > 0 && !ferror(pipe))
     {
-      tmpStr = buffer;
-      result.push_back(tmpStr.Mid(17));
-    }
-    else
-    {
-      CLog::Log(LOGWARNING, "Unable to determine nameserver");
+      tmpStr = StringUtils::Split(buffer, "\n");
+      for (unsigned int i = 0; i < tmpStr.size(); i ++)
+      {
+        // result looks like this - > '  nameserver[0] : 192.168.1.1'
+        // 2 blank spaces + 13 in 'nameserver[0]' + blank + ':' + blank == 18 :)
+        if (tmpStr[i].length() >= 18)
+          result.push_back(tmpStr[i].substr(18));
+      }
     }
     pclose(pipe);
   } 
+  if (result.empty())
+    CLog::Log(LOGWARNING, "Unable to determine nameserver");
 #elif defined(TARGET_ANDROID)
   char nameserver[PROP_VALUE_MAX];
 
@@ -506,14 +512,14 @@ std::vector<CStdString> CNetworkLinux::GetNameServers(void)
 
    for (int i = 0; i < _res.nscount; i ++)
    {
-      CStdString ns = inet_ntoa(((struct sockaddr_in *)&_res.nsaddr_list[i])->sin_addr);
+      std::string ns = inet_ntoa(((struct sockaddr_in *)&_res.nsaddr_list[i])->sin_addr);
       result.push_back(ns);
    }
 #endif
    return result;
 }
 
-void CNetworkLinux::SetNameServers(std::vector<CStdString> nameServers)
+void CNetworkLinux::SetNameServers(const std::vector<std::string>& nameServers)
 {
 #if !defined(TARGET_ANDROID)
    FILE* fp = fopen("/etc/resolv.conf", "w");
@@ -563,7 +569,7 @@ bool CNetworkLinux::PingHost(unsigned long remote_ip, unsigned int timeout_ms)
 }
 
 #if defined(TARGET_DARWIN) || defined(TARGET_FREEBSD)
-bool CNetworkInterfaceLinux::GetHostMacAddress(unsigned long host_ip, CStdString& mac)
+bool CNetworkInterfaceLinux::GetHostMacAddress(unsigned long host_ip, std::string& mac)
 {
   bool ret = false;
   size_t needed;
@@ -582,12 +588,12 @@ bool CNetworkInterfaceLinux::GetHostMacAddress(unsigned long host_ip, CStdString
   mib[4] = NET_RT_FLAGS;
   mib[5] = RTF_LLINFO;
   
-  if (sysctl(mib, sizeof(mib) / sizeof(mib[0]), NULL, &needed, NULL, 0) == 0)
+  if (sysctl(mib, ARRAY_SIZE(mib), NULL, &needed, NULL, 0) == 0)
   {   
     buf = (char*)malloc(needed);
     if (buf)
     {      
-      if (sysctl(mib, sizeof(mib) / sizeof(mib[0]), buf, &needed, NULL, 0) == 0)
+      if (sysctl(mib, ARRAY_SIZE(mib), buf, &needed, NULL, 0) == 0)
       {        
         for (next = buf; next < buf + needed; next += rtm->rtm_msglen) 
         {
@@ -601,8 +607,8 @@ bool CNetworkInterfaceLinux::GetHostMacAddress(unsigned long host_ip, CStdString
           
           u_char *cp = (u_char*)LLADDR(sdl);
           
-          mac.Format("%02X:%02X:%02X:%02X:%02X:%02X",
-                     cp[0], cp[1], cp[2], cp[3], cp[4], cp[5]);
+          mac = StringUtils::Format("%02X:%02X:%02X:%02X:%02X:%02X",
+                                    cp[0], cp[1], cp[2], cp[3], cp[4], cp[5]);
           ret = true;
           break;
         }
@@ -613,7 +619,7 @@ bool CNetworkInterfaceLinux::GetHostMacAddress(unsigned long host_ip, CStdString
   return ret;
 }
 #else
-bool CNetworkInterfaceLinux::GetHostMacAddress(unsigned long host_ip, CStdString& mac)
+bool CNetworkInterfaceLinux::GetHostMacAddress(unsigned long host_ip, std::string& mac)
 {
   struct arpreq areq;
   struct sockaddr_in* sin;
@@ -639,7 +645,7 @@ bool CNetworkInterfaceLinux::GetHostMacAddress(unsigned long host_ip, CStdString
   }
 
   struct sockaddr* res = &areq.arp_ha;
-  mac.Format("%02X:%02X:%02X:%02X:%02X:%02X", 
+  mac = StringUtils::Format("%02X:%02X:%02X:%02X:%02X:%02X",
     (uint8_t) res->sa_data[0], (uint8_t) res->sa_data[1], (uint8_t) res->sa_data[2], 
     (uint8_t) res->sa_data[3], (uint8_t) res->sa_data[4], (uint8_t) res->sa_data[5]);
 
@@ -746,8 +752,8 @@ std::vector<NetworkAccessPoint> CNetworkInterfaceLinux::GetAccessPoints(void)
    unsigned char* custom;                    // pointer to the event payload
    struct iw_event iwe_buf, *iwe = &iwe_buf; // buffer to hold individual events
 
-   CStdString essId;
-   CStdString macAddress;
+   std::string essId;
+   std::string macAddress;
    int signalLevel = 0;
    EncMode encryption = ENC_NONE;
    int channel = 0;
@@ -789,11 +795,11 @@ std::vector<NetworkAccessPoint> CNetworkInterfaceLinux::GetAccessPoints(void)
          case SIOCGIWAP:
          {
             // This event marks a new access point, so push back the old information
-            if (!macAddress.IsEmpty())
+            if (!macAddress.empty())
                result.push_back(NetworkAccessPoint(essId, macAddress, signalLevel, encryption, channel));
             unsigned char* mac = (unsigned char*)iwe->u.ap_addr.sa_data;
             // macAddress is big-endian, write in byte chunks
-            macAddress.Format("%02x-%02x-%02x-%02x-%02x-%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+            macAddress = StringUtils::Format("%02x-%02x-%02x-%02x-%02x-%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
             // Reset the remaining fields
             essId = "";
             encryption = ENC_NONE;
@@ -877,7 +883,7 @@ std::vector<NetworkAccessPoint> CNetworkInterfaceLinux::GetAccessPoints(void)
       pos += iwe->len;
    }
 
-   if (!macAddress.IsEmpty())
+   if (!macAddress.empty())
       result.push_back(NetworkAccessPoint(essId, macAddress, signalLevel, encryption, channel));
 
    free(res_buf);
@@ -887,7 +893,7 @@ std::vector<NetworkAccessPoint> CNetworkInterfaceLinux::GetAccessPoints(void)
    return result;
 }
 
-void CNetworkInterfaceLinux::GetSettings(NetworkAssignment& assignment, CStdString& ipAddress, CStdString& networkMask, CStdString& defaultGateway, CStdString& essId, CStdString& key, EncMode& encryptionMode)
+void CNetworkInterfaceLinux::GetSettings(NetworkAssignment& assignment, std::string& ipAddress, std::string& networkMask, std::string& defaultGateway, std::string& essId, std::string& key, EncMode& encryptionMode)
 {
    ipAddress = "0.0.0.0";
    networkMask = "0.0.0.0";
@@ -907,7 +913,7 @@ void CNetworkInterfaceLinux::GetSettings(NetworkAssignment& assignment, CStdStri
 
    char* line = NULL;
    size_t linel = 0;
-   CStdString s;
+   std::string s;
    bool foundInterface = false;
 
    while (getdelim(&line, &linel, '\n', fp) > 0)
@@ -915,10 +921,11 @@ void CNetworkInterfaceLinux::GetSettings(NetworkAssignment& assignment, CStdStri
       std::vector<std::string> tokens;
 
       s = line;
-      s.TrimLeft(" \t").TrimRight(" \n");
+      StringUtils::TrimLeft(s, " \t");
+      StringUtils::TrimRight(s," \n");
 
       // skip comments
-      if (s.length() == 0 || s.GetAt(0) == '#')
+      if (s.empty() || s[0] == '#')
          continue;
 
       // look for "iface <interface name> inet"
@@ -971,7 +978,7 @@ void CNetworkInterfaceLinux::GetSettings(NetworkAssignment& assignment, CStdStri
 #endif
 }
 
-void CNetworkInterfaceLinux::SetSettings(NetworkAssignment& assignment, CStdString& ipAddress, CStdString& networkMask, CStdString& defaultGateway, CStdString& essId, CStdString& key, EncMode& encryptionMode)
+void CNetworkInterfaceLinux::SetSettings(NetworkAssignment& assignment, std::string& ipAddress, std::string& networkMask, std::string& defaultGateway, std::string& essId, std::string& key, EncMode& encryptionMode)
 {
 #if defined(TARGET_LINUX)
    FILE* fr = fopen("/etc/network/interfaces", "r");
@@ -991,7 +998,7 @@ void CNetworkInterfaceLinux::SetSettings(NetworkAssignment& assignment, CStdStri
 
    char* line = NULL;
    size_t linel = 0;
-   CStdString s;
+   std::string s;
    bool foundInterface = false;
    bool dataWritten = false;
 
@@ -1000,10 +1007,11 @@ void CNetworkInterfaceLinux::SetSettings(NetworkAssignment& assignment, CStdStri
       std::vector<std::string> tokens;
 
       s = line;
-      s.TrimLeft(" \t").TrimRight(" \n");
+      StringUtils::TrimLeft(s, " \t");
+      StringUtils::TrimRight(s," \n");
 
       // skip comments
-      if (!foundInterface && (s.length() == 0 || s.GetAt(0) == '#'))
+      if (!foundInterface && (s.empty() || s[0] == '#'))
       {
         fprintf(fw, "%s", line);
         continue;
@@ -1074,7 +1082,7 @@ void CNetworkInterfaceLinux::SetSettings(NetworkAssignment& assignment, CStdStri
 #endif
 }
 
-void CNetworkInterfaceLinux::WriteSettings(FILE* fw, NetworkAssignment assignment, CStdString& ipAddress, CStdString& networkMask, CStdString& defaultGateway, CStdString& essId, CStdString& key, EncMode& encryptionMode)
+void CNetworkInterfaceLinux::WriteSettings(FILE* fw, NetworkAssignment assignment, std::string& ipAddress, std::string& networkMask, std::string& defaultGateway, std::string& essId, std::string& key, EncMode& encryptionMode)
 {
    if (assignment == NETWORK_DHCP)
    {

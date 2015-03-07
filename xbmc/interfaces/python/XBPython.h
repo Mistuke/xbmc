@@ -28,7 +28,7 @@
 #include "interfaces/generic/ILanguageInvocationHandler.h"
 #include "addons/IAddon.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <vector>
 
 class CPythonInvoker;
@@ -80,24 +80,27 @@ public:
   void UnregisterPythonPlayerCallBack(IPlayerCallback* pCallback);
   void RegisterPythonMonitorCallBack(XBMCAddon::xbmc::Monitor* pCallback);
   void UnregisterPythonMonitorCallBack(XBMCAddon::xbmc::Monitor* pCallback);
-  void OnSettingsChanged(const CStdString &strings);
+  void OnSettingsChanged(const std::string &strings);
   void OnScreensaverActivated();
   void OnScreensaverDeactivated();
-  void OnDatabaseUpdated(const std::string &database);
-  void OnDatabaseScanStarted(const std::string &database);
-  void OnAbortRequested(const CStdString &ID="");
+  void OnDPMSActivated();
+  void OnDPMSDeactivated();
+  void OnScanStarted(const std::string &library);
+  void OnScanFinished(const std::string &library);
+  void OnCleanStarted(const std::string &library);
+  void OnCleanFinished(const std::string &library);
   void OnNotification(const std::string &sender, const std::string &method, const std::string &data);
 
   virtual void Process();
+  virtual void PulseGlobalEvent();
   virtual void Uninitialize();
+  virtual bool OnScriptInitialized(ILanguageInvoker *invoker);
   virtual void OnScriptStarted(ILanguageInvoker *invoker);
+  virtual void OnScriptAbortRequested(ILanguageInvoker *invoker);
   virtual void OnScriptEnded(ILanguageInvoker *invoker);
+  virtual void OnScriptFinalized(ILanguageInvoker *invoker);
   virtual ILanguageInvoker* CreateInvoker();
 
-  bool InitializeEngine();
-  void FinalizeScript();
-
-  void PulseGlobalEvent();
   bool WaitForEvent(CEvent& hEvent, unsigned int milliseconds);
 
   void RegisterExtensionLib(LibraryLoader *pLib);

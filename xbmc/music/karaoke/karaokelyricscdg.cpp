@@ -27,13 +27,14 @@
 #include "settings/AdvancedSettings.h"
 #include "utils/MathUtils.h"
 #include "utils/log.h"
+#include "utils/auto_buffer.h"
 #include "karaokelyricscdg.h"
 
 
-CKaraokeLyricsCDG::CKaraokeLyricsCDG( const CStdString& cdgFile )
+CKaraokeLyricsCDG::CKaraokeLyricsCDG( const std::string& cdgFile )
   : CKaraokeLyrics()
+  , m_cdgFile(cdgFile)
 {
-  m_cdgFile = cdgFile;
   m_pCdgTexture = 0;
   m_streamIdx = -1;
   m_bgAlpha = 0xff000000;
@@ -64,7 +65,7 @@ bool CKaraokeLyricsCDG::HasVideo()
   return false;
 }
 
-void CKaraokeLyricsCDG::GetVideoParameters(CStdString & path, int64_t & offset)
+void CKaraokeLyricsCDG::GetVideoParameters(std::string& path, int64_t & offset)
 {
   // no bg video
 }
@@ -145,9 +146,8 @@ void CKaraokeLyricsCDG::Render()
 
   if ( UpdateBuffer( packets_due ) )
   {
-	  // If you see a crash in this function, change this object to new/delete.
-	  // However having temporary 260k on stack shouldn't be too much.
-	  DWORD pixelbuf[ CDG_FULL_HEIGHT * CDG_FULL_WIDTH ];
+    XUTILS::auto_buffer buf(CDG_FULL_HEIGHT * CDG_FULL_WIDTH*sizeof(DWORD));
+    DWORD* const pixelbuf = (DWORD*)buf.get();
 
 	  // Update our texture content
 	  for ( UINT y = 0; y < CDG_FULL_HEIGHT; y++ )
@@ -542,34 +542,21 @@ bool CKaraokeLyricsCDG::Load()
 
   m_cdgStream.clear();
 
-  if ( !file.Open( m_cdgFile ) )
-    return false;
-
-  unsigned int cdgSize = (unsigned int) file.GetLength();
-
-  if ( !cdgSize )
+  XFILE::auto_buffer buf;
+  if (file.LoadFile(m_cdgFile, buf) <= 0)
   {
-	CLog::Log( LOGERROR, "CDG loader: CDG file %s has zero length", m_cdgFile.c_str() );
+    CLog::Log(LOGERROR, "CDG loader: can't load CDG file \"%s\"", m_cdgFile.c_str());
     return false;
   }
-
-  // Read the file into memory array
-  std::vector<BYTE> cdgdata( cdgSize );
-
-  file.Seek( 0, SEEK_SET );
-
-  // Read the whole file
-  if ( file.Read( &cdgdata[0], cdgSize) != cdgSize )
-    return false; // disk error?
 
   file.Close();
 
   // Parse the CD+G stream
   int buggy_commands = 0;
   
-  for ( unsigned int offset = 0; offset < cdgdata.size(); offset += sizeof( SubCode ) )
+  for (unsigned int offset = 0; offset < buf.size(); offset += sizeof(SubCode))
   {
-	  SubCode * sc = (SubCode *) (&cdgdata[0] + offset);
+    SubCode * sc = (SubCode *)(buf.get() + offset);
 
 	  if ( ( sc->command & CDG_MASK) == CDG_COMMAND )
 	  {

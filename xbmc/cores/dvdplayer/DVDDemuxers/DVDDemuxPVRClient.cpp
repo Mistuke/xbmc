@@ -47,12 +47,12 @@ void CDemuxStreamPVRInternal::DisposeParser()
 {
   if (m_parser)
   {
-    m_parent->m_dllAvCodec.av_parser_close(m_parser);
+    av_parser_close(m_parser);
     m_parser = NULL;
   }
   if (m_context)
   {
-    m_parent->m_dllAvCodec.avcodec_close(m_context);
+    avcodec_close(m_context);
     m_context = NULL;
   }
 }
@@ -113,22 +113,12 @@ CDVDDemuxPVRClient::~CDVDDemuxPVRClient()
 
 bool CDVDDemuxPVRClient::Open(CDVDInputStream* pInput)
 {
-  if (!m_dllAvCodec.Load())
-  {
-    CLog::Log(LOGWARNING, "%s could not load ffmpeg", __FUNCTION__);
-    return false;
-  }
-
   Abort();
-
-  // register codecs
-  m_dllAvCodec.avcodec_register_all();
 
   m_pInput = pInput;
   if (!g_PVRClients->GetPlayingClient(m_pvrClient))
     return false;
 
-  RequestStreams();
   return true;
 }
 
@@ -141,8 +131,6 @@ void CDVDDemuxPVRClient::Dispose()
   }
 
   m_pInput = NULL;
-
-  m_dllAvCodec.Unload();
 }
 
 void CDVDDemuxPVRClient::DisposeStream(int iStreamId)
@@ -192,7 +180,7 @@ void CDVDDemuxPVRClient::ParsePacket(DemuxPacket* pkt)
 
   if(pvr->m_context == NULL)
   {
-    AVCodec *codec = m_dllAvCodec.avcodec_find_decoder(st->codec);
+    AVCodec *codec = avcodec_find_decoder(st->codec);
     if (codec == NULL)
     {
       CLog::Log(LOGERROR, "%s - can't find decoder", __FUNCTION__);
@@ -200,7 +188,7 @@ void CDVDDemuxPVRClient::ParsePacket(DemuxPacket* pkt)
       return;
     }
 
-    pvr->m_context = m_dllAvCodec.avcodec_alloc_context3(codec);
+    pvr->m_context = avcodec_alloc_context3(codec);
     if(pvr->m_context == NULL)
     {
       CLog::Log(LOGERROR, "%s - can't allocate context", __FUNCTION__);
@@ -231,7 +219,7 @@ void CDVDDemuxPVRClient::ParsePacket(DemuxPacket* pkt)
 
   uint8_t *outbuf = NULL;
   int      outbuf_size = 0;
-  int len = m_dllAvCodec.av_parser_parse2(pvr->m_parser
+  int len = av_parser_parse2(pvr->m_parser
                                         , pvr->m_context, &outbuf, &outbuf_size
                                         , pkt->pData, pkt->iSize
                                         , (int64_t)(pkt->pts * DVD_TIME_BASE)
@@ -252,7 +240,7 @@ void CDVDDemuxPVRClient::ParsePacket(DemuxPacket* pkt)
 
 
     CHECK_UPDATE(st, profile, pvr->m_context->profile , FF_PROFILE_UNKNOWN);
-    CHECK_UPDATE(st, level  , pvr->m_context->level   , 0);
+    CHECK_UPDATE(st, level  , pvr->m_context->level   , FF_LEVEL_UNKNOWN);
 
     switch (st->type)
     {
@@ -339,15 +327,13 @@ void CDVDDemuxPVRClient::RequestStreams()
       if (stm)
       {
         st = dynamic_cast<CDemuxStreamAudioPVRClient*>(stm);
-        if (!st
-            || (st->codec != (AVCodecID)props.stream[i].iCodecId)
-            || (st->iChannels != props.stream[i].iChannels))
+        if (!st || (st->codec != (AVCodecID)props.stream[i].iCodecId))
           DisposeStream(i);
       }
       if (!m_streams[i])
       {
         st = new CDemuxStreamAudioPVRClient(this);
-        st->m_parser = m_dllAvCodec.av_parser_init(props.stream[i].iCodecId);
+        st->m_parser = av_parser_init(props.stream[i].iCodecId);
         if(st->m_parser)
           st->m_parser->flags |= PARSER_FLAG_COMPLETE_FRAMES;
       }
@@ -358,6 +344,7 @@ void CDVDDemuxPVRClient::RequestStreams()
       st->iBitsPerSample  = props.stream[i].iBitsPerSample;
       m_streams[i] = st;
       st->m_parser_split = true;
+      st->changes++;
     }
     else if (props.stream[i].iCodecType == XBMC_CODEC_TYPE_VIDEO)
     {
@@ -374,7 +361,7 @@ void CDVDDemuxPVRClient::RequestStreams()
       if (!m_streams[i])
       {
         st = new CDemuxStreamVideoPVRClient(this);
-        st->m_parser = m_dllAvCodec.av_parser_init(props.stream[i].iCodecId);
+        st->m_parser = av_parser_init(props.stream[i].iCodecId);
         if(st->m_parser)
           st->m_parser->flags |= PARSER_FLAG_COMPLETE_FRAMES;
       }
@@ -414,8 +401,10 @@ void CDVDDemuxPVRClient::RequestStreams()
       {
         st->ExtraData = new uint8_t[4];
         st->ExtraSize = 4;
-        ((uint16_t*)st->ExtraData)[0] = (props.stream[i].iIdentifier >> 0) & 0xFFFFu;
-        ((uint16_t*)st->ExtraData)[1] = (props.stream[i].iIdentifier >> 4) & 0xFFFFu;
+        st->ExtraData[0] = (props.stream[i].iIdentifier >> 8) & 0xff;
+        st->ExtraData[1] = (props.stream[i].iIdentifier >> 0) & 0xff;
+        st->ExtraData[2] = (props.stream[i].iIdentifier >> 24) & 0xff;
+        st->ExtraData[3] = (props.stream[i].iIdentifier >> 16) & 0xff;
       }
       m_streams[i] = st;
     }
@@ -468,7 +457,7 @@ std::string CDVDDemuxPVRClient::GetFileName()
     return "";
 }
 
-void CDVDDemuxPVRClient::GetStreamCodecName(int iStreamId, CStdString &strName)
+void CDVDDemuxPVRClient::GetStreamCodecName(int iStreamId, std::string &strName)
 {
   CDemuxStream *stream = GetStream(iStreamId);
   if (stream)

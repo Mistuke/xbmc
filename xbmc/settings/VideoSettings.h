@@ -63,6 +63,18 @@ enum EINTERLACEMETHOD
   VS_INTERLACEMETHOD_SW_BLEND = 20,
   VS_INTERLACEMETHOD_AUTO_ION = 21,
 
+  VS_INTERLACEMETHOD_VAAPI_BOB = 22,
+  VS_INTERLACEMETHOD_VAAPI_MADI = 23,
+  VS_INTERLACEMETHOD_VAAPI_MACI = 24,
+
+  VS_INTERLACEMETHOD_MMAL_ADVANCED = 25,
+  VS_INTERLACEMETHOD_MMAL_ADVANCED_HALF = 26,
+  VS_INTERLACEMETHOD_MMAL_BOB = 27,
+  VS_INTERLACEMETHOD_MMAL_BOB_HALF = 28,
+
+  VS_INTERLACEMETHOD_IMX_FASTMOTION = 29,
+  VS_INTERLACEMETHOD_IMX_FASTMOTION_DOUBLE = 30,
+
   VS_INTERLACEMETHOD_MAX // do not use and keep as last enum value.
 };
 
@@ -90,6 +102,12 @@ enum ESCALINGMETHOD
   VS_SCALINGMETHOD_SPLINE36,
 
   VS_SCALINGMETHOD_MAX // do not use and keep as last enum value.
+};
+
+enum EDECODEMETHOD
+{
+  VS_DECODEMETHOD_SOFTWARE=0,
+  VS_DECODEMETHOD_HARDWARE=1
 };
 
 typedef enum {
@@ -133,11 +151,6 @@ public:
   float m_Sharpness;
   float m_AudioDelay;
   int m_ResumeTime;
-  bool m_Crop;
-  int m_CropTop;
-  int m_CropBottom;
-  int m_CropLeft;
-  int m_CropRight;
   int m_StereoMode;
   bool m_StereoInvert;
 

@@ -26,6 +26,7 @@
 #include "WinSystemOSX.h"
 #include "WinEventsOSX.h"
 #include "Application.h"
+#include "CompileInfo.h"
 #include "guilib/DispResource.h"
 #include "guilib/GUIWindowManager.h"
 #include "settings/DisplaySettings.h"
@@ -34,6 +35,7 @@
 #include "input/KeyboardStat.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
+#include "utils/StringUtils.h"
 #include "osx/XBMCHelper.h"
 #include "utils/SystemInfo.h"
 #include "osx/CocoaInterface.h"
@@ -176,6 +178,11 @@
 
 
 #define MAX_DISPLAYS 32
+// if there was a devicelost callback
+// but no device reset for 3 secs
+// a timeout fires the reset callback
+// (for ensuring that e.x. AE isn't stuck)
+#define LOST_DEVICE_TIMEOUT_MS 3000
 static NSWindow* blankingWindows[MAX_DISPLAYS];
 
 void* CWinSystemOSX::m_lastOwnedContext = 0;
@@ -513,10 +520,18 @@ static void DisplayReconfigured(CGDirectDisplayID display,
   CGDisplayChangeSummaryFlags flags, void* userData)
 {
   CWinSystemOSX *winsys = (CWinSystemOSX*)userData;
-	if (!winsys)
+  if (!winsys)
     return;
 
-  if (flags & kCGDisplaySetModeFlag || flags & kCGDisplayBeginConfigurationFlag)
+  CLog::Log(LOGDEBUG, "CWinSystemOSX::DisplayReconfigured with flags %d", flags);
+
+  // we fire the callbacks on start of configuration
+  // or when the mode set was finished
+  // or when we are called with flags == 0 (which is undocumented but seems to happen
+  // on some macs - we treat it as device reset)
+
+  // first check if we need to call OnLostDevice
+  if (flags & kCGDisplayBeginConfigurationFlag)
   {
     // pre/post-reconfiguration changes
     RESOLUTION res = g_graphicsContext.GetVideoResolution();
@@ -531,22 +546,37 @@ static void DisplayReconfigured(CGDirectDisplayID display,
         pScreen = [[NSScreen screens] objectAtIndex:screenIdx];
     }
 
+    // kCGDisplayBeginConfigurationFlag is only fired while the screen is still
+    // valid
     if (pScreen)
     {
       CGDirectDisplayID xbmc_display = GetDisplayIDFromScreen(pScreen);
       if (xbmc_display == display)
       {
         // we only respond to changes on the display we are running on.
-        CLog::Log(LOGDEBUG, "CWinSystemOSX::DisplayReconfigured");
-        winsys->CheckDisplayChanging(flags);
+        winsys->AnnounceOnLostDevice();
+        winsys->StartLostDeviceTimer();
       }
+    }
+  }
+  else // the else case checks if we need to call OnResetDevice
+  {
+    // we fire if kCGDisplaySetModeFlag is set or if flags == 0
+    // (which is undocumented but seems to happen
+    // on some macs - we treat it as device reset)
+    // we also don't check the screen here as we might not even have
+    // one anymore (e.x. when tv is turned off)
+    if (flags & kCGDisplaySetModeFlag || flags == 0)
+    {
+      winsys->StopLostDeviceTimer(); // no need to timeout - we've got the callback
+      winsys->AnnounceOnResetDevice();
     }
   }
 }
 
 //---------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------
-CWinSystemOSX::CWinSystemOSX() : CWinSystemBase()
+CWinSystemOSX::CWinSystemOSX() : CWinSystemBase(), m_lostDeviceTimer(this)
 {
   m_eWindowSystem = WINDOW_SYSTEM_OSX;
   m_glContext = 0;
@@ -564,6 +594,24 @@ CWinSystemOSX::CWinSystemOSX() : CWinSystemBase()
 CWinSystemOSX::~CWinSystemOSX()
 {
 };
+
+void CWinSystemOSX::StartLostDeviceTimer()
+{
+  if (m_lostDeviceTimer.IsRunning())
+    m_lostDeviceTimer.Restart();
+  else
+    m_lostDeviceTimer.Start(LOST_DEVICE_TIMEOUT_MS, false);
+}
+
+void CWinSystemOSX::StopLostDeviceTimer()
+{
+  m_lostDeviceTimer.Stop();
+}
+
+void CWinSystemOSX::OnTimeout()
+{
+  AnnounceOnResetDevice();
+}
 
 bool CWinSystemOSX::InitWindowSystem()
 {
@@ -630,7 +678,7 @@ bool CWinSystemOSX::DestroyWindowSystem()
   return true;
 }
 
-bool CWinSystemOSX::CreateNewWindow(const CStdString& name, bool fullScreen, RESOLUTION_INFO& res, PHANDLE_EVENT_FUNC userFunction)
+bool CWinSystemOSX::CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res, PHANDLE_EVENT_FUNC userFunction)
 {
   m_nWidth  = res.iWidth;
   m_nHeight = res.iHeight;
@@ -682,10 +730,10 @@ bool CWinSystemOSX::CreateNewWindow(const CStdString& name, bool fullScreen, RES
   [new_context makeCurrentContext];
 
   // set the window title
-  NSString *string;
-  string = [ [ NSString alloc ] initWithUTF8String:"XBMC Media Center" ];
+  NSMutableString *string;
+  string = [NSMutableString stringWithUTF8String:CCompileInfo::GetAppName()];
+  [string appendString:@" Entertainment Center" ];
   [ [ [new_context view] window] setTitle:string ];
-  [ string release ];
 
   m_glContext = new_context;
   m_lastOwnedContext = new_context;
@@ -699,28 +747,12 @@ bool CWinSystemOSX::DestroyWindow()
   return true;
 }
 
-bool isMavericks()
-{
-  static int isMavericks = -1;
-
-  // there is no NSAppKitVersionNumber10_9 out there anywhere
-  // so we detect mavericks by one of these newly added app nap
-  // methods - and fix the ugly mouse rect problem which was hitting
-  // us when mavericks came out
-  if (isMavericks == -1)
-  {
-    CLog::Log(LOGDEBUG, "Detected Mavericks - enable windowing fixups.");
-    isMavericks = [NSProcessInfo instancesRespondToSelector:@selector(beginActivityWithOptions:reason:)] == TRUE ? 1 : 0;
-  }
-  return isMavericks == 1;
-}
-
 extern "C" void SDL_SetWidthHeight(int w, int h);
 bool CWinSystemOSX::ResizeWindowInternal(int newWidth, int newHeight, int newLeft, int newTop, void *additional)
 {
   bool ret = ResizeWindow(newWidth, newHeight, newLeft, newTop);
 
-  if( isMavericks() )
+  if( CDarwinUtils::IsMavericks() )
   {
     NSView * last_view = (NSView *)additional;
     if (last_view && [last_view window])
@@ -813,12 +845,6 @@ bool CWinSystemOSX::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
   {
     if (m_can_display_switch)
     {
-      // send pre-configuration change now and do not
-      //  wait for switch videomode callback. This gives just
-      //  a little more advanced notice of the display pre-change.
-      if (CSettings::Get().GetInt("videoplayer.adjustrefreshrate") != ADJUST_REFRESHRATE_OFF)
-        CheckDisplayChanging(kCGDisplayBeginConfigurationFlag);
-
       // switch videomode
       SwitchToVideoMode(res.iWidth, res.iHeight, res.fRefreshRate, res.iScreen);
       m_lastDisplayNr = res.iScreen;
@@ -896,7 +922,7 @@ bool CWinSystemOSX::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
       [newContext setView:blankView];
 
       // Hide the menu bar.
-      if (GetDisplayID(res.iScreen) == kCGDirectMainDisplay || isMavericks() )
+      if (GetDisplayID(res.iScreen) == kCGDirectMainDisplay || CDarwinUtils::IsMavericks() )
         SetMenuBarVisible(false);
 
       // Blank other displays if requested.
@@ -930,7 +956,7 @@ bool CWinSystemOSX::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
         CGDisplayCapture(GetDisplayID(res.iScreen));
 
       // If we don't hide menu bar, it will get events and interrupt the program.
-      if (GetDisplayID(res.iScreen) == kCGDirectMainDisplay || isMavericks() )
+      if (GetDisplayID(res.iScreen) == kCGDirectMainDisplay || CDarwinUtils::IsMavericks() )
         SetMenuBarVisible(false);
     }
 
@@ -958,7 +984,7 @@ bool CWinSystemOSX::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
     [NSCursor unhide];
 
     // Show menubar.
-    if (GetDisplayID(res.iScreen) == kCGDirectMainDisplay || isMavericks() )
+    if (GetDisplayID(res.iScreen) == kCGDirectMainDisplay || CDarwinUtils::IsMavericks() )
       SetMenuBarVisible(true);
 
     if (CSettings::Get().GetBool("videoscreen.fakefullscreen"))
@@ -1307,7 +1333,7 @@ void CWinSystemOSX::FillInVideoModes()
         // mode str by doing it without appending "Full Screen".
         // this is what linux does - though it feels that there shouldn't be
         // the same resolution twice... - thats why i add a FIXME here.
-        res.strMode.Format("%dx%d @ %.2f", w, h, refreshrate);
+        res.strMode = StringUtils::Format("%dx%d @ %.2f", w, h, refreshrate);
         g_graphicsContext.ResetOverscan(res);
         CDisplaySettings::Get().AddResolutionInfo(res);
       }
@@ -1324,6 +1350,9 @@ bool CWinSystemOSX::FlushBuffer(void)
 
 bool CWinSystemOSX::IsObscured(void)
 {
+  if (m_bFullScreen && !CSettings::Get().GetBool("videoscreen.fakefullscreen"))
+    return false;// in true fullscreen mode - we can't be obscured by anyone...
+
   // check once a second if we are obscured.
   unsigned int now_time = XbmcThreads::SystemClockMillis();
   if (m_obscured_timecheck > now_time)
@@ -1419,7 +1448,8 @@ bool CWinSystemOSX::IsObscured(void)
         CFStringCompare(ownerName, CFSTR("SmartSaver"), 0)        == kCFCompareEqualTo ||
         CFStringCompare(ownerName, CFSTR("Brightness Slider"), 0) == kCFCompareEqualTo ||
         CFStringCompare(ownerName, CFSTR("Displaperture"), 0)     == kCFCompareEqualTo ||
-        CFStringCompare(ownerName, CFSTR("Dreamweaver"), 0)       == kCFCompareEqualTo)
+        CFStringCompare(ownerName, CFSTR("Dreamweaver"), 0)       == kCFCompareEqualTo ||
+        CFStringCompare(ownerName, CFSTR("Window Server"), 0)     ==  kCFCompareEqualTo)
       continue;
 
     CFDictionaryRef rectDictionary = (CFDictionaryRef)CFDictionaryGetValue(windowDictionary, kCGWindowBounds);
@@ -1435,7 +1465,7 @@ bool CWinSystemOSX::IsObscured(void)
         if (!obscureLogged)
         {
           std::string appName;
-          if (DarwinCFStringRefToUTF8String(ownerName, appName))
+          if (CDarwinUtils::CFStringRefToUTF8String(ownerName, appName))
             CLog::Log(LOGDEBUG, "WinSystemOSX: Fullscreen window %s obscures XBMC!", appName.c_str());
           obscureLogged = true;
         }
@@ -1494,7 +1524,7 @@ void CWinSystemOSX::NotifyAppFocusChange(bool bGaining)
           // find the screenID
           NSDictionary* screenInfo = [[window screen] deviceDescription];
           NSNumber* screenID = [screenInfo objectForKey:@"NSScreenNumber"];
-          if ((CGDirectDisplayID)[screenID longValue] == kCGDirectMainDisplay || isMavericks() )
+          if ((CGDirectDisplayID)[screenID longValue] == kCGDirectMainDisplay || CDarwinUtils::IsMavericks() )
           {
             SetMenuBarVisible(false);
           }
@@ -1709,25 +1739,22 @@ void CWinSystemOSX::WindowChangedScreen()
   m_movedToOtherScreen = true;
 }
 
-void CWinSystemOSX::CheckDisplayChanging(u_int32_t flags)
+void CWinSystemOSX::AnnounceOnLostDevice()
 {
-  if (flags)
-  {
-    CSingleLock lock(m_resourceSection);
-    // tell any shared resources
-    if (flags & kCGDisplayBeginConfigurationFlag)
-    {
-      CLog::Log(LOGDEBUG, "CWinSystemOSX::CheckDisplayChanging:OnLostDevice");
-      for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); i++)
-        (*i)->OnLostDevice();
-    }
-    if (flags & kCGDisplaySetModeFlag)
-    {
-      CLog::Log(LOGDEBUG, "CWinSystemOSX::CheckDisplayChanging:OnResetDevice");
-      for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); i++)
-        (*i)->OnResetDevice();
-    }
-  }
+  CSingleLock lock(m_resourceSection);
+  // tell any shared resources
+  CLog::Log(LOGDEBUG, "CWinSystemOSX::AnnounceOnLostDevice");
+  for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); i++)
+    (*i)->OnLostDevice();
+}
+
+void CWinSystemOSX::AnnounceOnResetDevice()
+{
+  CSingleLock lock(m_resourceSection);
+  // tell any shared resources
+  CLog::Log(LOGDEBUG, "CWinSystemOSX::AnnounceOnResetDevice");
+  for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); i++)
+    (*i)->OnResetDevice();
 }
 
 void* CWinSystemOSX::GetCGLContextObj()

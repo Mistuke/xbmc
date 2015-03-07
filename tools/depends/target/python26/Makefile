@@ -13,7 +13,7 @@ ARCHIVE=$(SOURCE).tar.bz2
 CONFIGURE=OPT="$(CFLAGS)" \
   LIBS=-lm \
   ./configure --prefix=$(PREFIX) \
-  --disable-toolbox-glue --disable-framework --with-system-ffi \
+  --disable-toolbox-glue --disable-framework --with-system-ffi --without-pymalloc \
 
 LIBDYLIB=$(PLATFORM)/libpython2.6.a
 
@@ -32,13 +32,19 @@ $(PLATFORM): $(TARBALLS_LOCATION)/$(ARCHIVE) $(DEPS)
 	cd $(PLATFORM); patch -p0 < ../Python-no-export-path.patch
 	cd $(PLATFORM); patch -p1 < ../python-osx-environ-fix.patch
 	cd $(PLATFORM); patch -p0 < ../Python-2.6.5-ffi-static.patch
+	cd $(PLATFORM); patch -p0 < ../python-android-binmodule.patch
 ifeq ($(OS),ios)
 	cd $(PLATFORM); patch -p0 < ../Python-2.6.5-urllib.diff
 endif
 	cp modules.setup $(PLATFORM)/Modules/Setup.dist
 
 #Add -liconv as needed, and add the _scproxy module for darwin
+#  disable locale altogether for Android
+ifeq ($(OS),android)
+	cd $(PLATFORM); sed -ie 's|_locale _localemodule.c   -lintl|#_locale _localemodule.c   -lintl|' Modules/Setup.dist
+else
 	cd $(PLATFORM); sed -ie 's|_locale _localemodule.c   -lintl|_locale _localemodule.c   -lintl $(LINK_ICONV) |' Modules/Setup.dist
+endif
 ifeq ($(OS),osx)
 	echo "_scproxy \$$(srcdir)/Mac/Modules/_scproxy.c -framework SystemConfiguration -framework CoreFoundation" >> $(PLATFORM)/Modules/Setup.dist
 endif

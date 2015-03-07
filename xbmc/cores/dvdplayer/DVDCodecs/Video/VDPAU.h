@@ -40,19 +40,15 @@
 
 #include "system_gl.h"
 
-#include "DllAvUtil.h"
 #include "DVDVideoCodec.h"
 #include "DVDVideoCodecFFmpeg.h"
-#include "libavcodec/vdpau.h"
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #define GLX_GLXEXT_PROTOTYPES
 #include <GL/glx.h>
 
-#include "DllAvUtil.h"
 #include "DVDVideoCodec.h"
 #include "DVDVideoCodecFFmpeg.h"
-#include "libavcodec/vdpau.h"
 #include "threads/CriticalSection.h"
 #include "threads/SharedSection.h"
 #include "settings/VideoSettings.h"
@@ -61,9 +57,12 @@
 #include "threads/Thread.h"
 #include "utils/ActorProtocol.h"
 #include <list>
+#include <map>
 
-using namespace Actor;
-
+extern "C" {
+#include "libavutil/avutil.h"
+#include "libavcodec/vdpau.h"
+}
 
 #define FULLHD_WIDTH                       1920
 #define MAX_PIC_Q_LENGTH                   20 //for non-interop_yuv this controls the max length of the decoded pic to render completion Q
@@ -200,6 +199,7 @@ struct CVdpauProcessedPicture
   DVDVideoPicture DVDPic;
   VdpVideoSurface videoSurface;
   VdpOutputSurface outputSurface;
+  bool crop;
 };
 
 /**
@@ -237,7 +237,7 @@ private:
 // Mixer
 //-----------------------------------------------------------------------------
 
-class CMixerControlProtocol : public Protocol
+class CMixerControlProtocol : public Actor::Protocol
 {
 public:
   CMixerControlProtocol(std::string name, CEvent* inEvent, CEvent *outEvent) : Protocol(name, inEvent, outEvent) {};
@@ -254,7 +254,7 @@ public:
   };
 };
 
-class CMixerDataProtocol : public Protocol
+class CMixerDataProtocol : public Actor::Protocol
 {
 public:
   CMixerDataProtocol(std::string name, CEvent* inEvent, CEvent *outEvent) : Protocol(name, inEvent, outEvent) {};
@@ -288,7 +288,7 @@ protected:
   void OnStartup();
   void OnExit();
   void Process();
-  void StateMachine(int signal, Protocol *port, Message *msg);
+  void StateMachine(int signal, Actor::Protocol *port, Actor::Message *msg);
   void Init();
   void Uninit();
   void Flush();
@@ -330,8 +330,8 @@ protected:
   int m_DeintMode;
   int m_Deint;
   int m_Upscale;
+  bool m_SeenInterlaceFlag;
   unsigned int m_ColorMatrix       : 4;
-  uint32_t *m_BlackBar;
   VdpVideoMixerPictureStructure m_mixerfield;
   int m_mixerstep;
   int m_mixersteps;
@@ -374,10 +374,10 @@ struct VdpauBufferPool
   CCriticalSection renderPicSec;
 };
 
-class COutputControlProtocol : public Protocol
+class COutputControlProtocol : public Actor::Protocol
 {
 public:
-  COutputControlProtocol(std::string name, CEvent* inEvent, CEvent *outEvent) : Protocol(name, inEvent, outEvent) {};
+  COutputControlProtocol(std::string name, CEvent* inEvent, CEvent *outEvent) : Actor::Protocol(name, inEvent, outEvent) {};
   enum OutSignal
   {
     INIT,
@@ -393,10 +393,10 @@ public:
   };
 };
 
-class COutputDataProtocol : public Protocol
+class COutputDataProtocol : public Actor::Protocol
 {
 public:
-  COutputDataProtocol(std::string name, CEvent* inEvent, CEvent *outEvent) : Protocol(name, inEvent, outEvent) {};
+  COutputDataProtocol(std::string name, CEvent* inEvent, CEvent *outEvent) : Actor::Protocol(name, inEvent, outEvent) {};
   enum OutSignal
   {
     NEWFRAME = 0,
@@ -427,7 +427,7 @@ protected:
   void OnStartup();
   void OnExit();
   void Process();
-  void StateMachine(int signal, Protocol *port, Message *msg);
+  void StateMachine(int signal, Actor::Protocol *port, Actor::Message *msg);
   bool HasWork();
   CVdpauRenderPicture *ProcessMixerPicture();
   void QueueReturnPicture(CVdpauRenderPicture *pic);
@@ -443,7 +443,7 @@ protected:
   void PreCleanup();
   void InitMixer();
   bool GLInit();
-  void GLMapSurfaces();
+  void GLMapSurface(bool yuv, uint32_t source);
   void GLUnmapSurfaces();
   bool CheckStatus(VdpStatus vdp_st, int line);
   CEvent m_outMsgEvent;
@@ -492,7 +492,6 @@ public:
   void ClearRender(VdpVideoSurface surf);
   bool IsValid(VdpVideoSurface surf);
   VdpVideoSurface GetFree(VdpVideoSurface surf);
-  VdpVideoSurface GetAtIndex(int idx);
   VdpVideoSurface RemoveNext(bool skiprender = false);
   void Reset();
   int Size();
@@ -574,15 +573,11 @@ public:
   EINTERLACEMETHOD AutoInterlaceMethod();
   static bool IsVDPAUFormat(PixelFormat fmt);
 
-  static void FFReleaseBuffer(AVCodecContext *avctx, AVFrame *pic);
-  static void FFDrawSlice(struct AVCodecContext *s,
-                          const AVFrame *src, int offset[4],
-                          int y, int type, int height);
-  static int FFGetBuffer(AVCodecContext *avctx, AVFrame *pic);
-  static VdpStatus Render( VdpDecoder decoder, VdpVideoSurface target,
-                           VdpPictureInfo const *picture_info,
-                           uint32_t bitstream_buffer_count,
-                           VdpBitstreamBuffer const * bitstream_buffers);
+  static void FFReleaseBuffer(void *opaque, uint8_t *data);
+  static int FFGetBuffer(AVCodecContext *avctx, AVFrame *pic, int flags);
+  static int Render(struct AVCodecContext *s, struct AVFrame *src,
+                    const VdpPictureInfo *info, uint32_t buffers_used,
+                    const VdpBitstreamBuffer *buffers);
 
   virtual void OnLostDevice();
   virtual void OnResetDevice();
@@ -610,8 +605,8 @@ protected:
   } m_DisplayState;
   CCriticalSection m_DecoderSection;
   CEvent         m_DisplayEvent;
+  int m_ErrorCount;
 
-  DllAvUtil     m_dllAvUtil;
   ThreadIdentifier m_decoderThread;
   bool          m_vdpauConfigured;
   CVdpauConfig  m_vdpauConfig;

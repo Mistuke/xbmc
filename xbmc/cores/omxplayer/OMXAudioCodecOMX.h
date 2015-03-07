@@ -21,10 +21,13 @@
  */
 
 #include "cores/AudioEngine/Utils/AEAudioFormat.h"
-#include "DllAvCodec.h"
-#include "DllAvFormat.h"
-#include "DllAvUtil.h"
-#include "DllSwResample.h"
+
+extern "C" {
+#include "libavcodec/avcodec.h"
+#include "libavformat/avformat.h"
+#include "libavutil/avutil.h"
+#include "libswresample/swresample.h"
+}
 
 #include "DVDStreamInfo.h"
 #include "linux/PlatformDefs.h"
@@ -36,38 +39,37 @@ public:
   virtual ~COMXAudioCodecOMX();
   bool Open(CDVDStreamInfo &hints);
   void Dispose();
-  int Decode(BYTE* pData, int iSize);
-  int GetData(BYTE** dst);
+  int Decode(BYTE* pData, int iSize, double dts, double pts);
+  int GetData(BYTE** dst, double &dts, double &pts);
   void Reset();
   int GetChannels();
-  virtual CAEChannelInfo GetChannelMap();
+  void BuildChannelMap();
+  CAEChannelInfo GetChannelMap();
   int GetSampleRate();
   int GetBitsPerSample();
   static const char* GetName() { return "FFmpeg"; }
   int GetBitRate();
+  unsigned int GetFrameSize() { return m_frameSize; }
 
 protected:
   AVCodecContext* m_pCodecContext;
   SwrContext*     m_pConvert;
   enum AVSampleFormat m_iSampleFormat;
   enum AVSampleFormat m_desiredSampleFormat;
-  CAEChannelInfo      m_channelLayout;
 
   AVFrame* m_pFrame1;
 
   BYTE *m_pBufferOutput;
+  int   m_iBufferOutputUsed;
   int   m_iBufferOutputAlloced;
 
   bool m_bOpenedCodec;
 
   int     m_channels;
-  uint64_t m_layout;
-
+  CAEChannelInfo m_channelLayout;
   bool m_bFirstFrame;
   bool m_bGotFrame;
-  DllAvCodec m_dllAvCodec;
-  DllAvUtil m_dllAvUtil;
-  DllSwResample m_dllSwResample;
-
-  void BuildChannelMap();
+  bool m_bNoConcatenate;
+  unsigned int  m_frameSize;
+  double m_dts, m_pts;
 };

@@ -27,7 +27,7 @@
 #include "URL.h"
 #include "guilib/TextureManager.h"
 #include "guilib/GUILabelControl.h"
-#include "guilib/Key.h"
+#include "input/Key.h"
 #include "GUIInfoManager.h"
 #include "filesystem/Directory.h"
 #include "GUIDialogPictureInfo.h"
@@ -45,6 +45,7 @@
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
 #include "interfaces/AnnouncementManager.h"
+#include "pictures/GUIViewStatePictures.h"
 #include "pictures/PictureInfoTag.h"
 #include "pictures/PictureThumbLoader.h"
 
@@ -131,7 +132,7 @@ void CBackgroundPicLoader::Process()
               count, totalTime, totalTime / count);
 }
 
-void CBackgroundPicLoader::LoadPic(int iPic, int iSlideNumber, const CStdString &strFileName, const int maxWidth, const int maxHeight)
+void CBackgroundPicLoader::LoadPic(int iPic, int iSlideNumber, const std::string &strFileName, const int maxWidth, const int maxHeight)
 {
   m_iPic = iPic;
   m_iSlideNumber = iSlideNumber;
@@ -163,7 +164,7 @@ void CGUIWindowSlideShow::AnnouncePlayerPlay(const CFileItemPtr& item)
   CVariant param;
   param["player"]["speed"] = m_bSlideShow && !m_bPause ? 1 : 0;
   param["player"]["playerid"] = PLAYLIST_PICTURE;
-  ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Player, "xbmc", "OnPlay", item, param);
+  ANNOUNCEMENT::CAnnouncementManager::Get().Announce(ANNOUNCEMENT::Player, "xbmc", "OnPlay", item, param);
 }
 
 void CGUIWindowSlideShow::AnnouncePlayerPause(const CFileItemPtr& item)
@@ -171,7 +172,7 @@ void CGUIWindowSlideShow::AnnouncePlayerPause(const CFileItemPtr& item)
   CVariant param;
   param["player"]["speed"] = 0;
   param["player"]["playerid"] = PLAYLIST_PICTURE;
-  ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Player, "xbmc", "OnPause", item, param);
+  ANNOUNCEMENT::CAnnouncementManager::Get().Announce(ANNOUNCEMENT::Player, "xbmc", "OnPause", item, param);
 }
 
 void CGUIWindowSlideShow::AnnouncePlayerStop(const CFileItemPtr& item)
@@ -179,7 +180,7 @@ void CGUIWindowSlideShow::AnnouncePlayerStop(const CFileItemPtr& item)
   CVariant param;
   param["player"]["playerid"] = PLAYLIST_PICTURE;
   param["end"] = true;
-  ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Player, "xbmc", "OnStop", item, param);
+  ANNOUNCEMENT::CAnnouncementManager::Get().Announce(ANNOUNCEMENT::Player, "xbmc", "OnStop", item, param);
 }
 
 void CGUIWindowSlideShow::AnnouncePlaylistRemove(int pos)
@@ -187,14 +188,14 @@ void CGUIWindowSlideShow::AnnouncePlaylistRemove(int pos)
   CVariant data;
   data["playlistid"] = PLAYLIST_PICTURE;
   data["position"] = pos;
-  ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Playlist, "xbmc", "OnRemove", data);
+  ANNOUNCEMENT::CAnnouncementManager::Get().Announce(ANNOUNCEMENT::Playlist, "xbmc", "OnRemove", data);
 }
 
 void CGUIWindowSlideShow::AnnouncePlaylistClear()
 {
   CVariant data;
   data["playlistid"] = PLAYLIST_PICTURE;
-  ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Playlist, "xbmc", "OnClear", data);
+  ANNOUNCEMENT::CAnnouncementManager::Get().Announce(ANNOUNCEMENT::Playlist, "xbmc", "OnClear", data);
 }
 
 void CGUIWindowSlideShow::AnnouncePlaylistAdd(const CFileItemPtr& item, int pos)
@@ -202,7 +203,7 @@ void CGUIWindowSlideShow::AnnouncePlaylistAdd(const CFileItemPtr& item, int pos)
   CVariant data;
   data["playlistid"] = PLAYLIST_PICTURE;
   data["position"] = pos;
-  ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Playlist, "xbmc", "OnAdd", item, data);
+  ANNOUNCEMENT::CAnnouncementManager::Get().Announce(ANNOUNCEMENT::Playlist, "xbmc", "OnAdd", item, data);
 }
 
 void CGUIWindowSlideShow::AnnouncePropertyChanged(const std::string &strProperty, const CVariant &value)
@@ -213,7 +214,7 @@ void CGUIWindowSlideShow::AnnouncePropertyChanged(const std::string &strProperty
   CVariant data;
   data["player"]["playerid"] = PLAYLIST_PICTURE;
   data["property"][strProperty] = value;
-  ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Player, "xbmc", "OnPropertyChanged", data);
+  ANNOUNCEMENT::CAnnouncementManager::Get().Announce(ANNOUNCEMENT::Player, "xbmc", "OnPropertyChanged", data);
 }
 
 bool CGUIWindowSlideShow::IsPlaying() const
@@ -332,7 +333,7 @@ void CGUIWindowSlideShow::ShowPrevious()
 }
 
 
-void CGUIWindowSlideShow::Select(const CStdString& strPicture)
+void CGUIWindowSlideShow::Select(const std::string& strPicture)
 {
   for (int i = 0; i < m_slides->Size(); ++i)
   {
@@ -504,8 +505,8 @@ void CGUIWindowSlideShow::Process(unsigned int currentTime, CDirtyRegionList &re
   if (!m_Image[m_iCurrentPic].IsLoaded() && !m_pBackgroundLoader->IsLoading())
   { // load first image
     CFileItemPtr item = m_slides->Get(m_iCurrentSlide);
-    CStdString picturePath = GetPicturePath(item.get());
-    if (!picturePath.IsEmpty())
+    std::string picturePath = GetPicturePath(item.get());
+    if (!picturePath.empty())
     {
       if (item->IsVideo())
         CLog::Log(LOGDEBUG, "Loading the thumb %s for current video %d: %s", picturePath.c_str(), m_iCurrentSlide, item->GetPath().c_str());
@@ -532,8 +533,8 @@ void CGUIWindowSlideShow::Process(unsigned int currentTime, CDirtyRegionList &re
   { // load the next image
     m_iLastFailedNextSlide = -1;
     CFileItemPtr item = m_slides->Get(m_iNextSlide);
-    CStdString picturePath = GetPicturePath(item.get());
-    if (!picturePath.IsEmpty() && (!item->IsVideo() || !m_bSlideShow || m_bPause))
+    std::string picturePath = GetPicturePath(item.get());
+    if (!picturePath.empty() && (!item->IsVideo() || !m_bSlideShow || m_bPause))
     {
       if (item->IsVideo())
         CLog::Log(LOGDEBUG, "Loading the thumb %s for next video %d: %s", picturePath.c_str(), m_iNextSlide, item->GetPath().c_str());
@@ -940,7 +941,7 @@ bool CGUIWindowSlideShow::OnMessage(CGUIMessage& message)
 
   case GUI_MSG_SHOW_PICTURE:
     {
-      CStdString strFile = message.GetStringParam();
+      std::string strFile = message.GetStringParam();
       Reset();
       CFileItem item(strFile, false);
       Add(&item);
@@ -950,7 +951,7 @@ bool CGUIWindowSlideShow::OnMessage(CGUIMessage& message)
 
   case GUI_MSG_START_SLIDESHOW:
     {
-      CStdString strFolder = message.GetStringParam();
+      std::string strFolder = message.GetStringParam();
       unsigned int iParams = message.GetParam1();
       std::string beginSlidePath = message.GetStringParam(1);
       //decode params
@@ -1129,7 +1130,7 @@ CSlideShowPic::DISPLAY_EFFECT CGUIWindowSlideShow::GetDisplayEffect(int iSlideNu
     return CSlideShowPic::EFFECT_NO_TIMEOUT;
 }
 
-void CGUIWindowSlideShow::OnLoadPic(int iPic, int iSlideNumber, const CStdString &strFileName, CBaseTexture* pTexture, bool bFullSize)
+void CGUIWindowSlideShow::OnLoadPic(int iPic, int iSlideNumber, const std::string &strFileName, CBaseTexture* pTexture, bool bFullSize)
 {
   if (pTexture)
   {
@@ -1148,7 +1149,7 @@ void CGUIWindowSlideShow::OnLoadPic(int iPic, int iSlideNumber, const CStdString
     if (URIUtils::IsInRAR(m_slides->Get(m_iCurrentSlide)->GetPath()) || URIUtils::IsInZIP(m_slides->Get(m_iCurrentSlide)->GetPath())) // move to top for cbr/cbz
     {
       CURL url(m_slides->Get(m_iCurrentSlide)->GetPath());
-      CStdString strHostName = url.GetHostName();
+      std::string strHostName = url.GetHostName();
       if (URIUtils::HasExtension(strHostName, ".cbr|.cbz"))
       {
         m_Image[iPic].m_bIsComic = true;
@@ -1188,10 +1189,10 @@ int CGUIWindowSlideShow::CurrentSlide() const
   return m_iCurrentSlide + 1;
 }
 
-void CGUIWindowSlideShow::AddFromPath(const CStdString &strPath,
+void CGUIWindowSlideShow::AddFromPath(const std::string &strPath,
                                       bool bRecursive, 
                                       SortBy method, SortOrder order, SortAttribute sortAttributes,
-                                      const CStdString &strExtensions)
+                                      const std::string &strExtensions)
 {
   if (strPath!="")
   {
@@ -1208,12 +1209,12 @@ void CGUIWindowSlideShow::AddFromPath(const CStdString &strPath,
   }
 }
 
-void CGUIWindowSlideShow::RunSlideShow(const CStdString &strPath, 
+void CGUIWindowSlideShow::RunSlideShow(const std::string &strPath, 
                                        bool bRecursive /* = false */, bool bRandom /* = false */,
-                                       bool bNotRandom /* = false */, const CStdString &beginSlidePath /* = "" */,
+                                       bool bNotRandom /* = false */, const std::string &beginSlidePath /* = "" */,
                                        bool startSlideShow /* = true */, SortBy method /* = SortByLabel */, 
                                        SortOrder order /* = SortOrderAscending */, SortAttribute sortAttributes /* = SortAttributeNone */,
-                                       const CStdString &strExtensions)
+                                       const std::string &strExtensions)
 {
   // stop any video
   if (g_application.m_pPlayer->IsPlayingVideo())
@@ -1233,7 +1234,7 @@ void CGUIWindowSlideShow::RunSlideShow(const CStdString &strPath,
   if ((!bNotRandom && CSettings::Get().GetBool("slideshow.shuffle")) || bRandom)
     Shuffle();
 
-  if (!beginSlidePath.IsEmpty())
+  if (!beginSlidePath.empty())
     Select(beginSlidePath);
 
   if (startSlideShow)
@@ -1243,27 +1244,29 @@ void CGUIWindowSlideShow::RunSlideShow(const CStdString &strPath,
     CVariant param;
     param["player"]["speed"] = 0;
     param["player"]["playerid"] = PLAYLIST_PICTURE;
-    ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Player, "xbmc", "OnPlay", GetCurrentSlide(), param);
+    ANNOUNCEMENT::CAnnouncementManager::Get().Announce(ANNOUNCEMENT::Player, "xbmc", "OnPlay", GetCurrentSlide(), param);
   }
 
   g_windowManager.ActivateWindow(WINDOW_SLIDESHOW);
 }
 
-void CGUIWindowSlideShow::AddItems(const CStdString &strPath, path_set *recursivePaths, SortBy method, SortOrder order, SortAttribute sortAttributes)
+void CGUIWindowSlideShow::AddItems(const std::string &strPath, path_set *recursivePaths, SortBy method, SortOrder order, SortAttribute sortAttributes)
 {
   // check whether we've already added this path
   if (recursivePaths)
   {
-    CStdString path(strPath);
+    std::string path(strPath);
     URIUtils::RemoveSlashAtEnd(path);
     if (recursivePaths->find(path) != recursivePaths->end())
       return;
     recursivePaths->insert(path);
   }
 
-  // fetch directory and sort accordingly
   CFileItemList items;
-  if (!CDirectory::GetDirectory(strPath, items, m_strExtensions.IsEmpty()?g_advancedSettings.m_pictureExtensions:m_strExtensions,DIR_FLAG_NO_FILE_DIRS,true))
+  CGUIViewStateWindowPictures viewState(items);
+
+  // fetch directory and sort accordingly
+  if (!CDirectory::GetDirectory(strPath, items, viewState.GetExtensions(), DIR_FLAG_NO_FILE_DIRS, true))
     return;
 
   items.Sort(method, order, sortAttributes);
@@ -1289,19 +1292,19 @@ void CGUIWindowSlideShow::GetCheckedSize(float width, float height, int &maxWidt
   maxHeight = g_Windowing.GetMaxTextureSize();
 }
 
-CStdString CGUIWindowSlideShow::GetPicturePath(CFileItem *item)
+std::string CGUIWindowSlideShow::GetPicturePath(CFileItem *item)
 {
   bool isVideo = item->IsVideo();
-  CStdString picturePath = item->GetPath();
+  std::string picturePath = item->GetPath();
   if (isVideo)
   {
     picturePath = item->GetArt("thumb");
-    if (picturePath.IsEmpty() && !item->HasProperty("nothumb"))
+    if (picturePath.empty() && !item->HasProperty("nothumb"))
     {
       CPictureThumbLoader thumbLoader;
       thumbLoader.LoadItem(item);
       picturePath = item->GetArt("thumb");
-      if (picturePath.IsEmpty())
+      if (picturePath.empty())
         item->SetProperty("nothumb", true);
     }
   }

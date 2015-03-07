@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -143,8 +143,10 @@ private:
 
   /* Only one mode at a time can have the current or preferred
    * flags set, so only one pointer is set here */
-  ModeGeometry *m_current;
-  ModeGeometry *m_preferred;
+  ModeGeometry m_current;
+  ModeGeometry m_preferred;
+  bool m_currentValid;
+  bool m_preferredValid;
 };
 }
 }

@@ -38,10 +38,10 @@ struct KeymapEntry
 class CLinuxInputDevice
 {
 public:
-  CLinuxInputDevice(const std::string fileName, int index);
+  CLinuxInputDevice(const std::string& fileName, int index);
   ~CLinuxInputDevice();
   XBMC_Event ReadEvent();
-  char* GetDeviceName();
+  const std::string& GetFileName();
   bool IsUnplugged();
  
 private:

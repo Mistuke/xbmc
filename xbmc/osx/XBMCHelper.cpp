@@ -27,12 +27,13 @@
 #include "XBMCHelper.h"
 #include "PlatformDefs.h"
 #include "Util.h"
+#include "CompileInfo.h"
 
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "utils/log.h"
 #include "system.h"
-#include "settings/Setting.h"
+#include "settings/lib/Setting.h"
 #include "settings/Settings.h"
 #include "utils/SystemInfo.h"
 
@@ -66,8 +67,8 @@ XBMCHelper::XBMCHelper()
   , m_port(0)
   , m_errorStarting(false)
 {
-  // Compute the XBMC_HOME path.
-  CStdString homePath;
+  // Compute the KODI_HOME path.
+  std::string homePath;
   CUtil::GetHomePath(homePath);
   m_homepath = homePath;
 
@@ -87,7 +88,7 @@ XBMCHelper::XBMCHelper()
 
   // Compute the configuration file name.
   m_configFile = getenv("HOME");
-  m_configFile += "/Library/Application Support/XBMC/XBMCHelper.conf";
+  m_configFile += "/Library/Application Support/" + std::string(CCompileInfo::GetAppName()) + "/XBMCHelper.conf";
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -131,6 +132,11 @@ bool XBMCHelper::OnSettingChanging(const CSetting *setting)
     }
   }
 
+  if (settingId == "input.appleremotealwayson")
+  {
+    HandleLaunchAgent();
+  }
+
   return true;
 }
 
@@ -165,14 +171,12 @@ void XBMCHelper::Configure()
 {
   int oldMode = m_mode;
   int oldDelay = m_sequenceDelay;
-  int oldAlwaysOn = m_alwaysOn;
   int oldPort = m_port;
 
   // Read the new configuration.
   m_errorStarting = false;
   m_mode = CSettings::Get().GetInt("input.appleremotemode");
   m_sequenceDelay = CSettings::Get().GetInt("input.appleremotesequencetime");
-  m_alwaysOn = CSettings::Get().GetBool("input.appleremotealwayson");
   m_port = CSettings::Get().GetInt("services.esport");
 
 
@@ -252,6 +256,14 @@ void XBMCHelper::Configure()
   // Turning on.
   if (oldMode == APPLE_REMOTE_DISABLED && m_mode != APPLE_REMOTE_DISABLED)
     Start();
+
+  HandleLaunchAgent();
+}
+
+void XBMCHelper::HandleLaunchAgent()
+{
+  int oldAlwaysOn = m_alwaysOn;
+  m_alwaysOn = CSettings::Get().GetBool("input.appleremotealwayson");
 
   // Installation/uninstallation.
   if (oldAlwaysOn == false && m_alwaysOn == true)

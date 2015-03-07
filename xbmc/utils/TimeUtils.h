@@ -38,6 +38,6 @@ public:
 
 private:
   static unsigned int frameTime;
-  static CTimeSmoother *frameTimer;
+  static CTimeSmoother frameTimer;
 };
 

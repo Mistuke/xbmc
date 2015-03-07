@@ -25,8 +25,8 @@
 
 #include "threads/CriticalSection.h"
 
-#include "settings/ISettingCallback.h"
-#include "settings/ISettingsHandler.h"
+#include "settings/lib/ISettingCallback.h"
+#include "settings/lib/ISettingsHandler.h"
 
 class CRssReader;
 class IRssObserver;
@@ -61,11 +61,11 @@ public:
 
 protected:
   CRssManager();
-  CRssManager(const CRssManager&);
-  CRssManager const& operator=(CRssManager const&);
   ~CRssManager();
 
 private:
+  CRssManager(const CRssManager&);
+  CRssManager& operator=(const CRssManager&);
   struct READERCONTROL
   {
     int controlID;

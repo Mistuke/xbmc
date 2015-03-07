@@ -34,6 +34,7 @@
 #include "addons/Skin.h"
 #include "utils/MathUtils.h"
 #include "utils/log.h"
+#include "utils/StringUtils.h"
 
 typedef struct
 {
@@ -74,7 +75,7 @@ CKaraokeLyricsText::CKaraokeLyricsText()
 
   m_colorLyrics = gLyricColors[coloridx].text;
   m_colorLyricsOutline = gLyricColors[coloridx].outline;
-  m_colorSinging.Format( "%08X", gLyricColors[coloridx].active );
+  m_colorSinging = StringUtils::Format("%08X", gLyricColors[coloridx].active);
 
   m_delayAfter = 50; // 5 seconds
   m_showLyricsBeforeStart = 50; // 7.5 seconds
@@ -103,7 +104,7 @@ void CKaraokeLyricsText::clearLyrics()
 }
 
 
-void CKaraokeLyricsText::addLyrics(const CStdString & text, unsigned int timing, unsigned int flags, unsigned int pitch)
+void CKaraokeLyricsText::addLyrics(const std::string & text, unsigned int timing, unsigned int flags, unsigned int pitch)
 {
   Lyric line;
 
@@ -139,7 +140,7 @@ bool CKaraokeLyricsText::InitGraphics()
   if ( m_lyrics.empty() )
     return false;
 
-  CStdString fontPath = URIUtils::AddFileToFolder("special://home/media/Fonts/", CSettings::Get().GetString("karaoke.font"));
+  std::string fontPath = URIUtils::AddFileToFolder("special://home/media/Fonts/", CSettings::Get().GetString("karaoke.font"));
   if (!XFILE::CFile::Exists(fontPath))
       fontPath = URIUtils::AddFileToFolder("special://xbmc/media/Fonts/", CSettings::Get().GetString("karaoke.font"));
   m_karaokeFont = g_fontManager.LoadTTF("__karaoke__", fontPath,
@@ -259,7 +260,9 @@ void CKaraokeLyricsText::Render()
     case STATE_PLAYING_PARAGRAPH:
       if ( songTime >= m_lyrics[ m_index ].timing )
       {
-        m_index++;
+        while ( songTime >= m_lyrics[ m_index ].timing && m_index <= m_indexEndPara )
+          m_index++;
+
         updateText = true;
 
         if ( m_index > m_indexEndPara )
@@ -385,7 +388,7 @@ void CKaraokeLyricsText::Render()
   m_karaokeLayout->GetTextExtent(textWidth, textHeight);
   m_karaokeLayout->RenderOutline(x, y, 0, m_colorLyricsOutline, XBFONT_CENTER_X, maxWidth);
 
-  if ( !m_currentPreamble.IsEmpty() )
+  if ( !m_currentPreamble.empty() )
   {
     float pretextWidth, pretextHeight;
     m_preambleLayout->GetTextExtent(pretextWidth, pretextHeight);
@@ -443,7 +446,7 @@ void CKaraokeLyricsText::rescanLyrics()
   // and time difference between one line ends and second starts
   for ( unsigned int i = 0; i < m_lyrics.size(); i++ )
   {
-    if ( m_lyrics[i].text.Find( " " ) != -1 )
+    if (m_lyrics[i].text.find(" ") != std::string::npos)
       spaces++;
 
     if ( m_lyrics[i].flags & LYRICS_NEW_LINE )
@@ -465,7 +468,7 @@ void CKaraokeLyricsText::rescanLyrics()
   const RESOLUTION_INFO info = g_graphicsContext.GetResInfo();
   float maxWidth = (float) info.Overscan.right - info.Overscan.left;
 
-  CStdString line_text;
+  std::string line_text;
   int prev_line_idx = -1;
   int prev_line_timediff = -1;
 
@@ -492,7 +495,7 @@ void CKaraokeLyricsText::rescanLyrics()
       ld.offset_start = prev_line_idx;
 
       // This piece extracts the first character of a new string and makes it uppercase in Unicode way
-      CStdStringW temptext;
+      std::wstring temptext;
       g_charsetConverter.utf8ToW( line_text, temptext );
 
       // This is pretty ugly upper/lowercase for Russian unicode character set
@@ -500,8 +503,8 @@ void CKaraokeLyricsText::rescanLyrics()
         ld.upper_start = temptext[0] <= 0x42F;
       else
       {
-        CStdString lower = m_lyrics[i].text;
-        lower.ToLower();
+        std::string lower = m_lyrics[i].text;
+        StringUtils::ToLower(lower);
         ld.upper_start = (m_lyrics[i].text == lower);
       }
 
@@ -576,7 +579,7 @@ void CKaraokeLyricsText::rescanLyrics()
   }
 
   // Prepare a new first lyric entry with song name and artist.
-  if ( m_songName.IsEmpty() )
+  if ( m_songName.empty() )
   {
     m_songName = URIUtils::GetFileName( getSongFile() );
     URIUtils::RemoveExtension( m_songName );
@@ -594,7 +597,7 @@ void CKaraokeLyricsText::rescanLyrics()
     ltitle.timing = 0;
     ltitle.text = m_songName;
 
-    if ( !m_artist.IsEmpty() )
+    if ( !m_artist.empty() )
       ltitle.text += "[CR][CR]" + m_artist;
 
     newlyrics.push_back( ltitle );
@@ -605,7 +608,7 @@ void CKaraokeLyricsText::rescanLyrics()
   bool invalid_timing_reported = false;
   for ( unsigned int i = 0; i < m_lyrics.size(); i++ )
   {
-    CStdStringW utf16;
+    std::wstring utf16;
     g_charsetConverter.utf8ToW( m_lyrics[i].text, utf16 );
 
     // Skip empty lyrics
@@ -657,7 +660,7 @@ void CKaraokeLyricsText::rescanLyrics()
         l.flags = 0;
       l.timing = (unsigned int) MathUtils::round_int( m_lyrics[ i ].timing + j * time_per_char );
 
-      g_charsetConverter.wToUTF8( utf16.Mid( j, 1 ), l.text );
+      g_charsetConverter.wToUTF8( utf16.substr(j, 1), l.text);
 
       if ( l.text == " " )
       {
@@ -683,9 +686,9 @@ void CKaraokeLyricsText::rescanLyrics()
 }
 
 
-float CKaraokeLyricsText::getStringWidth(const CStdString & text)
+float CKaraokeLyricsText::getStringWidth(const std::string & text)
 {
-  CStdStringW utf16;
+  std::wstring utf16;
   vecText utf32;
 
   g_charsetConverter.utf8ToW(text, utf16);
@@ -701,12 +704,14 @@ void CKaraokeLyricsText::saveLyrics()
 {
   XFILE::CFile file;
 
-  CStdString out;
+  std::string out;
 
   for ( unsigned int i = 0; i < m_lyrics.size(); i++ )
   {
-    CStdString timing;
-    timing.Format( "%02d:%02d.%d", m_lyrics[i].timing / 600, (m_lyrics[i].timing % 600) / 10, (m_lyrics[i].timing % 10) );
+    std::string timing = StringUtils::Format("%02d:%02d.%d",
+                                            m_lyrics[i].timing / 600,
+                                            (m_lyrics[i].timing % 600) / 10,
+                                            (m_lyrics[i].timing % 10));
 
     if ( (m_lyrics[i].flags & LYRICS_NEW_PARAGRAPH) != 0 )
       out += "\n\n";
@@ -722,7 +727,7 @@ void CKaraokeLyricsText::saveLyrics()
   if ( !file.OpenForWrite( "special://temp/tmp.lrc", true ) )
     return;
 
-  file.Write( out, out.size() );
+  file.Write( out.c_str(), out.size() );
 }
 
 
@@ -733,10 +738,10 @@ bool CKaraokeLyricsText::HasBackground()
 
 bool CKaraokeLyricsText::HasVideo()
 {
-  return m_videoFile.IsEmpty() ? false : true;
+  return m_videoFile.empty() ? false : true;
 }
 
-void CKaraokeLyricsText::GetVideoParameters(CStdString & path, int64_t & offset)
+void CKaraokeLyricsText::GetVideoParameters(std::string& path, int64_t& offset)
 {
   path = m_videoFile;
   offset = m_videoOffset;

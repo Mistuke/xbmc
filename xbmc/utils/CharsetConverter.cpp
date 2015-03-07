@@ -24,13 +24,15 @@
 #include <fribidi/fribidi.h>
 #include "LangInfo.h"
 #include "guilib/LocalizeStrings.h"
-#include "settings/Setting.h"
+#include "settings/lib/Setting.h"
 #include "settings/Settings.h"
 #include "threads/SingleLock.h"
+#include "utils/Utf8Utils.h"
 #include "log.h"
 
 #include <errno.h>
 #include <iconv.h>
+#include <algorithm>
 
 #if !defined(TARGET_WINDOWS) && defined(HAVE_CONFIG_H)
   #include "config.h"
@@ -172,9 +174,10 @@ CConverterType::CConverterType(const CConverterType& other) : CCriticalSection()
 
 CConverterType::~CConverterType()
 {
-  CSingleLock(*this);
+  CSingleLock lock(*this);
   if (m_iconv != NO_ICONV)
     iconv_close(m_iconv);
+  lock.Leave(); // ensure unlocking before final destruction
 }
 
 
@@ -204,7 +207,7 @@ iconv_t CConverterType::GetConverter(CSingleLock& converterLock)
 
 void CConverterType::Reset(void)
 {
-  CSingleLock(*this);
+  CSingleLock lock(*this);
   if (m_iconv != NO_ICONV)
   {
     iconv_close(m_iconv);
@@ -220,7 +223,7 @@ void CConverterType::Reset(void)
 
 void CConverterType::ReinitTo(const std::string& sourceCharset, const std::string& targetCharset, unsigned int targetSingleCharMaxLen /*= 1*/)
 {
-  CSingleLock(*this);
+  CSingleLock lock(*this);
   if (sourceCharset != m_sourceCharset || targetCharset != m_targetCharset)
   {
     if (m_iconv != NO_ICONV)
@@ -269,7 +272,7 @@ enum StdConversionType /* Keep it in sync with CCharsetConverter::CInnerConverte
   Utf32ToUtf8,
   Utf32ToW,
   WToUtf32,
-  SubtitleCharsetToW,
+  SubtitleCharsetToUtf8,
   Utf8ToUserCharset,
   UserCharsetToUtf8,
   Utf32ToUserCharset,
@@ -279,6 +282,7 @@ enum StdConversionType /* Keep it in sync with CCharsetConverter::CInnerConverte
   Utf16LEtoUtf8,
   Utf8toW,
   Utf8ToSystem,
+  SystemToUtf8,
   Ucs2CharsetToUtf8,
   NumberOfStdConversionTypes /* Dummy sentinel entry */
 };
@@ -313,7 +317,7 @@ CConverterType CCharsetConverter::CInnerConverter::m_stdConversion[NumberOfStdCo
   /* Utf32ToUtf8 */         CConverterType(UTF32_CHARSET,   "UTF-8", CCharsetConverter::m_Utf8CharMaxSize),
   /* Utf32ToW */            CConverterType(UTF32_CHARSET,   WCHAR_CHARSET),
   /* WToUtf32 */            CConverterType(WCHAR_CHARSET,   UTF32_CHARSET),
-  /* SubtitleCharsetToW */  CConverterType(SubtitleCharset, WCHAR_CHARSET),
+  /* SubtitleCharsetToUtf8*/CConverterType(SubtitleCharset, "UTF-8", CCharsetConverter::m_Utf8CharMaxSize),
   /* Utf8ToUserCharset */   CConverterType(UTF8_SOURCE,     UserCharset),
   /* UserCharsetToUtf8 */   CConverterType(UserCharset,     "UTF-8", CCharsetConverter::m_Utf8CharMaxSize),
   /* Utf32ToUserCharset */  CConverterType(UTF32_CHARSET,   UserCharset),
@@ -323,6 +327,7 @@ CConverterType CCharsetConverter::CInnerConverter::m_stdConversion[NumberOfStdCo
   /* Utf16LEtoUtf8 */       CConverterType("UTF-16LE",      "UTF-8", CCharsetConverter::m_Utf8CharMaxSize),
   /* Utf8toW */             CConverterType(UTF8_SOURCE,     WCHAR_CHARSET),
   /* Utf8ToSystem */        CConverterType(UTF8_SOURCE,     SystemCharset),
+  /* SystemToUtf8 */        CConverterType(SystemCharset,   UTF8_SOURCE),
   /* Ucs2CharsetToUtf8 */   CConverterType("UCS-2LE",       "UTF-8", CCharsetConverter::m_Utf8CharMaxSize)
 };
 
@@ -639,6 +644,7 @@ void CCharsetConverter::reset(void)
 void CCharsetConverter::resetSystemCharset(void)
 {
   CInnerConverter::m_stdConversion[Utf8ToSystem].Reset();
+  CInnerConverter::m_stdConversion[SystemToUtf8].Reset();
 }
 
 void CCharsetConverter::resetUserCharset(void)
@@ -652,7 +658,7 @@ void CCharsetConverter::resetUserCharset(void)
 
 void CCharsetConverter::resetSubtitleCharset(void)
 {
-  CInnerConverter::m_stdConversion[SubtitleCharsetToW].Reset();
+  CInnerConverter::m_stdConversion[SubtitleCharsetToUtf8].Reset();
 }
 
 void CCharsetConverter::resetKaraokeCharset(void)
@@ -747,9 +753,9 @@ bool CCharsetConverter::utf8ToW(const std::string& utf8StringSrc, std::wstring& 
   return CInnerConverter::stdConvert(Utf8toW, utf8StringSrc, wStringDst, failOnBadChar);
 }
 
-bool CCharsetConverter::subtitleCharsetToW(const std::string& stringSrc, std::wstring& wStringDst)
+bool CCharsetConverter::subtitleCharsetToUtf8(const std::string& stringSrc, std::string& utf8StringDst)
 {
-  return CInnerConverter::stdConvert(SubtitleCharsetToW, stringSrc, wStringDst, false);
+  return CInnerConverter::stdConvert(SubtitleCharsetToUtf8, stringSrc, utf8StringDst, false);
 }
 
 bool CCharsetConverter::fromW(const std::wstring& wStringSrc,
@@ -775,7 +781,7 @@ bool CCharsetConverter::utf8ToStringCharset(std::string& stringSrcDst)
   return utf8ToStringCharset(strSrc, stringSrcDst);
 }
 
-bool CCharsetConverter::ToUtf8(const std::string& strSourceCharset, const std::string& stringSrc, std::string& utf8StringDst)
+bool CCharsetConverter::ToUtf8(const std::string& strSourceCharset, const std::string& stringSrc, std::string& utf8StringDst, bool failOnBadChar /*= false*/)
 {
   if (strSourceCharset == "UTF-8")
   { // simple case - no conversion necessary
@@ -783,7 +789,7 @@ bool CCharsetConverter::ToUtf8(const std::string& strSourceCharset, const std::s
     return true;
   }
   
-  return CInnerConverter::customConvert(strSourceCharset, "UTF-8", stringSrc, utf8StringDst);
+  return CInnerConverter::customConvert(strSourceCharset, "UTF-8", stringSrc, utf8StringDst, failOnBadChar);
 }
 
 bool CCharsetConverter::utf8To(const std::string& strDestCharset, const std::string& utf8StringSrc, std::string& stringDst)
@@ -816,7 +822,7 @@ bool CCharsetConverter::unknownToUTF8(std::string& stringSrcDst)
 bool CCharsetConverter::unknownToUTF8(const std::string& stringSrc, std::string& utf8StringDst, bool failOnBadChar /*= false*/)
 {
   // checks whether it's utf8 already, and if not converts using the sourceCharset if given, else the string charset
-  if (isValidUtf8(stringSrc))
+  if (CUtf8Utils::isValidUtf8(stringSrc))
   {
     utf8StringDst = stringSrc;
     return true;
@@ -861,70 +867,9 @@ bool CCharsetConverter::utf8ToSystem(std::string& stringSrcDst, bool failOnBadCh
   return CInnerConverter::stdConvert(Utf8ToSystem, strSrc, stringSrcDst, failOnBadChar);
 }
 
-// Taken from RFC2640
-bool CCharsetConverter::isValidUtf8(const char* buf, unsigned int len)
+bool CCharsetConverter::systemToUtf8(const std::string& sysStringSrc, std::string& utf8StringDst, bool failOnBadChar /*= false*/)
 {
-  const unsigned char* endbuf = (unsigned char*)buf + len;
-  unsigned char byte2mask=0x00, c;
-  int trailing=0; // trailing (continuation) bytes to follow
-
-  while ((unsigned char*)buf != endbuf)
-  {
-    c = *buf++;
-    if (trailing)
-      if ((c & 0xc0) == 0x80) // does trailing byte follow UTF-8 format ?
-      {
-        if (byte2mask) // need to check 2nd byte for proper range
-        {
-          if (c & byte2mask) // are appropriate bits set ?
-            byte2mask = 0x00;
-          else
-            return false;
-        }
-        trailing--;
-      }
-      else
-        return 0;
-    else
-      if ((c & 0x80) == 0x00) continue; // valid 1-byte UTF-8
-      else if ((c & 0xe0) == 0xc0)      // valid 2-byte UTF-8
-        if (c & 0x1e)                   //is UTF-8 byte in proper range ?
-          trailing = 1;
-        else
-          return false;
-      else if ((c & 0xf0) == 0xe0)      // valid 3-byte UTF-8
-       {
-        if (!(c & 0x0f))                // is UTF-8 byte in proper range ?
-          byte2mask = 0x20;             // if not set mask
-        trailing = 2;                   // to check next byte
-      }
-      else if ((c & 0xf8) == 0xf0)      // valid 4-byte UTF-8
-      {
-        if (!(c & 0x07))                // is UTF-8 byte in proper range ?
-          byte2mask = 0x30;             // if not set mask
-        trailing = 3;                   // to check next byte
-      }
-      else if ((c & 0xfc) == 0xf8)      // valid 5-byte UTF-8
-      {
-        if (!(c & 0x03))                // is UTF-8 byte in proper range ?
-          byte2mask = 0x38;             // if not set mask
-        trailing = 4;                   // to check next byte
-      }
-      else if ((c & 0xfe) == 0xfc)      // valid 6-byte UTF-8
-      {
-        if (!(c & 0x01))                // is UTF-8 byte in proper range ?
-          byte2mask = 0x3c;             // if not set mask
-        trailing = 5;                   // to check next byte
-      }
-      else
-        return false;
-  }
-  return trailing == 0;
-}
-
-bool CCharsetConverter::isValidUtf8(const std::string& str)
-{
-  return isValidUtf8(str.c_str(), str.size());
+  return CInnerConverter::stdConvert(SystemToUtf8, sysStringSrc, utf8StringDst, failOnBadChar);
 }
 
 bool CCharsetConverter::utf8logicalToVisualBiDi(const std::string& utf8StringSrc, std::string& utf8StringDst, bool failOnBadString /*= false*/)
@@ -937,7 +882,7 @@ bool CCharsetConverter::utf8logicalToVisualBiDi(const std::string& utf8StringSrc
   return CInnerConverter::stdConvert(Utf32ToUtf8, utf32flipped, utf8StringDst, failOnBadString);
 }
 
-void CCharsetConverter::SettingOptionsCharsetsFiller(const CSetting* setting, std::vector< std::pair<std::string, std::string> >& list, std::string& current)
+void CCharsetConverter::SettingOptionsCharsetsFiller(const CSetting* setting, std::vector< std::pair<std::string, std::string> >& list, std::string& current, void *data)
 {
   std::vector<std::string> vecCharsets = g_charsetConverter.getCharsetLabels();
   sort(vecCharsets.begin(), vecCharsets.end(), sortstringbyname());

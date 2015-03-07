@@ -100,7 +100,7 @@ LibraryLoader* DllLoaderContainer::LoadModule(const char* sName, const char* sCu
   }
   else if (sCurrentDir)
   {
-    CStdString strPath=sCurrentDir;
+    std::string strPath=sCurrentDir;
     strPath+=sName;
     pDll = GetModule(strPath.c_str());
   }
@@ -132,10 +132,10 @@ LibraryLoader* DllLoaderContainer::FindModule(const char* sName, const char* sCu
   if (URIUtils::IsInArchive(sName))
   {
     CURL url(sName);
-    CStdString newName = "special://temp/";
+    std::string newName = "special://temp/";
     newName += url.GetFileName();
-    CFile::Cache(sName, newName);
-    return FindModule(newName, sCurrentDir, bLoadSymbols);
+    CFile::Copy(sName, newName);
+    return FindModule(newName.c_str(), sCurrentDir, bLoadSymbols);
   }
 
   if (CURL::IsFullPath(sName))
@@ -148,7 +148,7 @@ LibraryLoader* DllLoaderContainer::FindModule(const char* sName, const char* sCu
 #endif
   else if (sCurrentDir)
   { // in the path of the parent dll?
-    CStdString strPath=sCurrentDir;
+    std::string strPath=sCurrentDir;
     strPath+=sName;
 
     if (CFile::Exists(strPath))
@@ -156,21 +156,21 @@ LibraryLoader* DllLoaderContainer::FindModule(const char* sName, const char* sCu
   }
 
   //  in environment variable?
-  CStdStringArray vecEnv;
+  std::vector<std::string> vecEnv;
 
 #if defined(TARGET_ANDROID)
-  CStdString systemLibs = getenv("XBMC_ANDROID_SYSTEM_LIBS");
-  StringUtils::SplitString(systemLibs, ":", vecEnv);
-  CStdString localLibs = getenv("XBMC_ANDROID_LIBS");
+  std::string systemLibs = getenv("XBMC_ANDROID_SYSTEM_LIBS");
+  vecEnv = StringUtils::Split(systemLibs, ':');
+  std::string localLibs = getenv("XBMC_ANDROID_LIBS");
   vecEnv.insert(vecEnv.begin(),localLibs);
 #else
-  StringUtils::SplitString(ENV_PATH, ";", vecEnv);
+  vecEnv = StringUtils::Split(ENV_PATH, ';');
 #endif
   LibraryLoader* pDll = NULL;
 
-  for (int i=0; i<(int)vecEnv.size(); ++i)
+  for (std::vector<std::string>::const_iterator i = vecEnv.begin(); i != vecEnv.end(); ++i)
   {
-    CStdString strPath=vecEnv[i];
+    std::string strPath = *i;
     URIUtils::AddSlashAtEnd(strPath);
 
 #ifdef LOGALL
@@ -333,7 +333,7 @@ void DllLoaderContainer::UnloadPythonDlls()
   // unload all dlls that python could have loaded
   for (int i = 0; i < m_iNrOfDlls && m_dlls[i] != NULL; i++)
   {
-    char* name = m_dlls[i]->GetName();
+    const char* name = m_dlls[i]->GetName();
     if (strstr(name, ".pyd") != NULL)
     {
       LibraryLoader* pDll = m_dlls[i];

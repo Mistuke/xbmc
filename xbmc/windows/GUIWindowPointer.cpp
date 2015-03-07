@@ -20,6 +20,7 @@
 
 #include "GUIWindowPointer.h"
 #include "input/MouseStat.h"
+#include "input/InputManager.h"
 #include "windowing/WindowingFactory.h"
 #include <climits>
 #define ID_POINTER 10
@@ -42,12 +43,12 @@ void CGUIWindowPointer::SetPointer(int pointer)
 {
   if (m_pointer == pointer) return;
   // set the new pointer visible
-  CGUIControl *pControl = (CGUIControl *)GetControl(pointer);
+  CGUIControl *pControl = GetControl(pointer);
   if (pControl)
   {
     pControl->SetVisible(true);
     // disable the old pointer
-    pControl = (CGUIControl *)GetControl(m_pointer);
+    pControl = GetControl(m_pointer);
     if (pControl) pControl->SetVisible(false);
     // set pointer to the new one
     m_pointer = pointer;
@@ -58,7 +59,7 @@ void CGUIWindowPointer::UpdateVisibility()
 {
   if(g_Windowing.HasCursor())
   {
-    if (g_Mouse.IsActive())
+    if (CInputManager::Get().IsMouseActive())
       Show();
     else
       Close();
@@ -80,13 +81,14 @@ void CGUIWindowPointer::OnWindowLoaded()
 
 void CGUIWindowPointer::Process(unsigned int currentTime, CDirtyRegionList &dirtyregions)
 {
-  bool active = g_Mouse.IsActive();
+  bool active = CInputManager::Get().IsMouseActive();
   if (active != m_active)
   {
     MarkDirtyRegion();
     m_active = active;
   }
-  SetPosition((float)g_Mouse.GetX(), (float)g_Mouse.GetY());
-  SetPointer(g_Mouse.GetState());
+  MousePosition pos = CInputManager::Get().GetMousePosition();
+  SetPosition((float)pos.x, (float)pos.y);
+  SetPointer(CInputManager::Get().GetMouseState());
   return CGUIWindow::Process(currentTime, dirtyregions);
 }

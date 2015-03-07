@@ -37,7 +37,7 @@ using namespace std;
 using namespace XFILE;
 using namespace ADDON;
 
-CNfoFile::NFOResult CNfoFile::Create(const CStdString& strPath, const ScraperPtr& info, int episode, const CStdString& strPath2)
+CNfoFile::NFOResult CNfoFile::Create(const std::string& strPath, const ScraperPtr& info, int episode)
 {
   m_info = info; // assume we can use these settings
   m_type = ScraperTypeFromContent(info->Content());
@@ -50,7 +50,7 @@ CNfoFile::NFOResult CNfoFile::Create(const CStdString& strPath, const ScraperPtr
   AddonPtr addon;
   ScraperPtr defaultScraper;
   if (CAddonMgr::Get().GetDefault(m_type, addon))
-    defaultScraper = boost::dynamic_pointer_cast<CScraper>(addon);
+    defaultScraper = std::dynamic_pointer_cast<CScraper>(addon);
 
   if (m_type == ADDON_SCRAPER_ALBUMS)
   {
@@ -70,11 +70,12 @@ CNfoFile::NFOResult CNfoFile::Create(const CStdString& strPath, const ScraperPtr
     if (episode > -1 && bNfo && m_type == ADDON_SCRAPER_TVSHOWS)
     {
       int infos=0;
-      m_headofdoc = strstr(m_headofdoc,"<episodedetails");
-      bNfo = GetDetails(details);
-      while (m_headofdoc && details.m_iEpisode != episode)
+      while (m_headPos != std::string::npos && details.m_iEpisode != episode)
       {
-        m_headofdoc = strstr(m_headofdoc+1,"<episodedetails");
+        m_headPos = m_doc.find("<episodedetails", m_headPos + 1);
+        if (m_headPos == std::string::npos)
+          break;
+
         bNfo  = GetDetails(details);
         infos++;
       }
@@ -82,7 +83,7 @@ CNfoFile::NFOResult CNfoFile::Create(const CStdString& strPath, const ScraperPtr
       {
         bNfo = false;
         details.Reset();
-        m_headofdoc = m_doc;
+        m_headPos = 0;
         if (infos == 1) // still allow differing nfo/file numbers for single ep nfo's
           bNfo = GetDetails(details);
       }
@@ -101,7 +102,7 @@ CNfoFile::NFOResult CNfoFile::Create(const CStdString& strPath, const ScraperPtr
 
   for (unsigned i = 0; i < addons.size(); ++i)
   {
-    ScraperPtr scraper = boost::dynamic_pointer_cast<CScraper>(addons[i]);
+    ScraperPtr scraper = std::dynamic_pointer_cast<CScraper>(addons[i]);
 
     // skip if scraper requires settings and there's nothing set yet
     if (scraper->RequiresSettings() && !scraper->HasUserSettings())
@@ -157,39 +158,24 @@ int CNfoFile::Scrape(ScraperPtr& scraper)
   return m_scurl.m_url.empty() ? 1 : 0;
 }
 
-int CNfoFile::Load(const CStdString& strFile)
+int CNfoFile::Load(const std::string& strFile)
 {
   Close();
   XFILE::CFile file;
-  if (file.Open(strFile))
+  XFILE::auto_buffer buf;
+  if (file.LoadFile(strFile, buf) > 0)
   {
-    int size = (int)file.GetLength();
-    try
-    {
-      m_doc = new char[size+1];
-      m_headofdoc = m_doc;
-    }
-    catch (...)
-    {
-      CLog::Log(LOGERROR, "%s: Exception while creating file buffer",__FUNCTION__);
-      return 1;
-    }
-    if (!m_doc)
-    {
-      file.Close();
-      return 1;
-    }
-    file.Read(m_doc, size);
-    m_doc[size] = 0;
-    file.Close();
+    m_doc.assign(buf.get(), buf.size());
+    m_headPos = 0;
     return 0;
   }
+  m_doc.clear();
   return 1;
 }
 
 void CNfoFile::Close()
 {
-  delete[] m_doc;
-  m_doc = NULL;
+  m_doc.clear();
+  m_headPos = 0;
   m_scurl.Clear();
 }

@@ -18,15 +18,12 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-%>
-<%
-    matcher = type =~ /std::vector<\((.*)\)>/
-    vectype = matcher[0][1]
+    List templateArgs = swigTypeParser.SwigType_templateparmlist(type)
+    vectype = templateArgs[0]
     boolean ispointer = swigTypeParser.SwigType_ispointer(type)
     String accessor = ispointer ? '->' : '.'
     seq = sequence.increment()
 %>
-
     ${result} = PyList_New(0);
 <%
     if (ispointer)
@@ -41,6 +38,7 @@
         PyObject* pyentry${seq};
         ${helper.getOutConversion(vectype,'result',method,[ 'result' : 'pyentry' + seq, 'api' : 'entry' + seq, 'sequence' : sequence ])}
         PyList_Append(${result}, pyentry${seq});
+        Py_DECREF(pyentry${seq});
       }
 <%
     if (ispointer)

@@ -51,7 +51,6 @@ typedef enum
   UIInterfaceOrientation orientation;
   
   bool m_isPlayingBeforeInactive;
-  bool m_isInterrupted;
   UIBackgroundTaskIdentifier m_bgTask;
   NSTimer *m_networkAutoSuspendTimer;
   IOSPlaybackState m_playbackState;
@@ -74,14 +73,9 @@ typedef enum
 - (void) enterBackground;
 - (void) enterForeground;
 - (void) becomeInactive;
-- (void) beginInterruption;
-- (void) endInterruption;
 - (void) setIOSNowPlayingInfo:(NSDictionary *)info;
 - (void) sendKey: (XBMCKey) key;
 - (void) observeDefaultCenterStuff: (NSNotification *) notification;
-- (void) initDisplayLink;
-- (void) deinitDisplayLink;
-- (double) getDisplayLinkFPS;
 - (void) setFramebuffer;
 - (bool) presentFramebuffer;
 - (CGSize) getScreenSize;
@@ -98,7 +92,7 @@ typedef enum
 - (void) disableScreenSaver;
 - (void) enableScreenSaver;
 - (bool) changeScreen: (unsigned int)screenIdx withMode:(UIScreenMode *)mode;
-- (void) activateScreen: (UIScreen *)screen;
+- (void) activateScreen: (UIScreen *)screen withOrientation:(UIInterfaceOrientation)newOrientation;
 - (id)   initWithFrame:(CGRect)frame withScreen:(UIScreen *)screen;
 @end
 

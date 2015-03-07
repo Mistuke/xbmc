@@ -24,6 +24,7 @@
 #include "DllLoader.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
+#include <stdlib.h>
 
 #ifdef _cplusplus
 extern "C"
@@ -90,12 +91,12 @@ void tracker_dll_set_addr(DllLoader* pDll, uintptr_t min, uintptr_t max)
   }
 }
 
-char* tracker_getdllname(uintptr_t caller)
+const char* tracker_getdllname(uintptr_t caller)
 {
   DllTrackInfo *track = tracker_get_dlltrackinfo(caller);
   if(track)
     return track->pDll->GetFileName();
-  return (char*)"";
+  return "";
 }
 
 DllTrackInfo* tracker_get_dlltrackinfo(uintptr_t caller)

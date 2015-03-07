@@ -55,11 +55,11 @@ public:
 
   virtual ENextStream NextStream();
 
-  bool            SelectChannelByNumber(unsigned int iChannel);
-  bool            SelectChannel(const PVR::CPVRChannel &channel);
-  bool            NextChannel(bool preview = false);
-  bool            PrevChannel(bool preview = false);
-  bool            GetSelectedChannel(PVR::CPVRChannelPtr& channel) const;
+  bool                SelectChannelByNumber(unsigned int iChannel);
+  bool                SelectChannel(const PVR::CPVRChannelPtr &channel);
+  bool                NextChannel(bool preview = false);
+  bool                PrevChannel(bool preview = false);
+  PVR::CPVRChannelPtr GetSelectedChannel() const;
 
   int             GetTotalTime();
   int             GetTime();
@@ -82,7 +82,7 @@ public:
    list of the input formats.
    \return The name of the input format
    */
-  CStdString      GetInputFormat();
+  std::string      GetInputFormat();
 
   /* returns m_pOtherStream */
   CDVDInputStream* GetOtherStream();

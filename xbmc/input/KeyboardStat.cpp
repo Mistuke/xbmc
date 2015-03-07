@@ -35,7 +35,6 @@
 using namespace std;
 using namespace PERIPHERALS;
 
-CKeyboardStat g_Keyboard;
 
 CKeyboardStat::CKeyboardStat()
 {
@@ -188,9 +187,9 @@ void CKeyboardStat::ProcessKeyUp(void)
 // Used to make the debug log more intelligable
 // The KeyID includes the flags for ctrl, alt etc
 
-CStdString CKeyboardStat::GetKeyName(int KeyID)
+std::string CKeyboardStat::GetKeyName(int KeyID)
 { int keyid;
-  CStdString keyname;
+  std::string keyname;
   XBMCKEYTABLE keytable;
 
   keyname.clear();
@@ -214,8 +213,8 @@ CStdString CKeyboardStat::GetKeyName(int KeyID)
   if (KeyTableLookupVKeyName(keyid, &keytable))
     keyname.append(keytable.keyname);
   else
-    keyname.AppendFormat("%i", keyid);
-  keyname.AppendFormat(" (0x%02x)", KeyID);
+    keyname += StringUtils::Format("%i", keyid);
+  keyname += StringUtils::Format(" (0x%02x)", KeyID);
 
   return keyname;
 }

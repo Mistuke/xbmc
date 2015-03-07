@@ -61,6 +61,7 @@ public:
 
   virtual void SetViewPort(CRect& viewPort);
   virtual void GetViewPort(CRect& viewPort);
+  virtual void RestoreViewPort();
 
   virtual void SetScissors(const CRect &rect);
   virtual void ResetScissors();
@@ -107,7 +108,7 @@ public:
   */
   void Unregister(ID3DResource *resource);
 
-  static CStdString GetErrorDescription(HRESULT hr);
+  static std::string GetErrorDescription(HRESULT hr);
 
 protected:
   bool CreateDevice();

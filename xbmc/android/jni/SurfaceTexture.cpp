@@ -20,6 +20,7 @@
 
 #include "JNIBase.h"
 #include "Context.h"
+#include "Activity.h"
 #include "ClassLoader.h"
 #include "SurfaceTexture.h"
 
@@ -34,9 +35,9 @@ using namespace jni;
 CJNISurfaceTextureOnFrameAvailableListener* CJNISurfaceTextureOnFrameAvailableListener::m_listenerInstance(NULL);
 
 CJNISurfaceTextureOnFrameAvailableListener::CJNISurfaceTextureOnFrameAvailableListener()
-: CJNIBase("org/xbmc/xbmc/XBMCOnFrameAvailableListener")
+: CJNIBase("org/xbmc/kodi/XBMCOnFrameAvailableListener")
 {
-  CJNIContext *appInstance = CJNIContext::GetAppInstance();
+  CJNIApplicationMainActivity *appInstance = CJNIApplicationMainActivity::GetAppInstance();
   if (!appInstance)
     return;
 

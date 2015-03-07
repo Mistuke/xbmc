@@ -25,7 +25,6 @@
 #include "GUIUserMessages.h"
 #include "guilib/GUIWindowManager.h"
 #include "interfaces/IAnnouncer.h"
-#include "utils/StdString.h"
 #include "utils/Variant.h"
 
 namespace JSONRPC
@@ -52,7 +51,7 @@ namespace JSONRPC
   /*!
    \brief Function pointer for JSON-RPC methods
    */
-  typedef JSONRPC_STATUS (*MethodCall) (const CStdString &method, ITransportLayer *transport, IClient *client, const CVariant& parameterObject, CVariant &result);
+  typedef JSONRPC_STATUS (*MethodCall) (const std::string &method, ITransportLayer *transport, IClient *client, const CVariant& parameterObject, CVariant &result);
 
   /*!
    \ingroup jsonrpc
@@ -170,6 +169,12 @@ namespace JSONRPC
     static inline void NotifyItemUpdated()
     {
       CGUIMessage message(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE, g_windowManager.GetActiveWindow());
+      g_windowManager.SendThreadMessage(message);
+    }
+    static inline void NotifyItemUpdated(const CVideoInfoTag &info)
+    {
+      CFileItemPtr msgItem(new CFileItem(info));
+      CGUIMessage message(GUI_MSG_NOTIFY_ALL, g_windowManager.GetActiveWindow(), 0, GUI_MSG_UPDATE_ITEM, 0, msgItem);
       g_windowManager.SendThreadMessage(message);
     }
   };

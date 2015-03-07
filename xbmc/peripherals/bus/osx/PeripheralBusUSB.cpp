@@ -36,7 +36,7 @@ using namespace PERIPHERALS;
 
 typedef struct USBDevicePrivateData {
   CPeripheralBusUSB     *refCon;
-  CStdString            deviceName;
+  std::string            deviceName;
   io_object_t           notification;
   PeripheralScanResult  result;
 } USBDevicePrivateData;
@@ -121,26 +121,24 @@ void CPeripheralBusUSB::DeviceDetachCallback(void *refCon, io_service_t service,
 { 
   if (messageType == kIOMessageServiceIsTerminated)
   {
-    IOReturn result;
-
     USBDevicePrivateData *privateDataRef = (USBDevicePrivateData*)refCon;
 
     std::vector<PeripheralScanResult>::iterator it = privateDataRef->refCon->m_scan_results.m_results.begin();
     while(it != privateDataRef->refCon->m_scan_results.m_results.end())
     {
       if (privateDataRef->result.m_strLocation == it->m_strLocation)
-        privateDataRef->refCon->m_scan_results.m_results.erase(it);
+        it = privateDataRef->refCon->m_scan_results.m_results.erase(it);
       else
-        it++;
+        ++it;
     }
     privateDataRef->refCon->ScanForDevices();
     
     CLog::Log(LOGDEBUG, "USB Device Detach:%s, %s\n",
       privateDataRef->deviceName.c_str(), privateDataRef->result.m_strLocation.c_str());
-    result = IOObjectRelease(privateDataRef->notification);
+    IOObjectRelease(privateDataRef->notification);
     delete privateDataRef;
     //release the service
-    result = IOObjectRelease(service);
+    IOObjectRelease(service);
   }
 }
 
@@ -183,10 +181,10 @@ void CPeripheralBusUSB::DeviceAttachCallback(CPeripheralBusUSB* refCon, io_itera
     UInt32  locationId;
     UInt8   bDeviceClass;
 
-    result = (*deviceInterface)->GetDeviceVendor( deviceInterface, &vendorId);
-    result = (*deviceInterface)->GetDeviceProduct(deviceInterface, &productId);
-    result = (*deviceInterface)->GetLocationID(   deviceInterface, &locationId);
-    result = (*deviceInterface)->GetDeviceClass(  deviceInterface, &bDeviceClass);
+    (*deviceInterface)->GetDeviceVendor( deviceInterface, &vendorId);
+    (*deviceInterface)->GetDeviceProduct(deviceInterface, &productId);
+    (*deviceInterface)->GetLocationID(   deviceInterface, &locationId);
+    (*deviceInterface)->GetDeviceClass(  deviceInterface, &bDeviceClass);
 
     io_service_t usbInterface;
     io_iterator_t interface_iterator;
@@ -250,7 +248,7 @@ void CPeripheralBusUSB::DeviceAttachCallback(CPeripheralBusUSB* refCon, io_itera
             if (deviceFilePathAsCFString)
             {
               // Convert the path from a CFString to a std::string
-              if (!DarwinCFStringRefToUTF8String(deviceFilePathAsCFString, ttlDeviceFilePath))
+              if (!CDarwinUtils::CFStringRefToUTF8String(deviceFilePathAsCFString, ttlDeviceFilePath))
                 CLog::Log(LOGWARNING, "CPeripheralBusUSB::DeviceAttachCallback failed to convert CFStringRef");
               CFRelease(deviceFilePathAsCFString);
             }
@@ -258,9 +256,9 @@ void CPeripheralBusUSB::DeviceAttachCallback(CPeripheralBusUSB* refCon, io_itera
           }
         }
         if (!ttlDeviceFilePath.empty())
-          privateDataRef->result.m_strLocation.Format("%s", ttlDeviceFilePath.c_str());
+          privateDataRef->result.m_strLocation = StringUtils::Format("%s", ttlDeviceFilePath.c_str());
         else
-          privateDataRef->result.m_strLocation.Format("%d", locationId);
+          privateDataRef->result.m_strLocation = StringUtils::Format("%d", locationId);
 
         if (bDeviceClass == kUSBCompositeClass)
           privateDataRef->result.m_type = refCon->GetType(bInterfaceClass);

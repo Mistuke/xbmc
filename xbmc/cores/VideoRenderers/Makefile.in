@@ -1,6 +1,7 @@
 SRCS  = BaseRenderer.cpp
 SRCS += OverlayRenderer.cpp
 SRCS += OverlayRendererUtil.cpp
+SRCS += OverlayRendererGUI.cpp
 SRCS += RenderCapture.cpp
 SRCS += RenderManager.cpp
 SRCS += RenderFlags.cpp
@@ -17,6 +18,10 @@ endif
 ifeq (@USE_OPENGLES@,1)
 SRCS += LinuxRendererGLES.cpp
 SRCS += OverlayRendererGL.cpp
+endif
+
+ifeq (@USE_MMAL@,1)
+SRCS += MMALRenderer.cpp
 endif
 
 LIB = VideoRenderer.a

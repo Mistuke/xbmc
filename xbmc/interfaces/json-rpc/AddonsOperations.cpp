@@ -33,7 +33,7 @@ using namespace JSONRPC;
 using namespace ADDON;
 using namespace XFILE;
 
-JSONRPC_STATUS CAddonsOperations::GetAddons(const CStdString &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
+JSONRPC_STATUS CAddonsOperations::GetAddons(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
 {
   vector<TYPE> addonTypes;
   TYPE addonType = TranslateType(parameterObject["type"].asString());
@@ -106,9 +106,9 @@ JSONRPC_STATUS CAddonsOperations::GetAddons(const CStdString &method, ITransport
   {
     PluginPtr plugin;
     if (content != CPluginSource::UNKNOWN)
-      plugin = boost::dynamic_pointer_cast<CPluginSource>(addons.at(index));
+      plugin = std::dynamic_pointer_cast<CPluginSource>(addons.at(index));
 
-    if ((addons.at(index)->Type() <= ADDON_UNKNOWN || addons.at(index)->Type() >= ADDON_VIZ_LIBRARY) ||
+    if ((addons.at(index)->Type() <= ADDON_UNKNOWN || addons.at(index)->Type() >= ADDON_MAX) ||
        ((content != CPluginSource::UNKNOWN && plugin == NULL) || (plugin != NULL && !plugin->Provides(content))))
     {
       addons.erase(addons.begin() + index);
@@ -126,12 +126,12 @@ JSONRPC_STATUS CAddonsOperations::GetAddons(const CStdString &method, ITransport
   return OK;
 }
 
-JSONRPC_STATUS CAddonsOperations::GetAddonDetails(const CStdString &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
+JSONRPC_STATUS CAddonsOperations::GetAddonDetails(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
 {
   string id = parameterObject["addonid"].asString();
   AddonPtr addon;
   if (!CAddonMgr::Get().GetAddon(id, addon, ADDON::ADDON_UNKNOWN, false) || addon.get() == NULL ||
-      addon->Type() <= ADDON_UNKNOWN || addon->Type() >= ADDON_VIZ_LIBRARY)
+      addon->Type() <= ADDON_UNKNOWN || addon->Type() >= ADDON_MAX)
     return InvalidParams;
     
   CAddonDatabase addondb;
@@ -140,7 +140,7 @@ JSONRPC_STATUS CAddonsOperations::GetAddonDetails(const CStdString &method, ITra
   return OK;
 }
 
-JSONRPC_STATUS CAddonsOperations::SetAddonEnabled(const CStdString &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
+JSONRPC_STATUS CAddonsOperations::SetAddonEnabled(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
 {
   string id = parameterObject["addonid"].asString();
   bool disabled = false;
@@ -158,12 +158,12 @@ JSONRPC_STATUS CAddonsOperations::SetAddonEnabled(const CStdString &method, ITra
   return ACK;
 }
 
-JSONRPC_STATUS CAddonsOperations::ExecuteAddon(const CStdString &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
+JSONRPC_STATUS CAddonsOperations::ExecuteAddon(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
 {
   string id = parameterObject["addonid"].asString();
   AddonPtr addon;
   if (!CAddonMgr::Get().GetAddon(id, addon) || addon.get() == NULL ||
-      addon->Type() < ADDON_VIZ || addon->Type() >= ADDON_VIZ_LIBRARY)
+      addon->Type() < ADDON_VIZ || addon->Type() >= ADDON_MAX)
     return InvalidParams;
     
   string argv;
@@ -186,12 +186,17 @@ JSONRPC_STATUS CAddonsOperations::ExecuteAddon(const CStdString &method, ITransp
       argv += StringUtils::Paramify(it->asString());
     }
   }
+  else if (params.isString())
+  {
+    if (!params.empty())
+      argv = StringUtils::Paramify(params.asString());
+  }
   
-  CStdString cmd;
+  std::string cmd;
   if (params.size() == 0)
-    cmd.Format("RunAddon(%s)", id.c_str());
+    cmd = StringUtils::Format("RunAddon(%s)", id.c_str());
   else
-    cmd.Format("RunAddon(%s, %s)", id.c_str(), argv.c_str());
+    cmd = StringUtils::Format("RunAddon(%s, %s)", id.c_str(), argv.c_str());
   CApplicationMessenger::Get().ExecBuiltIn(cmd, parameterObject["wait"].asBoolean());
   
   return ACK;
@@ -221,13 +226,13 @@ void CAddonsOperations::FillDetails(AddonPtr addon, const CVariant& fields, CVar
     }
     else if (field == "fanart" || field == "thumbnail")
     {
-      CStdString url = addonInfo[field].asString();
+      std::string url = addonInfo[field].asString();
       // We need to check the existence of fanart and thumbnails as the addon simply
       // holds where the art will be, not whether it exists.
       bool needsRecaching;
-      CStdString image = CTextureCache::Get().CheckCachedImage(url, false, needsRecaching);
+      std::string image = CTextureCache::Get().CheckCachedImage(url, false, needsRecaching);
       if (!image.empty() || CFile::Exists(url))
-        object[field] = CTextureCache::Get().GetWrappedImageURL(url);
+        object[field] = CTextureUtils::GetWrappedImageURL(url);
       else
         object[field] = "";
     }

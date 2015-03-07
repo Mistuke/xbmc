@@ -21,6 +21,8 @@
 #include "GUIControlGroup.h"
 #include "GUIControlProfiler.h"
 
+#include <cassert>
+
 using namespace std;
 
 CGUIControlGroup::CGUIControlGroup()
@@ -133,9 +135,16 @@ void CGUIControlGroup::Render()
   g_graphicsContext.RestoreOrigin();
 }
 
+void CGUIControlGroup::RenderEx()
+{
+  for (iControls it = m_children.begin(); it != m_children.end(); ++it)
+    (*it)->RenderEx();
+  CGUIControl::RenderEx();
+}
+
 bool CGUIControlGroup::OnAction(const CAction &action)
 {
-  ASSERT(false);  // unimplemented
+  assert(false);  // unimplemented
   return false;
 }
 
@@ -434,16 +443,35 @@ bool CGUIControlGroup::HasVisibleID(int id) const
   return false;
 }
 
-const CGUIControl* CGUIControlGroup::GetControl(int iControl) const
+CGUIControl *CGUIControlGroup::GetControl(int iControl)
 {
   CGUIControl *pPotential = NULL;
+  LookupMap::iterator first = m_lookup.find(iControl);
+  if (first != m_lookup.end())
+  {
+    LookupMap::iterator last = m_lookup.upper_bound(iControl);
+    for (LookupMap::iterator i = first; i != last; ++i)
+    {
+      CGUIControl *control = i->second;
+      if (control->IsVisible())
+        return control;
+      else if (!pPotential)
+        pPotential = control;
+    }
+  }
+  return pPotential;
+}
+
+const CGUIControl* CGUIControlGroup::GetControl(int iControl) const
+{
+  const CGUIControl *pPotential = NULL;
   LookupMap::const_iterator first = m_lookup.find(iControl);
   if (first != m_lookup.end())
   {
     LookupMap::const_iterator last = m_lookup.upper_bound(iControl);
     for (LookupMap::const_iterator i = first; i != last; ++i)
     {
-      CGUIControl *control = i->second;
+      const CGUIControl *control = i->second;
       if (control->IsVisible())
         return control;
       else if (!pPotential)

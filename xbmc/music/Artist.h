@@ -21,6 +21,7 @@
  */
 
 #include <map>
+#include <string>
 #include <vector>
 
 #include "utils/ScraperUrl.h"
@@ -36,7 +37,7 @@ public:
   long idArtist;
   bool operator<(const CArtist& a) const
   {
-    if (strMusicBrainzArtistID.IsEmpty() && a.strMusicBrainzArtistID.IsEmpty())
+    if (strMusicBrainzArtistID.empty() && a.strMusicBrainzArtistID.empty())
     {
       if (strArtist < a.strArtist) return true;
       if (strArtist > a.strArtist) return false;
@@ -47,24 +48,26 @@ public:
     if (strMusicBrainzArtistID > a.strMusicBrainzArtistID) return false;
     return false;
   }
+  
+  void MergeScrapedArtist(const CArtist& source, bool override = true);
 
   void Reset()
   {
-    strArtist.Empty();
+    strArtist.clear();
     genre.clear();
-    strBiography.Empty();
+    strBiography.clear();
     styles.clear();
     moods.clear();
     instruments.clear();
-    strBorn.Empty();
-    strFormed.Empty();
-    strDied.Empty();
-    strDisbanded.Empty();
+    strBorn.clear();
+    strFormed.clear();
+    strDied.clear();
+    strDisbanded.clear();
     yearsActive.clear();
     thumbURL.Clear();
     discography.clear();
     idArtist = -1;
-    strPath.Empty();
+    strPath.clear();
   }
 
   /*! \brief Load artist information from an XML file.
@@ -75,24 +78,24 @@ public:
    \sa CVideoInfoTag::Load
    */
   bool Load(const TiXmlElement *element, bool append = false, bool prioritise = false);
-  bool Save(TiXmlNode *node, const CStdString &tag, const CStdString& strPath);
+  bool Save(TiXmlNode *node, const std::string &tag, const std::string& strPath);
 
-  CStdString strArtist;
-  CStdString strMusicBrainzArtistID;
+  std::string strArtist;
+  std::string strMusicBrainzArtistID;
   std::vector<std::string> genre;
-  CStdString strBiography;
+  std::string strBiography;
   std::vector<std::string> styles;
   std::vector<std::string> moods;
   std::vector<std::string> instruments;
-  CStdString strBorn;
-  CStdString strFormed;
-  CStdString strDied;
-  CStdString strDisbanded;
+  std::string strBorn;
+  std::string strFormed;
+  std::string strDied;
+  std::string strDisbanded;
   std::vector<std::string> yearsActive;
-  CStdString strPath;
+  std::string strPath;
   CScraperUrl thumbURL;
   CFanart fanart;
-  std::vector<std::pair<CStdString,CStdString> > discography;
+  std::vector<std::pair<std::string,std::string> > discography;
 };
 
 class CArtistCredit
@@ -122,9 +125,11 @@ public:
   std::string GetArtist() const                { return m_strArtist; }
   std::string GetMusicBrainzArtistID() const   { return m_strMusicBrainzArtistID; }
   std::string GetJoinPhrase() const            { return m_strJoinPhrase; }
+  int         GetArtistId() const              { return idArtist; }
   void SetArtist(const std::string &strArtist) { m_strArtist = strArtist; }
   void SetMusicBrainzArtistID(const std::string &strMusicBrainzArtistID) { m_strMusicBrainzArtistID = strMusicBrainzArtistID; }
   void SetJoinPhrase(const std::string &strJoinPhrase) { m_strJoinPhrase = strJoinPhrase; }
+  void SetArtistId(int idArtist)               { this->idArtist = idArtist; }
 
 private:
   long idArtist;

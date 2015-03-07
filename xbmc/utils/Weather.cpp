@@ -28,7 +28,7 @@
 #include "Temperature.h"
 #include "network/Network.h"
 #include "Application.h"
-#include "settings/Setting.h"
+#include "settings/lib/Setting.h"
 #include "settings/Settings.h"
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
@@ -51,7 +51,7 @@ using namespace XFILE;
 
 #define LOCALIZED_TOKEN_FIRSTID    370
 #define LOCALIZED_TOKEN_LASTID     395
-#define LOCALIZED_TOKEN_FIRSTID2  1396
+#define LOCALIZED_TOKEN_FIRSTID2  1350
 #define LOCALIZED_TOKEN_LASTID2   1449
 #define LOCALIZED_TOKEN_FIRSTID3    11
 #define LOCALIZED_TOKEN_LASTID3     17
@@ -88,15 +88,14 @@ bool CWeatherJob::DoWork()
   std::vector<std::string> argv;
   argv.push_back(addon->LibPath());
 
-  CStdString strSetting;
-  strSetting.Format("%i", m_location);
+  std::string strSetting = StringUtils::Format("%i", m_location);
   argv.push_back(strSetting);
 
   // Download our weather
   CLog::Log(LOGINFO, "WEATHER: Downloading weather");
   // call our script, passing the areacode
   int scriptId = -1;
-  if ((scriptId = CScriptInvocationManager::Get().Execute(argv[0], addon, argv)) >= 0)
+  if ((scriptId = CScriptInvocationManager::Get().ExecuteAsync(argv[0], addon, argv)) >= 0)
   {
     while (true)
     {
@@ -128,11 +127,11 @@ const CWeatherInfo &CWeatherJob::GetInfo() const
   return m_info;
 }
 
-void CWeatherJob::LocalizeOverviewToken(CStdString &token)
+void CWeatherJob::LocalizeOverviewToken(std::string &token)
 {
   // This routine is case-insensitive. 
-  CStdString strLocStr = "";
-  if (!token.IsEmpty())
+  std::string strLocStr;
+  if (!token.empty())
   {
     ilocalizedTokens i;
     i = m_localizedTokens.find(token);
@@ -146,17 +145,12 @@ void CWeatherJob::LocalizeOverviewToken(CStdString &token)
   token = strLocStr;
 }
 
-void CWeatherJob::LocalizeOverview(CStdString &str)
+void CWeatherJob::LocalizeOverview(std::string &str)
 {
-  CStdStringArray words;
-  StringUtils::SplitString(str, " ", words);
-  str.clear();
-  for (unsigned int i = 0; i < words.size(); i++)
-  {
-    LocalizeOverviewToken(words[i]);
-    str += words[i] + " ";
-  }
-  str.TrimRight(" ");
+  vector<string> words = StringUtils::Split(str, " ");
+  for (vector<string>::iterator i = words.begin(); i != words.end(); ++i)
+    LocalizeOverviewToken(*i);
+  str = StringUtils::Join(words, " ");
 }
 
 // input param must be kmh
@@ -224,10 +218,10 @@ int CWeatherJob::ConvertSpeed(int curSpeed)
   return curSpeed;
 }
 
-void CWeatherJob::FormatTemperature(CStdString &text, int temp)
+void CWeatherJob::FormatTemperature(std::string &text, int temp)
 {
   CTemperature temperature = CTemperature::CreateFromCelsius(temp);
-  text.Format("%.0f", temperature.ToLocale());
+  text = StringUtils::Format("%.0f", temperature.ToLocale());
 }
 
 void CWeatherJob::LoadLocalizedToken()
@@ -271,7 +265,7 @@ void CWeatherJob::LoadLocalizedToken()
             "fallback to strings.xml file");
 
   // We load the tokens from the strings.xml file
-  CStdString strLanguagePath = "special://xbmc/language/English/strings.xml";
+  std::string strLanguagePath = "special://xbmc/language/English/strings.xml";
 
   CXBMCTinyXML xmlDoc;
   if (!xmlDoc.LoadFile(strLanguagePath) || !xmlDoc.RootElement())
@@ -280,17 +274,14 @@ void CWeatherJob::LoadLocalizedToken()
     return;
   }
 
-  CStdString strEncoding;
-  XMLUtils::GetEncoding(&xmlDoc, strEncoding);
-
   TiXmlElement* pRootElement = xmlDoc.RootElement();
-  if (pRootElement->Value() != CStdString("strings"))
+  if (pRootElement->ValueStr() != "strings")
     return;
 
   const TiXmlElement *pChild = pRootElement->FirstChildElement();
   while (pChild)
   {
-    CStdString strValue = pChild->Value();
+    std::string strValue = pChild->ValueStr();
     if (strValue == "string")
     { // Load new style language file with id as attribute
       const char* attrId = pChild->Attribute("id");
@@ -302,13 +293,8 @@ void CWeatherJob::LoadLocalizedToken()
             (LOCALIZED_TOKEN_FIRSTID3 <= id && id <= LOCALIZED_TOKEN_LASTID3) ||
             (LOCALIZED_TOKEN_FIRSTID4 <= id && id <= LOCALIZED_TOKEN_LASTID4))
         {
-          CStdString utf8Label;
-          if (strEncoding.IsEmpty()) // Is language file utf8?
-            utf8Label=pChild->FirstChild()->Value();
-          else
-            g_charsetConverter.ToUtf8(strEncoding, pChild->FirstChild()->Value(), utf8Label);
-
-          if (!utf8Label.IsEmpty())
+          std::string utf8Label(pChild->FirstChild()->ValueStr());
+          if (!utf8Label.empty())
             m_localizedTokens.insert(make_pair(utf8Label, id));
         }
       }
@@ -317,7 +303,7 @@ void CWeatherJob::LoadLocalizedToken()
   }
 }
 
-static CStdString ConstructPath(std::string in) // copy intended
+static std::string ConstructPath(std::string in) // copy intended
 {
   if (in.find("/") != std::string::npos || in.find("\\") != std::string::npos)
     return in;
@@ -330,7 +316,7 @@ static CStdString ConstructPath(std::string in) // copy intended
 void CWeatherJob::SetFromProperties()
 {
   // Load in our tokens if necessary
-  if (!m_localizedTokens.size())
+  if (m_localizedTokens.empty())
     LoadLocalizedToken();
 
   CGUIWindow* window = g_windowManager.GetWindow(WINDOW_WEATHER);
@@ -348,40 +334,38 @@ void CWeatherJob::SetFromProperties()
     m_info.currentUVIndex = window->GetProperty("Current.UVIndex").asString();
     LocalizeOverview(m_info.currentUVIndex);
     int speed = ConvertSpeed(strtol(window->GetProperty("Current.Wind").asString().c_str(),0,10));
-    CStdString direction = window->GetProperty("Current.WindDirection").asString();
+    std::string direction = window->GetProperty("Current.WindDirection").asString();
     if (direction == "CALM")
       m_info.currentWind = g_localizeStrings.Get(1410);
     else
     {
       LocalizeOverviewToken(direction);
-      m_info.currentWind.Format(g_localizeStrings.Get(434).c_str(),
-          direction, speed, g_langInfo.GetSpeedUnitString().c_str());
+      m_info.currentWind = StringUtils::Format(g_localizeStrings.Get(434).c_str(),
+          direction.c_str(), speed, g_langInfo.GetSpeedUnitString().c_str());
     }
-    CStdString windspeed;
-    windspeed.Format("%i %s",speed,g_langInfo.GetSpeedUnitString().c_str());
+    std::string windspeed = StringUtils::Format("%i %s",speed,g_langInfo.GetSpeedUnitString().c_str());
     window->SetProperty("Current.WindSpeed",windspeed);
     FormatTemperature(m_info.currentDewPoint,
         strtol(window->GetProperty("Current.DewPoint").asString().c_str(),0,10));
     if (window->GetProperty("Current.Humidity").asString().empty())
       m_info.currentHumidity.clear();
     else
-      m_info.currentHumidity.Format("%s%%",window->GetProperty("Current.Humidity").asString().c_str());
+      m_info.currentHumidity = StringUtils::Format("%s%%", window->GetProperty("Current.Humidity").asString().c_str());
     m_info.location = window->GetProperty("Current.Location").asString();
     for (int i=0;i<NUM_DAYS;++i)
     {
-      CStdString strDay;
-      strDay.Format("Day%i.Title",i);
+      std::string strDay = StringUtils::Format("Day%i.Title",i);
       m_info.forecast[i].m_day = window->GetProperty(strDay).asString();
       LocalizeOverviewToken(m_info.forecast[i].m_day);
-      strDay.Format("Day%i.HighTemp",i);
+      strDay = StringUtils::Format("Day%i.HighTemp",i);
       FormatTemperature(m_info.forecast[i].m_high,
                     strtol(window->GetProperty(strDay).asString().c_str(),0,10));
-      strDay.Format("Day%i.LowTemp",i);
+      strDay = StringUtils::Format("Day%i.LowTemp",i);
       FormatTemperature(m_info.forecast[i].m_low,
                     strtol(window->GetProperty(strDay).asString().c_str(),0,10));
-      strDay.Format("Day%i.OutlookIcon",i);
+      strDay = StringUtils::Format("Day%i.OutlookIcon",i);
       m_info.forecast[i].m_icon = ConstructPath(window->GetProperty(strDay).asString());
-      strDay.Format("Day%i.Outlook",i);
+      strDay = StringUtils::Format("Day%i.Outlook",i);
       m_info.forecast[i].m_overview = window->GetProperty(strDay).asString();
       LocalizeOverview(m_info.forecast[i].m_overview);
     }
@@ -397,7 +381,7 @@ CWeather::~CWeather(void)
 {
 }
 
-CStdString CWeather::BusyInfo(int info) const
+std::string CWeather::BusyInfo(int info) const
 {
   if (info == WEATHER_IMAGE_CURRENT_ICON)
     return URIUtils::AddFileToFolder(WEATHER_ICON_PATH,"na.png");
@@ -405,7 +389,7 @@ CStdString CWeather::BusyInfo(int info) const
   return CInfoLoader::BusyInfo(info);
 }
 
-CStdString CWeather::TranslateInfo(int info) const
+std::string CWeather::TranslateInfo(int info) const
 {
   if (info == WEATHER_LABEL_CURRENT_COND) return m_info.currentConditions;
   else if (info == WEATHER_IMAGE_CURRENT_ICON) return m_info.currentIcon;
@@ -424,13 +408,12 @@ CStdString CWeather::TranslateInfo(int info) const
  \param iLocation the location index (can be in the range [1..MAXLOCATION])
  \return the city name (without the accompanying region area code)
  */
-CStdString CWeather::GetLocation(int iLocation)
+std::string CWeather::GetLocation(int iLocation)
 {
   CGUIWindow* window = g_windowManager.GetWindow(WINDOW_WEATHER);
   if (window)
   {
-    CStdString setting;
-    setting.Format("Location%i", iLocation);
+    std::string setting = StringUtils::Format("Location%i", iLocation);
     return window->GetProperty(setting).asString();
   }
   return "";
@@ -445,7 +428,7 @@ bool CWeather::IsFetched()
 {
   // call GetInfo() to make sure that we actually start up
   GetInfo(0);
-  return !m_info.lastUpdateTime.IsEmpty();
+  return !m_info.lastUpdateTime.empty();
 }
 
 const day_forecast &CWeather::GetForecast(int day) const

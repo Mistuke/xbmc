@@ -36,8 +36,25 @@
 using namespace std;
 using namespace ANNOUNCEMENT;
 
-#define m_announcers XBMC_GLOBAL_USE(ANNOUNCEMENT::CAnnouncementManager::Globals).m_announcers
-#define m_critSection XBMC_GLOBAL_USE(ANNOUNCEMENT::CAnnouncementManager::Globals).m_critSection
+CAnnouncementManager::CAnnouncementManager()
+{ }
+
+CAnnouncementManager::~CAnnouncementManager()
+{
+  Deinitialize();
+}
+
+CAnnouncementManager& CAnnouncementManager::Get()
+{
+  static CAnnouncementManager s_instance;
+  return s_instance;
+}
+
+void CAnnouncementManager::Deinitialize()
+{
+  CSingleLock lock (m_critSection);
+  m_announcers.clear();
+}
 
 void CAnnouncementManager::AddAnnouncer(IAnnouncer *listener)
 {
@@ -73,9 +90,13 @@ void CAnnouncementManager::Announce(AnnouncementFlag flag, const char *sender, c
 void CAnnouncementManager::Announce(AnnouncementFlag flag, const char *sender, const char *message, CVariant &data)
 {
   CLog::Log(LOGDEBUG, "CAnnouncementManager - Announcement: %s from %s", message, sender);
+
   CSingleLock lock (m_critSection);
-  for (unsigned int i = 0; i < m_announcers.size(); i++)
-    m_announcers[i]->Announce(flag, sender, message, data);
+
+  // Make a copy of announers. They may be removed or even remove themselves during execution of IAnnouncer::Announce()!
+  std::vector<IAnnouncer *> announcers(m_announcers); 
+  for (unsigned int i = 0; i < announcers.size(); i++)
+    announcers[i]->Announce(flag, sender, message, data);
 }
 
 void CAnnouncementManager::Announce(AnnouncementFlag flag, const char *sender, const char *message, CFileItemPtr item)
@@ -94,12 +115,12 @@ void CAnnouncementManager::Announce(AnnouncementFlag flag, const char *sender, c
 
   // Extract db id of item
   CVariant object = data.isNull() || data.isObject() ? data : CVariant::VariantTypeObject;
-  CStdString type;
+  std::string type;
   int id = 0;
   
   if(item->HasPVRChannelInfoTag())
   {
-    const PVR::CPVRChannel *channel = item->GetPVRChannelInfoTag();
+    const PVR::CPVRChannelPtr channel(item->GetPVRChannelInfoTag());
     id = channel->ChannelID();
     type = "channel";
 
@@ -120,9 +141,9 @@ void CAnnouncementManager::Announce(AnnouncementFlag flag, const char *sender, c
       CVideoDatabase videodatabase;
       if (videodatabase.Open())
       {
-        CStdString path = item->GetPath();
-        CStdString videoInfoTagPath(item->GetVideoInfoTag()->m_strFileNameAndPath);
-        if (videoInfoTagPath.Find("removable://") == 0)
+        std::string path = item->GetPath();
+        std::string videoInfoTagPath(item->GetVideoInfoTag()->m_strFileNameAndPath);
+        if (StringUtils::StartsWith(videoInfoTagPath, "removable://"))
           path = videoInfoTagPath;
         if (videodatabase.LoadVideoInfo(path, *item->GetVideoInfoTag()))
           id = item->GetVideoInfoTag()->m_iDbId;
@@ -141,8 +162,8 @@ void CAnnouncementManager::Announce(AnnouncementFlag flag, const char *sender, c
       // TODO: Can be removed once this is properly handled when starting playback of a file
       item->SetProperty(LOOKUP_PROPERTY, false);
 
-      CStdString title = item->GetVideoInfoTag()->m_strTitle;
-      if (title.IsEmpty())
+      std::string title = item->GetVideoInfoTag()->m_strTitle;
+      if (title.empty())
         title = item->GetLabel();
       object["item"]["title"] = title;
 
@@ -172,7 +193,7 @@ void CAnnouncementManager::Announce(AnnouncementFlag flag, const char *sender, c
   else if (item->HasMusicInfoTag())
   {
     id = item->GetMusicInfoTag()->GetDatabaseId();
-    type = "song";
+    type = MediaTypeSong;
 
     // TODO: Can be removed once this is properly handled when starting playback of a file
     if (id <= 0 && !item->GetPath().empty() &&
@@ -197,8 +218,8 @@ void CAnnouncementManager::Announce(AnnouncementFlag flag, const char *sender, c
       // TODO: Can be removed once this is properly handled when starting playback of a file
       item->SetProperty(LOOKUP_PROPERTY, false);
 
-      CStdString title = item->GetMusicInfoTag()->GetTitle();
-      if (title.IsEmpty())
+      std::string title = item->GetMusicInfoTag()->GetTitle();
+      if (title.empty())
         title = item->GetLabel();
       object["item"]["title"] = title;
 

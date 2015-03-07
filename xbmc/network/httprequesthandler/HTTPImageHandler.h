@@ -19,23 +19,21 @@
  *
  */
 
-#include "IHTTPRequestHandler.h"
+#include <string>
 
-#include "utils/StdString.h"
+#include "network/httprequesthandler/HTTPFileHandler.h"
 
-class CHTTPImageHandler : public IHTTPRequestHandler
+class CHTTPImageHandler : public CHTTPFileHandler
 {
 public:
-  CHTTPImageHandler() { };
+  CHTTPImageHandler() { }
+  virtual ~CHTTPImageHandler() { }
 
-  virtual IHTTPRequestHandler* GetInstance() { return new CHTTPImageHandler(); }
-  virtual bool CheckHTTPRequest(const HTTPRequest &request);
-  virtual int HandleHTTPRequest(const HTTPRequest &request);
+  virtual IHTTPRequestHandler* Create(const HTTPRequest &request) { return new CHTTPImageHandler(request); }
+  virtual bool CanHandleRequest(const HTTPRequest &request);
 
-  virtual std::string GetHTTPResponseFile() const { return m_path; }
+  virtual int GetPriority() const { return 5; }
 
-  virtual int GetPriority() const { return 2; }
-
-private:
-  CStdString m_path;
+protected:
+  explicit CHTTPImageHandler(const HTTPRequest &request);
 };

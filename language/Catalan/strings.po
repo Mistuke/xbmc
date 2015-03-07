@@ -1,11 +1,11 @@
-# XBMC Media Center language file
+# Kodi Media Center language file
 msgid ""
 msgstr ""
 "Project-Id-Version: XBMC Main\n"
 "Report-Msgid-Bugs-To: http://trac.xbmc.org/\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: XBMC Translation Team\n"
+"Last-Translator: Kodi Translation Team\n"
 "Language-Team: Catalan (http://www.transifex.com/projects/p/xbmc-main/language/ca/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -38,8 +38,8 @@ msgid "Settings"
 msgstr "Configuració"
 
 msgctxt "#6"
-msgid "XBMC SVN"
-msgstr "XBMC SVN"
+msgid "Kodi SVN"
+msgstr "Kodi SVN"
 
 msgctxt "#7"
 msgid "File manager"
@@ -50,8 +50,8 @@ msgid "Weather"
 msgstr "El Temps"
 
 msgctxt "#9"
-msgid "xbmc media center"
-msgstr "xbmc media center"
+msgid "Kodi media center"
+msgstr "Kodi media center"
 
 msgctxt "#11"
 msgid "Monday"
@@ -390,8 +390,8 @@ msgid "Confirm file move"
 msgstr "Confirma moure el fitxer"
 
 msgctxt "#122"
-msgid "Confirm file delete?"
-msgstr "Confirma eliminar el fitxer"
+msgid "Confirm delete"
+msgstr "Confirma eliminar"
 
 msgctxt "#123"
 msgid "Copy these files?"
@@ -585,6 +585,10 @@ msgctxt "#170"
 msgid "Adjust display refresh rate to match video"
 msgstr "Ajusta la pantalla per que coincideixi amb la freqüència d'actualització del vídeo"
 
+msgctxt "#171"
+msgid "Sort title"
+msgstr "Ordena títol"
+
 msgctxt "#172"
 msgid "Release date"
 msgstr "Data de llançament"
@@ -684,6 +688,10 @@ msgstr "S'estan carregant els detalls de la pel·lícula"
 msgctxt "#199"
 msgid "Web interface"
 msgstr "Interfície web"
+
+msgctxt "#200"
+msgid "Audio encoders"
+msgstr "Codificadors d'àudio"
 
 msgctxt "#202"
 msgid "Tagline"
@@ -845,6 +853,10 @@ msgctxt "#245"
 msgid "Sizing: (%i,%i)->(%i,%i) (Zoom x%2.2f) AR:%2.2f:1 (Pixels: %2.2f:1) (VShift: %2.2f)"
 msgstr "Dimensionant: (%i,%i)->(%i,%i) (Escala x%2.2f) AR:%2.2f:1 (Píxels: %2.2f:1) (VShift: %2.2f)"
 
+msgctxt "#246"
+msgid "Monitor"
+msgstr "Monitor"
+
 msgctxt "#247"
 msgid "Scripts"
 msgstr "Scripts"
@@ -857,13 +869,17 @@ msgctxt "#249"
 msgid "Music"
 msgstr "Música"
 
+msgctxt "#250"
+msgid "Visualisation"
+msgstr "Visualització"
+
 msgctxt "#251"
 msgid "Select destination directory"
 msgstr "Seleccioneu el directori de destí"
 
 msgctxt "#252"
-msgid "Output stereo to all speakers"
-msgstr "Sortida estèreo a tots els altaveus"
+msgid "Stereo upmix"
+msgstr "Upmix estèreo"
 
 msgctxt "#253"
 msgid "Number of channels"
@@ -887,7 +903,7 @@ msgstr "S'ha produït un error"
 
 msgctxt "#258"
 msgid "Enable tag reading"
-msgstr "Activa la lectura d'etiquetes"
+msgstr "Habilita la lectura d'etiquetes"
 
 msgctxt "#259"
 msgid "Opening"
@@ -906,8 +922,8 @@ msgid "Scripts output"
 msgstr "Sortida dels scripts"
 
 msgctxt "#263"
-msgid "Allow control of XBMC via HTTP"
-msgstr "Permet el control de l'XBMC a través d'HTTP"
+msgid "Allow control of Kodi via HTTP"
+msgstr "Permet el control del Kodi a través d'HTTP"
 
 msgctxt "#264"
 msgid "Record"
@@ -967,7 +983,7 @@ msgstr "Ajusteu la barra per canviar la posició dels subtítols"
 
 msgctxt "#278"
 msgid "Adjust the rectangle so it is perfectly square"
-msgstr "Ajusteu el rectangle fins que sigui un rectangle perfecte"
+msgstr "Ajusteu el rectangle fins que sigui un quadrat perfecte"
 
 msgctxt "#279"
 msgid "Unable to load settings"
@@ -1045,10 +1061,6 @@ msgctxt "#298"
 msgid "Bookmarks"
 msgstr "Adreces d'interès"
 
-msgctxt "#299"
-msgid "AAC capable receiver"
-msgstr "Receptor compatible AAC"
-
 msgctxt "#300"
 msgid "MP1 capable receiver"
 msgstr "Receptor compatible MP1"
@@ -1071,7 +1083,7 @@ msgstr "Idioma"
 
 msgctxt "#305"
 msgid "Enabled"
-msgstr "Activat"
+msgstr "Habilitat"
 
 msgctxt "#306"
 msgid "Non-interleaved"
@@ -1082,8 +1094,12 @@ msgid "Original stream's language"
 msgstr "Flux d'idioma original"
 
 msgctxt "#309"
-msgid "User Interface language"
-msgstr "Idioma de la interfície"
+msgid "User interface language"
+msgstr "Idioma de la interfície d'usuari"
+
+msgctxt "#310"
+msgid "Keyboard layouts"
+msgstr "Disposicions de teclat"
 
 msgctxt "#312"
 msgid "(0=auto)"
@@ -1186,12 +1202,16 @@ msgid "Framerate conversion"
 msgstr "Conversió de les imatges per segon"
 
 msgctxt "#337"
-msgid "Audio output"
-msgstr "Sortida d'àudio"
+msgid "Output configuration"
+msgstr "Configuració de sortida"
+
+msgctxt "#338"
+msgid "Fixed"
+msgstr "Fixed"
 
 msgctxt "#339"
-msgid "Optical/Coax"
-msgstr "Òptica/Coaxial"
+msgid "Optimized"
+msgstr "Optimitzat"
 
 msgctxt "#340"
 msgid "Various artists"
@@ -1218,16 +1238,16 @@ msgid "Year"
 msgstr "Any"
 
 msgctxt "#346"
-msgid "Boost volume level on downmix"
-msgstr "Augmenta el volum al fer un downmix"
+msgid "Maintain original volume on downmix"
+msgstr "Mantenir el volum original durant el downmix"
 
 msgctxt "#347"
 msgid "DTS-HD capable receiver"
 msgstr "Receptor compatible DTS-HD"
 
 msgctxt "#348"
-msgid "Multichannel LPCM capable receiver"
-msgstr "Receptor compatible LPCM multicanal"
+msgid "Enable passthrough"
+msgstr "Habilita el passthrough"
 
 msgctxt "#349"
 msgid "TrueHD capable receiver"
@@ -1506,12 +1526,12 @@ msgid "High"
 msgstr "Màx"
 
 msgctxt "#420"
-msgid "HDMI"
-msgstr "HDMI"
+msgid "Best Match"
+msgstr "Millor coincidència"
 
 msgctxt "#421"
-msgid "Stream silence when idle"
-msgstr "Silencia l'Stream quan estigui inactiu"
+msgid "Keep audio device alive"
+msgstr "Mantenir viu el dispositiu d'àudio"
 
 msgctxt "#422"
 msgid "Delete album info"
@@ -1585,6 +1605,10 @@ msgctxt "#439"
 msgid "Cache"
 msgstr "Memòria cau"
 
+msgctxt "#440"
+msgid "Hard disk"
+msgstr "Disc dur"
+
 msgctxt "#441"
 msgid "UDF"
 msgstr "UDF"
@@ -1613,9 +1637,13 @@ msgctxt "#447"
 msgid "Autorun media"
 msgstr "Executa automàticament els suports"
 
+msgctxt "#448"
+msgid "Dolby Digital Plus (E-AC3) capable receiver"
+msgstr "Receptor compatible Dolby Digital Plus (E-AC3)"
+
 msgctxt "#449"
 msgid "Enabled"
-msgstr "Activat"
+msgstr "Habilitat"
 
 msgctxt "#450"
 msgid "Columns"
@@ -1648,6 +1676,10 @@ msgstr "Mode"
 msgctxt "#457"
 msgid "Switch view"
 msgstr "Canviar vista"
+
+msgctxt "#458"
+msgid "Limit sampling rate (kHz)"
+msgstr "Limita la velocitat de mostreig (kHz)"
 
 msgctxt "#459"
 msgid "Subs"
@@ -1697,10 +1729,6 @@ msgctxt "#470"
 msgid "Credits"
 msgstr "Crèdits"
 
-msgctxt "#471"
-msgid "Modchip"
-msgstr "Modchip"
-
 msgctxt "#474"
 msgid "Off"
 msgstr "Inactiu"
@@ -1734,8 +1762,8 @@ msgid "Audio options"
 msgstr "Opcions d'àudio"
 
 msgctxt "#482"
-msgid "About XBMC"
-msgstr "Quant a l'XBMC"
+msgid "About Kodi"
+msgstr "Quant al Kodi"
 
 msgctxt "#485"
 msgid "Delete album"
@@ -1821,9 +1849,13 @@ msgctxt "#507"
 msgid "Sort by: Usage"
 msgstr "Ordena per: Ús"
 
+msgctxt "#510"
+msgid "Enable visualisations"
+msgstr "Habilita les visualitzacions"
+
 msgctxt "#511"
 msgid "Enable video mode switching"
-msgstr "Activa el canvi de mode de vídeo"
+msgstr "Habilita el canvi de mode de vídeo"
 
 msgctxt "#512"
 msgid "Startup window"
@@ -1964,6 +1996,10 @@ msgstr "No hi ha biografia d'aquest artista"
 msgctxt "#548"
 msgid "Downmix multichannel audio to stereo"
 msgstr "Mescla l'àudio multicanal a estèreo"
+
+msgctxt "#549"
+msgid "Number"
+msgstr "Número"
 
 msgctxt "#550"
 msgid "Sort by: %s"
@@ -2231,7 +2267,7 @@ msgstr "Totes les cançons de"
 
 msgctxt "#626"
 msgid "In progress TV shows"
-msgstr "Programes de Televisió en progrés"
+msgstr "Sèries de TV en progrés"
 
 msgctxt "#629"
 msgid "View mode"
@@ -2265,6 +2301,14 @@ msgctxt "#636"
 msgid "Custom"
 msgstr "Personalitzat"
 
+msgctxt "#637"
+msgid "ReplayGain"
+msgstr "ReplayGain"
+
+msgctxt "#638"
+msgid "ReplayGain volume adjustments"
+msgstr "Ajustos de volum de ReplayGain"
+
 msgctxt "#639"
 msgid "Use track levels"
 msgstr "Utilitza el volum de la pista"
@@ -2272,6 +2316,18 @@ msgstr "Utilitza el volum de la pista"
 msgctxt "#640"
 msgid "Use album levels"
 msgstr "Utilitza el volum de l'àlbum"
+
+msgctxt "#641"
+msgid "PreAmp Level - ReplayGained files"
+msgstr "Nivell de PreAmp - Fitxers amb ReplayGain"
+
+msgctxt "#642"
+msgid "PreAmp Level - Non ReplayGained files"
+msgstr "Nivell de PreAmp - Fitxers sense ReplayGain"
+
+msgctxt "#643"
+msgid "Avoid clipping on ReplayGained files"
+msgstr "Evitar la distorsió digital en fitxers amb ReplayGain"
 
 msgctxt "#644"
 msgid "Crop black bars"
@@ -2362,8 +2418,64 @@ msgid "Compression level"
 msgstr "Nivell de compressió"
 
 msgctxt "#666"
-msgid "Verbose logging..."
-msgstr "Registre detallat..."
+msgid "Enable component-specific logging"
+msgstr "Habilita el registre de components específics"
+
+msgctxt "#667"
+msgid "Enable Dolby Digital transcoding"
+msgstr "Habilita la transcodificació Dolby Digital"
+
+msgctxt "#668"
+msgid "Specify component-specific logging..."
+msgstr "Especifica el registre de components específics..."
+
+msgctxt "#669"
+msgid "Verbose logging for SMB library"
+msgstr "Registre detallat per la llibreria SMB"
+
+msgctxt "#670"
+msgid "Verbose logging for CURL library (http, dav)"
+msgstr "Registre detallat per la llibreria CURL (http, dav)"
+
+msgctxt "#671"
+msgid "Verbose logging for CMYTH library"
+msgstr "Registre detallat per la llibreria CMYTH"
+
+msgctxt "#672"
+msgid "Verbose logging for FFMPEG libraries"
+msgstr "Registre detallat per les llibreries FFMPEG"
+
+msgctxt "#673"
+msgid "Verbose logging for RTMP library"
+msgstr "Registre detallat per la llibreria RTMP"
+
+msgctxt "#674"
+msgid "Verbose logging for DBUS calls"
+msgstr "Registre detallat per les crides del DBUS"
+
+msgctxt "#675"
+msgid "Verbose logging for JSON-RPC requests"
+msgstr "Registre detallat per a les peticions JSON-RPC"
+
+msgctxt "#676"
+msgid "Verbose logging for AUDIO component"
+msgstr "Registre detallat del component AUDIO"
+
+msgctxt "#677"
+msgid "Verbose logging for AirTunes library"
+msgstr "Registre detallat per a la llibreria d'AirTunes"
+
+msgctxt "#678"
+msgid "Verbose logging for UPnP components"
+msgstr "Registre detallat per als components UPnP"
+
+msgctxt "#679"
+msgid "Verbose logging for CEC library"
+msgstr "Registre detallat per a la llibreria CEC"
+
+msgctxt "#680"
+msgid "Verbose logging for VIDEO component"
+msgstr "Registre detallat per al component de VÍDEO"
 
 msgctxt "#700"
 msgid "Cleaning up library"
@@ -2670,8 +2782,8 @@ msgid "Remote control"
 msgstr "Comandament a distància"
 
 msgctxt "#791"
-msgid "Allow programs on this system to control XBMC"
-msgstr "Permet que els programes d'aquest equip controlin l'XBMC"
+msgid "Allow programs on this system to control Kodi"
+msgstr "Permet que els programes d'aquest equip controlin el Kodi"
 
 msgctxt "#792"
 msgid "Port"
@@ -2682,8 +2794,8 @@ msgid "Port range"
 msgstr "Rang de ports"
 
 msgctxt "#794"
-msgid "Allow programs on other systems to control XBMC"
-msgstr "Permet que els programes d'altres equips controlin l'XBMC"
+msgid "Allow programs on other systems to control Kodi"
+msgstr "Permet que els programes d'altres equips controlin el Kodi"
 
 msgctxt "#795"
 msgid "Initial repeat delay (ms)"
@@ -2712,6 +2824,10 @@ msgstr "La llibreria de música necessista tornar a escanejar les etiquetes dels
 msgctxt "#801"
 msgid "Would you like to scan now?"
 msgstr "Voleu escanejar ara?"
+
+msgctxt "#802"
+msgid "%s of %s available"
+msgstr "%s de %s disponibles"
 
 msgctxt "#850"
 msgid "Invalid port number entered"
@@ -2746,8 +2862,8 @@ msgid "Unable to connect"
 msgstr "No s'ha pogut connectar"
 
 msgctxt "#1002"
-msgid "XBMC was unable to connect to the network location."
-msgstr "L'XBMC no ha pogut connectar amb la ubicació de xarxa."
+msgid "Kodi was unable to connect to the network location."
+msgstr "El Kodi no ha pogut connectar amb la ubicació de xarxa."
 
 msgctxt "#1003"
 msgid "This could be due to the network not being connected."
@@ -2875,7 +2991,7 @@ msgstr "Submenú"
 
 msgctxt "#1035"
 msgid "Enable submenu buttons"
-msgstr "Activa els botons del submenú"
+msgstr "Habilita els botons del submenú"
 
 msgctxt "#1036"
 msgid "Favourites"
@@ -2910,8 +3026,8 @@ msgid "Program Add-ons"
 msgstr "Complements de programes"
 
 msgctxt "#1044"
-msgid "Set plugin thumb"
-msgstr "Establiu la miniatura del connector"
+msgid "Set plug-in thumb"
+msgstr "Establir la miniatura del connector"
 
 msgctxt "#1045"
 msgid "Add-on settings"
@@ -3093,13 +3209,17 @@ msgctxt "#1260"
 msgid "Announce these services to other systems via Zeroconf"
 msgstr "Anuncia aquests serveis a altres sistemes a través de Zeroconf"
 
+msgctxt "#1268"
+msgid "iOS 8 compatibility mode"
+msgstr "Mode de compatibilitat per a iOS 8"
+
 msgctxt "#1269"
 msgid "Allow volume control"
 msgstr "Permet el control de volum"
 
 msgctxt "#1270"
-msgid "Allow XBMC to receive AirPlay content"
-msgstr "Permet que l'XBMC rebi contingut de l'AirPlay"
+msgid "Allow Kodi to receive AirPlay content"
+msgstr "Permet que el Kodi rebi contingut de l'AirPlay"
 
 msgctxt "#1271"
 msgid "Device name"
@@ -3128,6 +3248,90 @@ msgstr "Dispositiu d'àudio personalitzat"
 msgctxt "#1301"
 msgid "Custom passthrough device"
 msgstr "Dispositiu passthrough personalitzat"
+
+msgctxt "#1375"
+msgid "Temperature"
+msgstr "Temperatura"
+
+msgctxt "#1376"
+msgid "Pressure"
+msgstr "Pressió"
+
+msgctxt "#1377"
+msgid "Proximity"
+msgstr "Proximitat"
+
+msgctxt "#1378"
+msgid "Intensity"
+msgstr "Intensitat"
+
+msgctxt "#1379"
+msgid "Ragged"
+msgstr "Irregular"
+
+msgctxt "#1380"
+msgid "Very"
+msgstr "Molt"
+
+msgctxt "#1381"
+msgid "Extreme"
+msgstr "Extrem"
+
+msgctxt "#1382"
+msgid "Whirls"
+msgstr "Remolins"
+
+msgctxt "#1383"
+msgid "Sky Is Clear"
+msgstr "Cel clar"
+
+msgctxt "#1384"
+msgid "Broken"
+msgstr "Trencat"
+
+msgctxt "#1385"
+msgid "Tornado"
+msgstr "Tornado"
+
+msgctxt "#1386"
+msgid "Tropical"
+msgstr "Tropical"
+
+msgctxt "#1387"
+msgid "Hurricane"
+msgstr "Huracà"
+
+msgctxt "#1388"
+msgid "Cold"
+msgstr "Fred"
+
+msgctxt "#1389"
+msgid "Windy"
+msgstr "Ventós"
+
+msgctxt "#1390"
+msgid "Settings"
+msgstr "Configuració"
+
+msgctxt "#1391"
+msgid "Breeze"
+msgstr "Brisa"
+
+msgctxt "#1392"
+msgid "Gentle"
+msgstr "Suau"
+
+msgctxt "#1393"
+msgid "High wind, near gale"
+msgstr "Vent fort, gairebé vendaval"
+
+msgctxt "#1394"
+msgid "Severe"
+msgstr "Sever"
+
+msgctxt "#1395"
+msgid "Violent"
+msgstr "Violent"
 
 msgctxt "#1396"
 msgid "Drifting"
@@ -3478,24 +3682,28 @@ msgid "Reset"
 msgstr "Reinicialitza"
 
 msgctxt "#10036"
-msgid "Level: Basic"
-msgstr "Nivell: Bàsic"
+msgid "Basic"
+msgstr "Bàsic"
 
 msgctxt "#10037"
-msgid "Level: Standard"
-msgstr "Nivell: Estàndard"
+msgid "Standard"
+msgstr "Estàndard"
 
 msgctxt "#10038"
-msgid "Level: Advanced"
-msgstr "Nivell: Avançat"
+msgid "Advanced"
+msgstr "Avançat"
 
 msgctxt "#10039"
-msgid "Level: Expert"
-msgstr "Nivell: Expert"
+msgid "Expert"
+msgstr "Expert"
+
+msgctxt "#10040"
+msgid "Add-on browser"
+msgstr "Cercador de complements"
 
 msgctxt "#10041"
-msgid "Reset settings"
-msgstr "Reinicialitza la configuració"
+msgid "Reset above settings to default"
+msgstr "Restableix els ajustos anteriors als per defecte"
 
 msgctxt "#10042"
 msgid "Are you sure you want to reset the settings in this category?"
@@ -3508,6 +3716,26 @@ msgstr "Ajuda"
 msgctxt "#10044"
 msgid "No help available"
 msgstr "No hi ha ajuda disponible"
+
+msgctxt "#10045"
+msgid "Resets all the visible settings to their default values."
+msgstr "Restableix tots els canvis visibles als seus valors per defecte."
+
+msgctxt "#10046"
+msgid "No categories available"
+msgstr "No hi ha categories disponibles"
+
+msgctxt "#10047"
+msgid "Try changing the setting level to see additional categories and settings."
+msgstr "Prova de canviar el nivell d'ajust per veure categories i valors addicionals."
+
+msgctxt "#10100"
+msgid "Yes/No dialogue"
+msgstr "Diàleg Sí/No"
+
+msgctxt "#10101"
+msgid "Progress dialogue"
+msgstr "Diàleg de progrés"
 
 msgctxt "#10126"
 msgid "File browser"
@@ -3649,9 +3877,17 @@ msgctxt "#10524"
 msgid "Movie info"
 msgstr "Informació de la pel·lícula"
 
+msgctxt "#12000"
+msgid "Select dialogue"
+msgstr "Diàleg de selecció"
+
 msgctxt "#12001"
 msgid "Music/Info"
 msgstr "Música/Informació"
+
+msgctxt "#12002"
+msgid "Dialogue OK"
+msgstr "Diàleg «D'acord»"
 
 msgctxt "#12003"
 msgid "Videos/Info"
@@ -3664,6 +3900,14 @@ msgstr "Scripts/Informació"
 msgctxt "#12005"
 msgid "Fullscreen video"
 msgstr "Vídeo en pantalla completa"
+
+msgctxt "#12006"
+msgid "Audio visualisation"
+msgstr "Visualització d'àudio"
+
+msgctxt "#12008"
+msgid "File stacking dialogue"
+msgstr "Diàleg d'agrupar fitxers"
 
 msgctxt "#12009"
 msgid "Rebuild index..."
@@ -3763,7 +4007,7 @@ msgstr "Introduïu la combinació de botons del gamepad i"
 
 msgctxt "#12331"
 msgid "press OK, or Back to cancel"
-msgstr "premeu D'acord, or enree per cancel·lar"
+msgstr "premeu «D'acord», or enrere per cancel·lar"
 
 msgctxt "#12332"
 msgid "Set lock"
@@ -3822,8 +4066,8 @@ msgid "Password retry limit exceeded."
 msgstr "S'ha excedit el límit d'intents."
 
 msgctxt "#12347"
-msgid "The system will now shut off."
-msgstr "El sistema s'aturarà."
+msgid "The system will now power down."
+msgstr "Ara s'aturarà el sistema."
 
 msgctxt "#12348"
 msgid "Item locked"
@@ -3941,6 +4185,18 @@ msgctxt "#12395"
 msgid "Battery level"
 msgstr "Nivell de la bateria"
 
+msgctxt "#12396"
+msgid "Auto updates: On"
+msgstr "Actualitzacions automàtiques: Actiu"
+
+msgctxt "#12397"
+msgid "Auto updates: Notify"
+msgstr "Actualitzacions automàtiques: Notifica"
+
+msgctxt "#12398"
+msgid "Auto updates: Never"
+msgstr "Actualitzacions automàtiques: Mai"
+
 msgctxt "#12600"
 msgid "Weather"
 msgstr "El temps"
@@ -4000,6 +4256,10 @@ msgstr "Surt"
 msgctxt "#13013"
 msgid "Reboot"
 msgstr "Reinicia"
+
+msgctxt "#13014"
+msgid "Minimise"
+msgstr "Minimitza"
 
 msgctxt "#13015"
 msgid "Power button action"
@@ -4107,11 +4367,11 @@ msgstr "Desactivat"
 
 msgctxt "#13107"
 msgid "Enabled during video playback"
-msgstr "Activat durant la reproducció de vídeo"
+msgstr "Habilitat durant la reproducció de vídeo"
 
 msgctxt "#13108"
 msgid "Always enabled"
-msgstr "Sempre activat"
+msgstr "Sempre habilitat"
 
 msgctxt "#13109"
 msgid "Test & apply resolution"
@@ -4122,8 +4382,8 @@ msgid "Save resolution?"
 msgstr "Voleu desar la resolució?"
 
 msgctxt "#13111"
-msgid "Would you like to keep this resolution?"
-msgstr "Voleu mantenir aquesta resolució?"
+msgid "Would you like to keep this change?"
+msgstr "Voleu mantenir aquest canvi?"
 
 msgctxt "#13112"
 msgid "High quality upscaling"
@@ -4135,11 +4395,11 @@ msgstr "Desactivat"
 
 msgctxt "#13114"
 msgid "Enabled for SD content"
-msgstr "Activat per a contingut SD"
+msgstr "Habilitat per el contingut SD"
 
 msgctxt "#13115"
 msgid "Always enabled"
-msgstr "Sempre activat"
+msgstr "Sempre habilitat"
 
 msgctxt "#13116"
 msgid "Upscaling method"
@@ -4165,6 +4425,14 @@ msgctxt "#13121"
 msgid "VDPAU HQ Upscaling level"
 msgstr "Nivell d'escalat de VDPAU HQ"
 
+msgctxt "#13122"
+msgid "VDPAU Studio level colour conversion"
+msgstr "VDPAU Studio level color conversion"
+
+msgctxt "#13123"
+msgid "Keep skin?"
+msgstr "Mantenir la pell?"
+
 msgctxt "#13130"
 msgid "Blank other displays"
 msgstr "Enfosqueix les altres pantalles"
@@ -4182,8 +4450,8 @@ msgid "Active connections detected!"
 msgstr "S'han detectat les connexions actives"
 
 msgctxt "#13141"
-msgid "If you proceed, you might not be able to control XBMC"
-msgstr "Si continueu, pot ser que no sigueu capaç de controlar l'XBMC"
+msgid "If you proceed, you might not be able to control Kodi"
+msgstr "Si continueu, pot ser que no sigueu capaç de controlar el Kodi"
 
 msgctxt "#13142"
 msgid "any longer. Are you sure you want to stop the Event server?"
@@ -4198,8 +4466,8 @@ msgid "If you are currently using the Apple Remote to control"
 msgstr "Si actualment està utilitzant l'Apple Remote per controlar"
 
 msgctxt "#13146"
-msgid "XBMC, changing this setting might affect your ability"
-msgstr "l'XBMC, el canvi d'aquesta configuració pot afectar la seva capacitat"
+msgid "Kodi, changing this setting might affect your ability"
+msgstr "el Kodi, el canvi d'aquesta configuració pot afectar la seva capacitat"
 
 msgctxt "#13147"
 msgid "to continue controlling it. Do you want to proceed?"
@@ -4216,6 +4484,10 @@ msgstr "Passarel·la"
 msgctxt "#13161"
 msgid "Primary DNS"
 msgstr "DNS primari"
+
+msgctxt "#13162"
+msgid "Initialise failed"
+msgstr "No s'ha pogut inicialitzar"
 
 msgctxt "#13170"
 msgid "Never"
@@ -4403,7 +4675,7 @@ msgstr "Fonts"
 
 msgctxt "#13304"
 msgid "Enable flipping bi-directional strings"
-msgstr "Activa invertir cadenes bidireccionals"
+msgstr "Habilita invertir les cadenes bidireccionals"
 
 msgctxt "#13305"
 msgid "Show RSS news feeds"
@@ -4411,7 +4683,7 @@ msgstr "Mostra les notíces dels canals RSS"
 
 msgctxt "#13306"
 msgid "Show parent folder items"
-msgstr "Show parent folder items"
+msgstr "Mostra la icona d'accés a la carpeta superior"
 
 msgctxt "#13307"
 msgid "Track naming template"
@@ -4422,8 +4694,8 @@ msgid "Do you wish to reboot your system"
 msgstr "Voleu reiniciar els sistema"
 
 msgctxt "#13309"
-msgid "instead of just XBMC?"
-msgstr "en lloc de l'XBMC?"
+msgid "instead of just Kodi?"
+msgstr "en lloc del Kodi?"
 
 msgctxt "#13310"
 msgid "Zoom effect"
@@ -4461,6 +4733,10 @@ msgctxt "#13318"
 msgid "Recursive slideshow"
 msgstr "Presentació de diapositives recursiva"
 
+msgctxt "#13319"
+msgid "Randomise"
+msgstr "Aleatoritzar"
+
 msgctxt "#13320"
 msgid "Stereo"
 msgstr "Estèreo"
@@ -4475,7 +4751,7 @@ msgstr "Només dreta"
 
 msgctxt "#13323"
 msgid "Enable karaoke support"
-msgstr "Activa el suport de karaoke"
+msgstr "Habilita el suport de karaoke"
 
 msgctxt "#13324"
 msgid "Background transparency"
@@ -4570,8 +4846,8 @@ msgid "Scan for new content"
 msgstr "Cerca continguts nous"
 
 msgctxt "#13350"
-msgid "Now playing..."
-msgstr "S'està reproduïnt..."
+msgid "Current playlist"
+msgstr "Llista de reproducció actual"
 
 msgctxt "#13351"
 msgid "Album information"
@@ -4615,11 +4891,11 @@ msgstr "Genera les miniatures automàticament"
 
 msgctxt "#13361"
 msgid "Enable voice"
-msgstr "Activa la veu"
+msgstr "Habilita la veu"
 
 msgctxt "#13375"
 msgid "Enable device"
-msgstr "Activa el dispositiu"
+msgstr "Habilita el dispositiu"
 
 msgctxt "#13376"
 msgid "Volume"
@@ -4673,9 +4949,21 @@ msgctxt "#13388"
 msgid "Preset"
 msgstr "Predefinit"
 
+msgctxt "#13389"
+msgid "There are no presets available\nfor this visualisation"
+msgstr "No hi ha copcions disponibles⏎\nper a aquesta visualització"
+
+msgctxt "#13390"
+msgid "There are no settings available\nfor this visualisation"
+msgstr "No hi ha copcions disponibles⏎\nper a aquesta visualització"
+
 msgctxt "#13391"
 msgid "Eject/Load"
 msgstr "Expulsa/Carrega"
+
+msgctxt "#13392"
+msgid "Use visualisation if playing audio"
+msgstr "Utilitza la visualització si es reprodueix àudio"
 
 msgctxt "#13393"
 msgid "Calculate size"
@@ -4695,7 +4983,7 @@ msgstr "Configuracions de l'àudio i dels subtítols"
 
 msgctxt "#13397"
 msgid "Enable subtitles"
-msgstr "Activa els subtítols"
+msgstr "Habilita els subtítols"
 
 msgctxt "#13398"
 msgid "Shortcuts"
@@ -4847,11 +5135,95 @@ msgstr "Reprodueix només aquest"
 
 msgctxt "#13435"
 msgid "Enable HQ Scalers for scalings above"
-msgstr "Habilitar Escaladors HQ per escalades anteriors"
+msgstr "Habilita els escaladors HQ per escalades anteriors"
 
 msgctxt "#13436"
 msgid "Allow hardware acceleration (libstagefright)"
 msgstr "Permet l'acceleració per maquinari (libstagefright)"
+
+msgctxt "#13437"
+msgid "Prefer VDPAU Video Mixer"
+msgstr "Preferir el mesclador de vídeo VDAPU"
+
+msgctxt "#13438"
+msgid "Allow hardware acceleration (amcodec)"
+msgstr "Permet l'acceleració per maquinari (amcodec)"
+
+msgctxt "#13439"
+msgid "Allow hardware acceleration (MediaCodec)"
+msgstr "Permet l'acceleració per maquinari (MediaCodec)"
+
+msgctxt "#13441"
+msgid "Use MPEG-2 VDPAU"
+msgstr "Utilitza l'VDPAU de l'MPEG-2"
+
+msgctxt "#13442"
+msgid "Enable this option to use hardware acceleration for MPEG-(1/2) codecs. If disabled the CPU will be used instead. Older Radeon Cards tend to segfault with this enabled."
+msgstr "Habilita aquesta opció per a utilitzar l'acceleració per maquinari per als còdecs MPEG-(1/2). Si s'inhabilita es farà servir la CPU. Les antigues targetes Radeon tenen tendència a fallar amb aquesta opció habilitada."
+
+msgctxt "#13443"
+msgid "Use MPEG-4 VDPAU"
+msgstr "Utilitza l'VDPAU de l'MPEG-4"
+
+msgctxt "#13444"
+msgid "Enable this option to use hardware acceleration for the MPEG-4 codec. If disabled the CPU will be used instead. Some ION Hardware has problems with this being enabled by default."
+msgstr "Habilita aquesta opció per a utilitzar l'acceleració per maquinari per al còdec Mpeg-4. Si s'inhabilita es farà servir la CPU. Algun maquinari basat en ION té problemes si s'habilita aquesta opció per defecte."
+
+msgctxt "#13445"
+msgid "Use VC-1 VDPAU"
+msgstr "Utilitza VC-1 VDPAU"
+
+msgctxt "#13446"
+msgid "Enable this option to use hardware acceleration for VC-1 based codecs. If disabled the CPU will be used instead. AMD Hardware with VDPAU cannot decode VC-1 Simple."
+msgstr "Activeu aquesta opció per a utilitzar acceleració per maquinari per a codecs basats en VC-1. Si es deshabilita es farà servir la CPU. Maquinari AMD amb VDPAU no pot descodificar VC-1 simple."
+
+msgctxt "#13447"
+msgid "Use MPEG-2 VAAPI"
+msgstr "Utilitza l'VAAPI de l'MPEG-2"
+
+msgctxt "#13448"
+msgid "Enable this option to use hardware acceleration for MPEG-(1/2) codecs. If disabled the CPU will be used instead. Some MPEG-2 Videos might have green artifacts."
+msgstr "Habilita aquesta opció per a utilitzar l'acceleració per maquinari per a còdecs MPEG-(1/2). Si s'inhabilita es farà servir la CPU. Alguns vídeos MPEG-2 poden presentar artefactes verds."
+
+msgctxt "#13449"
+msgid "Use MPEG-4 VAAPI"
+msgstr "Utilitza l'VAAPI de l'MPEG-4"
+
+msgctxt "#13450"
+msgid "Enable this option to use hardware acceleration for the MPEG-4 codec. If disabled the CPU will be used instead."
+msgstr "Habilita aquesta opció per a utilitzar l'acceleració per maquinari per al còdec MPEG-4. Si s'inhabilita es farà servir la CPU."
+
+msgctxt "#13451"
+msgid "Use VC-1 VAAPI"
+msgstr "Utilitza VC-1 VAAPI"
+
+msgctxt "#13452"
+msgid "Enable this option to use hardware acceleration for VC-1 based codecs. If disabled the CPU will be used instead. Especially VC-1 Interlaced fails hard on Intel hardware."
+msgstr "Activeu aquesta opció per a utilitzar acceleració per maquinari per a codecs basats en VC-1. Si es deshabilita es farà servir la CPU. Especialment VC-1 entrellaçat falla completament en maquinari Intel."
+
+msgctxt "#13454"
+msgid "Decoding method"
+msgstr "Mètode de descodificació"
+
+msgctxt "#13455"
+msgid "Software"
+msgstr "Programari"
+
+msgctxt "#13456"
+msgid "Hardware accelerated"
+msgstr "Accelerat per maquinari"
+
+msgctxt "#13457"
+msgid "Prefer VAAPI render method"
+msgstr "Prioritza el mètode de renderitzat de l'VAAPI"
+
+msgctxt "#13458"
+msgid "Allow hardware acceleration (OMXPlayer)"
+msgstr "Permet l'acceleració per maquinari (OMXPlayer)"
+
+msgctxt "#13459"
+msgid "Use OMXPlayer for decoding of video files."
+msgstr "Utilitza l'OMXPlayer per descodificar els fitxers de vídeo."
 
 msgctxt "#13500"
 msgid "A/V sync method"
@@ -4868,6 +5240,10 @@ msgstr "Rellotge del vídeo (Drop/Dupe àudio)"
 msgctxt "#13503"
 msgid "Video clock (Resample audio)"
 msgstr "Rellotge del vídeo (Remostreja l'àudio)"
+
+msgctxt "#13504"
+msgid "Maximum speedup/slowdown amount (%)"
+msgstr "Quantitat màxim d'acceleració/alentiment (%)"
 
 msgctxt "#13505"
 msgid "Resample quality"
@@ -4933,13 +5309,21 @@ msgctxt "#13553"
 msgid "%.1f Seconds"
 msgstr "%.1f Segons"
 
+msgctxt "#13554"
+msgid "%d Minute"
+msgstr "%d Minut"
+
+msgctxt "#13555"
+msgid "%d Minutes"
+msgstr "%d Minuts"
+
 msgctxt "#13600"
 msgid "Apple remote"
 msgstr "Apple remote"
 
 msgctxt "#13602"
-msgid "Allow start of XBMC using the remote"
-msgstr "Permet l'inici de l'XBMC amb el control remot"
+msgid "Allow start of Kodi using the remote"
+msgstr "Permet l'inici del Kodi amb el control remot"
 
 msgctxt "#13603"
 msgid "Sequence delay time"
@@ -4966,8 +5350,8 @@ msgid "Apple Remote Error"
 msgstr "Error del'Apple Remote"
 
 msgctxt "#13621"
-msgid "Apple Remote support could be enabled."
-msgstr "No es pot activar el suport per l'Apple Remote."
+msgid "Apple Remote support could not be enabled."
+msgstr "No es pot habilitar el suport per a l'Apple Remote."
 
 msgctxt "#14000"
 msgid "Stack"
@@ -5007,7 +5391,7 @@ msgstr "Canvia automàticament a les miniatures segons"
 
 msgctxt "#14011"
 msgid "Enable auto switching to thumbs view"
-msgstr "Activar Autoconmutació en les vistes de caràtules"
+msgstr "Habilita l'autoconmutació en la vista de caràtules"
 
 msgctxt "#14012"
 msgid "- Use large icons"
@@ -5061,29 +5445,33 @@ msgctxt "#14024"
 msgid "Enter the nearest large town"
 msgstr "Introduïu la ciutat propera més gran"
 
+msgctxt "#14025"
+msgid "Video/Audio/DVD cache - Hard disk"
+msgstr "Memòria cau del Vídeo/Àudio/DVD - Disc dur"
+
 msgctxt "#14026"
 msgid "Video cache - DVD-ROM"
 msgstr "Memòria cau del vídeo - DVD-ROM"
 
 msgctxt "#14027"
-msgid "Local Network"
-msgstr "Xarxa local"
+msgid "Video cache - Local Network"
+msgstr "Memòria cau de vídeo - Xarxa local"
 
 msgctxt "#14028"
-msgid "Internet"
-msgstr "Internet"
+msgid "Video cache - Internet"
+msgstr "Memòria cau de vídeo - Internet"
 
 msgctxt "#14030"
 msgid "Audio cache - DVD-ROM"
 msgstr "Memòria cau de l'àudio - DVD-ROM"
 
 msgctxt "#14031"
-msgid "Local Network"
-msgstr "Xarxa local"
+msgid "Audio cache - Local Network"
+msgstr "Memòria cau d'àudio - Xarxa local"
 
 msgctxt "#14032"
-msgid "Internet"
-msgstr "Internet"
+msgid "Audio cache - Internet"
+msgstr "Memória cau d'àudio - Internet"
 
 msgctxt "#14034"
 msgid "DVD cache - DVD-ROM"
@@ -5097,13 +5485,17 @@ msgctxt "#14036"
 msgid "Services"
 msgstr "Serveis"
 
+msgctxt "#14037"
+msgid "DVD cache - Local Network"
+msgstr "Memòria cau de DVD - Xarxa local"
+
 msgctxt "#14038"
 msgid "Network settings changed"
 msgstr "La configuració de xarxa ha canviat"
 
 msgctxt "#14039"
-msgid "XBMC requires to restart to change your"
-msgstr "és necessari reiniciar l'XBMC per canviar la seva"
+msgid "Kodi requires to restart to change your"
+msgstr "és necessari reiniciar el Kodi per canviar la seva"
 
 msgctxt "#14040"
 msgid "network setup.  Would you like to restart now?"
@@ -5156,6 +5548,10 @@ msgstr "Format de la data"
 msgctxt "#14053"
 msgid "GUI filters"
 msgstr "Filtres GUI"
+
+msgctxt "#14054"
+msgid "%2.1f dB"
+msgstr "%2.1f dB"
 
 msgctxt "#14055"
 msgid "Use background scanning"
@@ -5274,8 +5670,8 @@ msgid "Playback"
 msgstr "Reproducció"
 
 msgctxt "#14087"
-msgid "DVDs"
-msgstr "DVDs"
+msgid "Discs"
+msgstr "Discs"
 
 msgctxt "#14088"
 msgid "Play DVDs automatically"
@@ -5329,6 +5725,34 @@ msgctxt "#14100"
 msgid "Stop ripping CD"
 msgstr "Atura l'extracció del CD"
 
+msgctxt "#14101"
+msgid "Acceleration"
+msgstr "Acceleració"
+
+msgctxt "#14102"
+msgid "Blu-ray playback mode"
+msgstr "Mode de reproducció del Blu-Ray"
+
+msgctxt "#14103"
+msgid "Play main movie"
+msgstr "Reprodueix la pel·lícula principal"
+
+msgctxt "#14104"
+msgid "Show simplified menu"
+msgstr "Mostra el menú simplificat"
+
+msgctxt "#15012"
+msgid "Unavailable source"
+msgstr "Font no disponible"
+
+msgctxt "#15013"
+msgid "What would you like to do with media items from %s"
+msgstr "Què voleu fer amb els medis de %s"
+
+msgctxt "#15014"
+msgid "Keep"
+msgstr "Manté"
+
 msgctxt "#15015"
 msgid "Remove"
 msgstr "Suprimeix"
@@ -5381,6 +5805,10 @@ msgctxt "#15109"
 msgid "Skin default"
 msgstr "Aparença per defecte"
 
+msgctxt "#15110"
+msgid "Larger font size"
+msgstr "Amplia la mida de la font"
+
 msgctxt "#15111"
 msgid "Theme"
 msgstr "Tema"
@@ -5404,6 +5832,10 @@ msgstr "No està connectat"
 msgctxt "#15213"
 msgid "Play using..."
 msgstr "Reprodueix utilitzant..."
+
+msgctxt "#15214"
+msgid "Use smoothed A/V synchronisation"
+msgstr "Utilitza la sincronització A/V suau"
 
 msgctxt "#15215"
 msgid "Hide file names in thumbs view"
@@ -5545,6 +5977,10 @@ msgctxt "#16031"
 msgid "No matching songs in the library."
 msgstr "Sense cançons coincidents a la biblioteca"
 
+msgctxt "#16032"
+msgid "Could not initialise database."
+msgstr "No s'ha pogut inicialitzar la base de dades."
+
 msgctxt "#16033"
 msgid "Could not open database."
 msgstr "No s'ha pogut obrir la base de dades."
@@ -5606,7 +6042,7 @@ msgid "Edit title"
 msgstr "Edita el títol"
 
 msgctxt "#16106"
-msgid "Manage ..."
+msgid "Manage..."
 msgstr "Gestió..."
 
 msgctxt "#16107"
@@ -5701,6 +6137,10 @@ msgctxt "#16314"
 msgid "Inverse Telecine"
 msgstr "Telecine invers"
 
+msgctxt "#16315"
+msgid "Lanczos3 optimised"
+msgstr "Lanczos3 optimitzat"
+
 msgctxt "#16316"
 msgid "Auto"
 msgstr "Auto"
@@ -5729,9 +6169,49 @@ msgctxt "#16322"
 msgid "Spline36"
 msgstr "Spline36"
 
+msgctxt "#16323"
+msgid "Spline36 optimised"
+msgstr "Spline36 optimitzat"
+
 msgctxt "#16324"
 msgid "Software Blend"
 msgstr "Software Blend"
+
+msgctxt "#16325"
+msgid "VDPAU - Bob"
+msgstr "VDPAU - Bob"
+
+msgctxt "#16326"
+msgid "DXVA-HD"
+msgstr "DXVA-HD"
+
+msgctxt "#16327"
+msgid "VAAPI Bob"
+msgstr "VAAPI Bob"
+
+msgctxt "#16328"
+msgid "VAAPI Motion Adaptive"
+msgstr "VAAPI adaptable al moviment"
+
+msgctxt "#16329"
+msgid "VAAPI Motion Compensated"
+msgstr "VAAPI amb compensació de moviment"
+
+msgctxt "#16330"
+msgid "MMAL - Advanced"
+msgstr "MMAL- Avançat"
+
+msgctxt "#16331"
+msgid "MMAL - Advanced (Half)"
+msgstr "MMAL - Avançat (Mig)"
+
+msgctxt "#16332"
+msgid "MMAL - Bob"
+msgstr "MMAL - Bob"
+
+msgctxt "#16333"
+msgid "MMAL - Bob (Half)"
+msgstr "MMAL - Bob (Mig)"
 
 msgctxt "#16400"
 msgid "Post-processing"
@@ -5766,8 +6246,8 @@ msgid "or use phrases to find an exact match, like \"The wizard of Oz\"."
 msgstr "o utilitzeu frases per trobar coincidències exactes com \"El mag d'Oz\"."
 
 msgctxt "#19003"
-msgid "Find similar programs"
-msgstr "Cerca programes similars"
+msgid "Find similar"
+msgstr "Cerca semblants"
 
 msgctxt "#19004"
 msgid "Importing EPG from clients"
@@ -5822,12 +6302,12 @@ msgid "PVR Backend %i - %s"
 msgstr "Rerefons PVR %i - %s"
 
 msgctxt "#19017"
-msgid "TV recordings"
-msgstr "Enregistraments de TV"
+msgid "Recordings"
+msgstr "Enregistraments"
 
 msgctxt "#19018"
-msgid "Default folder for PVR thumbnails"
-msgstr "Directori per defecte per les miniatures del PVR"
+msgid "Folder with channel icons"
+msgstr "Carpeta amb les icones de canal"
 
 msgctxt "#19019"
 msgid "Channels"
@@ -5987,7 +6467,7 @@ msgstr "Edita el temporitzador"
 
 msgctxt "#19058"
 msgid "Timer enabled"
-msgstr "Temporitzador activat"
+msgstr "Temporitzador habilitat"
 
 msgctxt "#19059"
 msgid "Stop recording"
@@ -6013,9 +6493,9 @@ msgctxt "#19064"
 msgid "Go to end"
 msgstr "Anar al final"
 
-msgctxt "#19065"
-msgid "Default EPG window"
-msgstr "Finestra per defecte de l'EPG"
+msgctxt "#19066"
+msgid "Channel icons"
+msgstr "Icones del cananl"
 
 msgctxt "#19067"
 msgid "This event is already being recorded."
@@ -6141,13 +6621,33 @@ msgctxt "#19098"
 msgid "Warning"
 msgstr "Advertència"
 
+msgctxt "#19099"
+msgid "Service"
+msgstr "Servei"
+
+msgctxt "#19100"
+msgid "Mux"
+msgstr "Mux"
+
+msgctxt "#19101"
+msgid "Provider"
+msgstr "Proveïdor"
+
 msgctxt "#19102"
 msgid "Please switch to another channel."
 msgstr "canvieu a un altre canal"
 
+msgctxt "#19103"
+msgid "Go to channel"
+msgstr "Ves al canal"
+
 msgctxt "#19104"
 msgid "Enter the name of the folder for the recording"
 msgstr "Introduïu el nom del directori pels enregistraments"
+
+msgctxt "#19105"
+msgid "Please select a channel"
+msgstr "Seleccioneu un canal"
 
 msgctxt "#19106"
 msgid "Next timer on"
@@ -6168,6 +6668,14 @@ msgstr "S'ha produït un error inesperat. Intentau-ho de nou més tard o comprov
 msgctxt "#19111"
 msgid "PVR backend error. Check the log for details."
 msgstr "Error del rerefons PVR. Comprovau els registres per detalls."
+
+msgctxt "#19112"
+msgid "Delete this recording?"
+msgstr "Voleu eliminar aquest enregistrament?"
+
+msgctxt "#19113"
+msgid "Delete all recordings in this folder?"
+msgstr "Voleu eliminar tots els enregistraments d'aquesta carpeta?"
 
 msgctxt "#19114"
 msgid "Version"
@@ -6190,7 +6698,7 @@ msgid "Cannot use PVR functions while searching."
 msgstr "No es poden utilitzar les funcions PVR durant una cerca."
 
 msgctxt "#19119"
-msgid "On which server you want to search?"
+msgid "On which server do you want to search?"
 msgstr "A quin servidor voleu cercar?"
 
 msgctxt "#19120"
@@ -6272,6 +6780,10 @@ msgstr "Creeu primer un grup"
 msgctxt "#19139"
 msgid "Name of the new group"
 msgstr "Nom del grup"
+
+msgctxt "#19140"
+msgid "Search..."
+msgstr "Cerca..."
 
 msgctxt "#19141"
 msgid "Group"
@@ -6385,6 +6897,10 @@ msgctxt "#19170"
 msgid "Timeout when starting playback"
 msgstr "Temps d'espera en iniciar la reproducció"
 
+msgctxt "#19171"
+msgid "Start playback minimised"
+msgstr "Inicia la reproducció minimitzada"
+
 msgctxt "#19172"
 msgid "Instant recording duration"
 msgstr "Durada de l'instant d'enregistrament"
@@ -6413,10 +6929,6 @@ msgctxt "#19178"
 msgid "Show channel information when switching channels"
 msgstr "Mostra el canal d'informació durant el canvi de canals"
 
-msgctxt "#19179"
-msgid "Automatically hide channel information"
-msgstr "Amaga automàticament el canal d'informació"
-
 msgctxt "#19180"
 msgid "TV"
 msgstr "TV"
@@ -6429,9 +6941,9 @@ msgctxt "#19182"
 msgid "Days to display in the EPG"
 msgstr "Dies a mostrar a l'EPG"
 
-msgctxt "#19184"
-msgid "Channel information duration"
-msgstr "Durada del canal d'informació"
+msgctxt "#19183"
+msgid "Radio"
+msgstr "Ràdio"
 
 msgctxt "#19185"
 msgid "Reset the PVR database"
@@ -6452,6 +6964,10 @@ msgstr "S'està reestablint l'EPG"
 msgctxt "#19189"
 msgid "Continue last channel on startup"
 msgstr "Continua al darrer canal en iniciar"
+
+msgctxt "#19190"
+msgid "Background"
+msgstr "Fons"
 
 msgctxt "#19191"
 msgid "PVR service"
@@ -6526,8 +7042,8 @@ msgid "Enter the name of the new channel"
 msgstr "Introduïu el nom del nou canal"
 
 msgctxt "#19209"
-msgid "XBMC virtual backend"
-msgstr "Rerefons virtual de l'XBMC"
+msgid "Kodi virtual backend"
+msgstr "Rerefons virtual del Kodi"
 
 msgctxt "#19210"
 msgid "Client"
@@ -6574,7 +7090,7 @@ msgid "Channels in"
 msgstr "Canals en"
 
 msgctxt "#19221"
-msgid "Synchronise channel groups with backends"
+msgid "Synchronise channel groups with backend(s)"
 msgstr "Sincronitza els grups de canals amb els rerefons"
 
 msgctxt "#19222"
@@ -6582,8 +7098,8 @@ msgid "EPG"
 msgstr "EPG"
 
 msgctxt "#19223"
-msgid "No PVR add-on could be enabled. Check your settings or the log for more info."
-msgstr "No s'ha pogut activar cap afegitó PVR. Comprovau la vostra configuració o els registres per més informació."
+msgid "No PVR Add-on could be enabled. Check your settings or the log for more info."
+msgstr "No s'ha pogut activar cap complement de PVR. Comprova la configuració o el registre per a obtenir més informació."
 
 msgctxt "#19224"
 msgid "Recording aborted"
@@ -6609,6 +7125,10 @@ msgctxt "#19229"
 msgid "Close channel OSD after switching channels"
 msgstr "Tanca l'OSD del canal després de canviar canals"
 
+msgctxt "#19230"
+msgid "Prevent EPG updates during playback"
+msgstr "Evita actualitzacions de l'EPG durant la reproducció"
+
 msgctxt "#19231"
 msgid "Always use the channel order from the backend(s)"
 msgstr "Utilitza sempre l'ordre dels canals dels rerefons."
@@ -6620,6 +7140,10 @@ msgstr "Neteja els resultats de la cerca"
 msgctxt "#19233"
 msgid "Display a notification on timer updates"
 msgstr "Mostra una notificació en actualitzar els temporitzadors"
+
+msgctxt "#19234"
+msgid "Use backend channels numbers (only works with 1 enabled PVR Add-on)"
+msgstr "Utilitza els números de canal del servei (només funciona amb 1 afegitó PVR activat)"
 
 msgctxt "#19235"
 msgid "PVR manager is starting up"
@@ -6642,16 +7166,16 @@ msgid "Starting background threads"
 msgstr "Iniciant els fils de segon pla"
 
 msgctxt "#19240"
-msgid "No PVR add-on enabled"
-msgstr "Cap complement PVR activat"
+msgid "No PVR Add-on enabled"
+msgstr "No hi ha cap complement PVR activat"
 
 msgctxt "#19241"
 msgid "The PVR manager has been enabled without any"
-msgstr "El gestor PVR s'ha activat sense cap"
+msgstr "El gestor PVR s'ha habilitat sense cap"
 
 msgctxt "#19242"
-msgid "enabled PVR add-on. Enable at least one add-on"
-msgstr "complement PVR activat. Activau al menys un afegitó"
+msgid "enabled PVR Add-on. Enable at least one Add-on"
+msgstr "s'ha habilitat el complement PVR. Habiliteu almenys un complement"
 
 msgctxt "#19243"
 msgid "in order to use the PVR functionality."
@@ -6762,11 +7286,11 @@ msgid "Do not show 'connection lost' warnings"
 msgstr "No mostris els avisos de 'connexió perduda'"
 
 msgctxt "#19270"
-msgid "* All recordings"
-msgstr "* Tots els enregistraments"
+msgid "Group Items"
+msgstr "Grup d'elements"
 
 msgctxt "#19271"
-msgid "No PVR add-ons could be found"
+msgid "No PVR Add-ons could be found"
 msgstr "No s'ha trobat cap complement PVR"
 
 msgctxt "#19272"
@@ -6774,12 +7298,8 @@ msgid "You need a tuner, backend software, and an"
 msgstr "Necessitau un sintonitzador, programari de rerefons, i un"
 
 msgctxt "#19273"
-msgid "add-on for the backend to be able to use PVR."
-msgstr "complement del rerefons per poder utilitzar el PVR."
-
-msgctxt "#19274"
-msgid "Please visit xbmc.org/pvr to learn more."
-msgstr "Visiteu xbmc.org/pvr per saber més."
+msgid "Add-on for the backend to be able to use PVR."
+msgstr "Complement per al servei que permet utilitzar el PVR."
 
 msgctxt "#19275"
 msgid "Conflict warning"
@@ -6807,7 +7327,35 @@ msgstr "Configuració específica del client"
 
 msgctxt "#19281"
 msgid "Confirm channel switches by pressing OK"
-msgstr "Confirma el canvi de canal prement OK"
+msgstr "Confirma el canvi de canal prement «D'acord»"
+
+msgctxt "#19282"
+msgid "Current icon"
+msgstr "Icona actual"
+
+msgctxt "#19283"
+msgid "No icon"
+msgstr "Sense icona"
+
+msgctxt "#19284"
+msgid "Choose icon"
+msgstr "Trieu una icona"
+
+msgctxt "#19285"
+msgid "Browse for icon"
+msgstr "Cerca una icona"
+
+msgctxt "#19286"
+msgid "Searching for channel icons"
+msgstr "S'estan cercant icones per al canal"
+
+msgctxt "#19287"
+msgid "All channels"
+msgstr "Tots el canals"
+
+msgctxt "#19288"
+msgid "Foreground"
+msgstr "Primer pla"
 
 msgctxt "#19499"
 msgid "Other/Unknown"
@@ -7094,8 +7642,8 @@ msgid "Motoring"
 msgstr "Automobilisme"
 
 msgctxt "#19648"
-msgid "Fitness &amp; Health"
-msgstr "Fitness &amp; Salut"
+msgid "Fitness & Health"
+msgstr "Fitness i Salut"
 
 msgctxt "#19649"
 msgid "Cooking"
@@ -7118,7 +7666,7 @@ msgid "Original Language"
 msgstr "Idioma original"
 
 msgctxt "#19662"
-msgid "Black &amp; White"
+msgid "Black & White"
 msgstr "Blanc i negre"
 
 msgctxt "#19663"
@@ -7198,8 +7746,8 @@ msgid "Screenshots"
 msgstr "Captures de pantalla"
 
 msgctxt "#20009"
-msgid "Use XBMC"
-msgstr "Utilitza l'XBMC"
+msgid "Use Kodi"
+msgstr "Utilitza el Kodi"
 
 msgctxt "#20011"
 msgid "Music playlists"
@@ -7419,7 +7967,7 @@ msgstr "- sense enllaç establert -"
 
 msgctxt "#20079"
 msgid "Enable animations"
-msgstr "Enable animations"
+msgstr "Habilita les animacions"
 
 msgctxt "#20080"
 msgid "Disable RSS during music"
@@ -7427,7 +7975,7 @@ msgstr "Desactiva l'RSS durant la música"
 
 msgctxt "#20081"
 msgid "Enable shortcut buttons"
-msgstr "Activa els botons d'accés directe"
+msgstr "Habilita els botons d'accés directe"
 
 msgctxt "#20082"
 msgid "Show programs in main menu"
@@ -7444,6 +7992,14 @@ msgstr "Mostra la informació del temps"
 msgctxt "#20085"
 msgid "Show system info"
 msgstr "Mostra la informació del temps"
+
+msgctxt "#20086"
+msgid "Show available disk space C: E: F:"
+msgstr "Mostra l'espai de disc disponible a C: E: F:"
+
+msgctxt "#20087"
+msgid "Show available disk space E: F: G:"
+msgstr "Mostra l'espai de disc disponible a E: F: G:"
 
 msgctxt "#20088"
 msgid "Weather info"
@@ -7499,7 +8055,7 @@ msgstr "Codi mestre i opcions"
 
 msgctxt "#20101"
 msgid "Entering master lock code always enables master mode"
-msgstr "Intorduïnt el codi mestre de bloqueig sempre activa el mode mestre"
+msgstr "Intorduïnt el codi mestre de bloqueig sempre habilita el mode mestre"
 
 msgctxt "#20102"
 msgid "or copy from default?"
@@ -7889,6 +8445,10 @@ msgctxt "#20199"
 msgid "Downloading artist info failed"
 msgstr "Downloading artist info failed"
 
+msgctxt "#20220"
+msgid "Override song tags with online information"
+msgstr "Sobreescriu les etiquetes de la cançó amb informació en línia"
+
 msgctxt "#20240"
 msgid "Android music"
 msgstr "Música android"
@@ -7957,6 +8517,10 @@ msgctxt "#20261"
 msgid "Apple Filing Protocol (AFP)"
 msgstr "Apple Filing Protocol (AFP)"
 
+msgctxt "#20262"
+msgid "Zeroconf Browser"
+msgstr "Cercador Zeroconf"
+
 msgctxt "#20300"
 msgid "Web server directory (HTTP)"
 msgstr "Directori del servidor web (HTTP)"
@@ -8021,6 +8585,10 @@ msgctxt "#20321"
 msgid "Scanning albums using %s"
 msgstr "S'estan escanejant els àlbums utilitzant %s"
 
+msgctxt "#20323"
+msgid "Movie plot"
+msgstr "Trama de la pel·lícula"
+
 msgctxt "#20324"
 msgid "Play part..."
 msgstr "Play part..."
@@ -8034,8 +8602,8 @@ msgid "This will reset the calibration values for %s"
 msgstr "This will reset the calibration values for %s"
 
 msgctxt "#20327"
-msgid "to it's default values."
-msgstr "to it's default values."
+msgid "to its default values."
+msgstr "als seus valors per defecte."
 
 msgctxt "#20328"
 msgid "Browse for destination"
@@ -8090,8 +8658,8 @@ msgid "Do you want to remove all items within"
 msgstr "Do you want to remove all items within"
 
 msgctxt "#20341"
-msgid "this path from the XBMC library?"
-msgstr "this path from the XBMC library?"
+msgid "this path from the Kodi library?"
+msgstr "this path from the Kodi library?"
 
 msgctxt "#20342"
 msgid "Movies"
@@ -8131,7 +8699,7 @@ msgstr "vots"
 
 msgctxt "#20351"
 msgid "TV show information"
-msgstr "Informació de sèrie de TV"
+msgstr "Informació de la sèrie de TV"
 
 msgctxt "#20352"
 msgid "Episode information"
@@ -8139,7 +8707,7 @@ msgstr "Informació de l'episodi"
 
 msgctxt "#20353"
 msgid "Loading TV show details"
-msgstr "Carregant detalls del programa de TV"
+msgstr "Carregant detalls de la sèrie de TV"
 
 msgctxt "#20354"
 msgid "Fetching episode guide"
@@ -8151,7 +8719,7 @@ msgstr "Loading info for episodes in directory"
 
 msgctxt "#20356"
 msgid "Select TV show:"
-msgstr "Seleccioneu un programa de TV:"
+msgstr "Seleccioneu una sèrie de TV:"
 
 msgctxt "#20357"
 msgid "Enter the TV show name"
@@ -8179,7 +8747,7 @@ msgstr "Remove episode from library"
 
 msgctxt "#20363"
 msgid "Remove TV show from library"
-msgstr "Eliminar programa de TV de la biblioteca"
+msgstr "Elimina la sèrie de TV de la biblioteca"
 
 msgctxt "#20364"
 msgid "TV show"
@@ -8235,7 +8803,7 @@ msgstr "Títol original"
 
 msgctxt "#20377"
 msgid "Refresh TV show information"
-msgstr "Actualitzar informació del programa de TV"
+msgstr "Actualitza la informació de la sèrie de TV"
 
 msgctxt "#20378"
 msgid "Refresh info for all episodes?"
@@ -8243,7 +8811,7 @@ msgstr "Refresh info for all episodes?"
 
 msgctxt "#20379"
 msgid "Selected folder contains a single TV show"
-msgstr "La carpeta seleccionada conté un únic programa de TV"
+msgstr "La carpeta seleccionada conté una única sèrie de TV"
 
 msgctxt "#20380"
 msgid "Exclude selected folder from scans"
@@ -8253,21 +8821,17 @@ msgctxt "#20381"
 msgid "Specials"
 msgstr "Especials"
 
-msgctxt "#20382"
-msgid "Automatically grab season thumbs"
-msgstr "Automatically grab season thumbs"
-
 msgctxt "#20383"
 msgid "Selected folder contains a single video"
 msgstr "Selected folder contains a single video"
 
 msgctxt "#20384"
 msgid "Link to TV show"
-msgstr "Enllaçar a programa de TV"
+msgstr "Enllaça a la sèrie de TV"
 
 msgctxt "#20385"
 msgid "Remove link to TV show"
-msgstr "Eliminar enllaç a programa de TV"
+msgstr "Elimina enllaç a la sèrie de TV"
 
 msgctxt "#20386"
 msgid "Recently added movies"
@@ -8279,7 +8843,7 @@ msgstr "Recently added episodes"
 
 msgctxt "#20388"
 msgid "Studios"
-msgstr "Studios"
+msgstr "Estudis"
 
 msgctxt "#20389"
 msgid "Music videos"
@@ -8363,7 +8927,7 @@ msgstr "S'està baixant la informació del videoclip"
 
 msgctxt "#20409"
 msgid "Downloading TV show information"
-msgstr "S'està baixant la informació del programa de televisió"
+msgstr "S'està baixant la informació de la sèrie de TV"
 
 msgctxt "#20410"
 msgid "Trailer"
@@ -8374,12 +8938,16 @@ msgid "Flatten"
 msgstr "Flatten"
 
 msgctxt "#20412"
-msgid "Flatten TV shows"
-msgstr "Flatten TV shows"
+msgid "Flatten TV show seasons"
+msgstr "Aplana les temporades de les sèries de TV"
 
 msgctxt "#20413"
 msgid "Get fanart"
 msgstr "Get fanart"
+
+msgctxt "#20414"
+msgid "Show fanart in video and music libraries"
+msgstr "Mostra el fanart a les biblioteques de vídeo i música"
 
 msgctxt "#20415"
 msgid "Scanning for new content"
@@ -8662,8 +9230,8 @@ msgid "Remove media share"
 msgstr "Elimina recurs compartit"
 
 msgctxt "#21366"
-msgid "Subtitle folder"
-msgstr "Carpeta del subtítol"
+msgid "Custom subtitle folder"
+msgstr "Carpeta personalitzada de subtítols"
 
 msgctxt "#21367"
 msgid "Movie & alternate subtitle directory"
@@ -8671,10 +9239,10 @@ msgstr "Movie & alternate subtitle directory"
 
 msgctxt "#21368"
 msgid "Override ASS/SSA subtitles fonts"
-msgstr "Substitueix les fonts dels subtítols ASS/SSA"
+msgstr "Sobreescriu les fonts dels subtítols ASS/SSA"
 
 msgctxt "#21369"
-msgid "Enable mouse and Touch Screen support"
+msgid "Enable mouse and touch screen support"
 msgstr "Activa el suport de ratolí i pantalla tàctil"
 
 msgctxt "#21370"
@@ -8711,15 +9279,15 @@ msgstr "Widescreen"
 
 msgctxt "#21378"
 msgid "Enable 480p"
-msgstr "Activa 480p"
+msgstr "Habilita 480p"
 
 msgctxt "#21379"
 msgid "Enable 720p"
-msgstr "Activa 720p"
+msgstr "Habilita 720p"
 
 msgctxt "#21380"
 msgid "Enable 1080i"
-msgstr "Activa 1080i"
+msgstr "Habilita 1080i"
 
 msgctxt "#21381"
 msgid "Enter name of new playlist"
@@ -8731,7 +9299,7 @@ msgstr "Mostra els botons \"Afegeix font\" en les llistes de fitxers"
 
 msgctxt "#21383"
 msgid "Enable scrollbars"
-msgstr "Activa les barres de desplaçament"
+msgstr "Habilita les barres de desplaçament"
 
 msgctxt "#21384"
 msgid "Make watched filtering a toggle in video library"
@@ -8755,7 +9323,7 @@ msgstr "Silenciós"
 
 msgctxt "#21389"
 msgid "Enable custom background"
-msgstr "Enable custom background"
+msgstr "Habilita el fons personalitzat"
 
 msgctxt "#21390"
 msgid "Power management level"
@@ -8791,7 +9359,7 @@ msgstr "High quality pixel shader v2"
 
 msgctxt "#21398"
 msgid "Enable playlist at startup"
-msgstr "Enable playlist at startup"
+msgstr "Habilita la llista de reproducció al inicialitzar"
 
 msgctxt "#21399"
 msgid "Use tween animations"
@@ -9034,8 +9602,8 @@ msgid "mixed"
 msgstr "mesclat"
 
 msgctxt "#21460"
-msgid "Subtitle location"
-msgstr "Subtitle location"
+msgid "Subtitle position on screen"
+msgstr "Posició dels subtítols a la pantalla"
 
 msgctxt "#21461"
 msgid "Fixed"
@@ -9068,6 +9636,14 @@ msgstr "%d a %d"
 msgctxt "#21469"
 msgid "%s to %s"
 msgstr "%s a %s"
+
+msgctxt "#21470"
+msgid "%s [%d]"
+msgstr "%s [%d]"
+
+msgctxt "#21602"
+msgid "(External)"
+msgstr "(Extern)"
 
 msgctxt "#21800"
 msgid "File name"
@@ -9298,8 +9874,8 @@ msgid "Reference service"
 msgstr "Servei de referència"
 
 msgctxt "#21881"
-msgid "Allow control of XBMC via UPnP"
-msgstr "Permet el control de l'XBMC a través de UPnP"
+msgid "Allow control of Kodi via UPnP"
+msgstr "Permet el control del Kodi a través de UPnP"
 
 msgctxt "#21882"
 msgid "Attempt to skip introduction before DVD menu"
@@ -9461,6 +10037,10 @@ msgctxt "#22020"
 msgid "Guide"
 msgstr "Guia"
 
+msgctxt "#22021"
+msgid "Allowed error in aspect ratio to minimise black bars"
+msgstr "Error permès en la relació d'aspecte per minimitzar les barres negres"
+
 msgctxt "#22022"
 msgid "Show video files in listings"
 msgstr "Mostra els fitxers de vídeo en llistats"
@@ -9621,6 +10201,10 @@ msgctxt "#24009"
 msgid "Script"
 msgstr "Script"
 
+msgctxt "#24010"
+msgid "Visualisation"
+msgstr "Visualització"
+
 msgctxt "#24011"
 msgid "Add-on repository"
 msgstr "Repositori de complements"
@@ -9667,9 +10251,13 @@ msgstr "Desactiva"
 
 msgctxt "#24022"
 msgid "Enable"
-msgstr "Activa"
+msgstr "Habilita"
 
 msgctxt "#24023"
+msgid "Disabled"
+msgstr "Desactivat"
+
+msgctxt "#24024"
 msgid "Add-on disabled"
 msgstr "Complement desactivat"
 
@@ -9742,24 +10330,28 @@ msgid "Available Updates"
 msgstr "Actualitzacions disponibles"
 
 msgctxt "#24044"
-msgid "Dependencies not met"
-msgstr "Les dependències no es compleixen"
+msgid "Dependencies not met. Please contact Add-on author."
+msgstr "Les dependències no es poden satisfer. Contacteu amb l'autor del complement."
 
 msgctxt "#24045"
 msgid "Add-on does not have the correct structure"
 msgstr "El complement no té l'estructura correcta"
 
 msgctxt "#24046"
-msgid "%s is used by the following installed add-on(s)"
-msgstr "%s és utilitzat per la instal·lació dels següents complements"
+msgid "%s is used by the following installed Add-on(s)"
+msgstr "%s és utilitzat per següents complement(s) instal·lats"
 
 msgctxt "#24047"
-msgid "This add-on cannot be uninstalled"
+msgid "This Add-on cannot be uninstalled"
 msgstr "Aquest complement no es pot desinstal·lar"
 
 msgctxt "#24048"
 msgid "Rollback"
 msgstr "Rollback"
+
+msgctxt "#24049"
+msgid "Incompatible"
+msgstr "Incompatible"
 
 msgctxt "#24050"
 msgid "Available Add-ons"
@@ -9781,9 +10373,17 @@ msgctxt "#24054"
 msgid "Changelog"
 msgstr "Registre de canvis"
 
+msgctxt "#24055"
+msgid "Check for updates"
+msgstr "Comprova si hi ha actualitzacions"
+
+msgctxt "#24056"
+msgid "Last updated %s"
+msgstr "Última actualització %s"
+
 msgctxt "#24059"
 msgid "Would you like to enable this Add-on?"
-msgstr "Voleu activar aquest complement?"
+msgstr "Voleu habilitar aquest complement?"
 
 msgctxt "#24060"
 msgid "Would you like to disable this Add-on?"
@@ -9795,7 +10395,7 @@ msgstr "Hi ha una actualització per al complement disponible"
 
 msgctxt "#24062"
 msgid "Enabled Add-ons"
-msgstr "Complements activats"
+msgstr "Complements habilitats"
 
 msgctxt "#24063"
 msgid "Auto update"
@@ -9803,7 +10403,7 @@ msgstr "Actualització automàtica"
 
 msgctxt "#24064"
 msgid "Add-on enabled"
-msgstr "Complement activat"
+msgstr "Complement habilitat"
 
 msgctxt "#24065"
 msgid "Add-on updated"
@@ -9857,6 +10457,22 @@ msgctxt "#24080"
 msgid "Try to reconnect?"
 msgstr "Voleu tornar a provar de connectar?"
 
+msgctxt "#24081"
+msgid "Helper Add-ons"
+msgstr "Complements de l'assistent"
+
+msgctxt "#24082"
+msgid "Add-on libraries"
+msgstr "Biblioteques de complements"
+
+msgctxt "#24083"
+msgid "Information libraries"
+msgstr "Biblioteques d'informació"
+
+msgctxt "#24084"
+msgid "Visualisation libraries"
+msgstr "Biblioteques de visualització"
+
 msgctxt "#24089"
 msgid "Add-on restarts"
 msgstr "Reinicia el complement"
@@ -9864,6 +10480,10 @@ msgstr "Reinicia el complement"
 msgctxt "#24090"
 msgid "Lock Add-on manager"
 msgstr "Bloqueja l'Administrador de Complements"
+
+msgctxt "#24091"
+msgid "This Add-on cannot be disabled"
+msgstr "No es pot desactivar aquest complement"
 
 msgctxt "#24094"
 msgid "(current)"
@@ -9874,8 +10494,8 @@ msgid "(blacklisted)"
 msgstr "(a la llista negra)"
 
 msgctxt "#24096"
-msgid "Add-on has been marked as broken in repository."
-msgstr "El complement s'ha marcat com a trencat en el repositori."
+msgid "Add-on is incompatible or has been marked broken in repository."
+msgstr "El complement és incompatible o s'ha marcat com trencat al dipòsit."
 
 msgctxt "#24097"
 msgid "Would you like to disable it on your system?"
@@ -9905,6 +10525,102 @@ msgctxt "#24103"
 msgid "Skin is missing some files"
 msgstr "La pell manca d'alguns fitxers"
 
+msgctxt "#24104"
+msgid "Add-on is incompatible due to unmet dependencies."
+msgstr "El complement és incompatible a causa de les dependències no satisfetes."
+
+msgctxt "#24105"
+msgid "Pause when searching for subtitles"
+msgstr "Pausa quan s'estiguin cercant subtítols"
+
+msgctxt "#24106"
+msgid "Specify where downloaded subtitles should be saved, the same location as the video or a custom location."
+msgstr "Especifiqueu on s'han de desar els subtítols descarregats: la mateixa ubicació que el vídeo o una ubicació personalitzada."
+
+msgctxt "#24107"
+msgid "Searching for subtitles ..."
+msgstr "Cercant subtítols ..."
+
+msgctxt "#24108"
+msgid "%d subtitles found"
+msgstr "%d subtítols trobats"
+
+msgctxt "#24109"
+msgid "No subtitles found"
+msgstr "No s'han trobat subtítols"
+
+msgctxt "#24110"
+msgid "Downloading subtitles ..."
+msgstr "Baixant subtítols ..."
+
+msgctxt "#24111"
+msgid "Languages to download subtitles for"
+msgstr "Baixar els subtítols per als idiomes"
+
+msgctxt "#24112"
+msgid "Set languages to use when searching for subtitles. Not all subtitle services will use all languages."
+msgstr "Establir els idiomes a fer servir al cercar subtítols. No tots els serveis de subtítols poden emprar tots els idiomes."
+
+msgctxt "#24113"
+msgid "Failed to download subtitle"
+msgstr "No s'han pogut descarregar els subtítols"
+
+msgctxt "#24114"
+msgid "No subtitle services installed"
+msgstr "No hi ha serveis de subtítols instal·lats"
+
+msgctxt "#24115"
+msgid "Subtitle storage location"
+msgstr "Ubicació dels subtítols"
+
+msgctxt "#24116"
+msgid "Default TV Service"
+msgstr "Servei de TV per defecte"
+
+msgctxt "#24117"
+msgid "Select service that will be used as default to search for TV Show subtitles."
+msgstr "Seleccioneu el servei per defecte on es cercaran els subtítols de les sèries de TV."
+
+msgctxt "#24118"
+msgid "Default Movie Service"
+msgstr "Servei de pel·lícules per defecte"
+
+msgctxt "#24119"
+msgid "Select service that will be used as default to search for Movie subtitles."
+msgstr "Seleccioneu el servei per defecte on es cercaran els subtítols de les pel·lícules."
+
+msgctxt "#24120"
+msgid "Manual search string"
+msgstr "Cadena de cerca manual"
+
+msgctxt "#24121"
+msgid "Enter search string"
+msgstr "Introduïu la cadena de cerca"
+
+msgctxt "#24122"
+msgid "Update all"
+msgstr "Actualitza-ho tota"
+
+msgctxt "#24125"
+msgid "Custom location"
+msgstr "Localització personalitzada"
+
+msgctxt "#24126"
+msgid "Auto download first subtitle"
+msgstr "Descarrega automàticament el primer subtítol"
+
+msgctxt "#24127"
+msgid "Automatically download first subtitle from the search result list"
+msgstr "Descarrega automàticament el primer subtítol de la llista de resultats de la cerca"
+
+msgctxt "#24128"
+msgid "Configuration has been moved"
+msgstr "La configuració s'ha mogut"
+
+msgctxt "#24999"
+msgid "Hide incompatible"
+msgstr "Amaga els incompatibles"
+
 msgctxt "#25000"
 msgid "Notifications"
 msgstr "Notificacions"
@@ -9918,8 +10634,8 @@ msgid "Select from all titles ..."
 msgstr "Seleccioneu entre tots els títols ..."
 
 msgctxt "#25003"
-msgid "Show bluray menus"
-msgstr "Mostra els menús dels bluray"
+msgid "Show Blu-ray menu"
+msgstr "Mostra el menú del Blu-ray"
 
 msgctxt "#25004"
 msgid "Play main title: %d"
@@ -9932,6 +10648,18 @@ msgstr "Títol: %d"
 msgctxt "#25006"
 msgid "Select playback item"
 msgstr "Seleccioneu l'element de la reproducció"
+
+msgctxt "#25007"
+msgid "Chapters: %u - duration: %s"
+msgstr "Capítols: %u - durada: %s"
+
+msgctxt "#25008"
+msgid "Playback of Blu-ray failed"
+msgstr "La reproducció del Blu-ray ha fallat"
+
+msgctxt "#25009"
+msgid "The menu of this Blu-ray is not supported"
+msgstr "El menú d'aquest Blu-ray no s'admet"
 
 msgctxt "#29800"
 msgid "Library Mode"
@@ -10010,8 +10738,8 @@ msgid "Clips"
 msgstr "Clips"
 
 msgctxt "#33017"
-msgid "Restart plugin to enable"
-msgstr "Reinicia el plugin per activar-lo"
+msgid "Restart plug-in to enable"
+msgstr "Reinicialitza el plugin per habilitar-ho"
 
 msgctxt "#33018"
 msgid "Tonight"
@@ -10096,6 +10824,14 @@ msgstr "Cap de setmana"
 msgctxt "#33038"
 msgid "%s day"
 msgstr "%s dia"
+
+msgctxt "#33039"
+msgid "%s Streams"
+msgstr "%s Fluxos"
+
+msgctxt "#33040"
+msgid "%s Devices"
+msgstr "%s Dispositius"
 
 msgctxt "#33049"
 msgid "Alert"
@@ -10198,12 +10934,12 @@ msgid "This version of %s requires an"
 msgstr "Aquesta versió de %s requereix una"
 
 msgctxt "#33075"
-msgid "XBMC revision of %s or greater to run."
-msgstr "revisió de l'XBMC s% o superior per a funcionar."
+msgid "Kodi revision of %s or greater to run."
+msgstr "revisió del Kodi s% o superior per a funcionar."
 
 msgctxt "#33076"
-msgid "Please update XBMC."
-msgstr "Actualitzeu l'XBMC."
+msgid "Please update Kodi."
+msgstr "Actualitzeu el Kodi."
 
 msgctxt "#33077"
 msgid "No data found!"
@@ -10231,7 +10967,7 @@ msgstr "Camí a l'script"
 
 msgctxt "#33083"
 msgid "Enable custom script button"
-msgstr "Activa el botó d'scripts personalitzats"
+msgstr "Habilita el botó d'scripts personalitzats"
 
 msgctxt "#33084"
 msgid "Auto login"
@@ -10290,8 +11026,8 @@ msgid "Windows Media Audio 2 (FFmpeg wmav2)"
 msgstr "Windows Media Audio 2 (FFmpeg wmav2)"
 
 msgctxt "#34100"
-msgid "Speaker Configuration"
-msgstr "Configuració dels altaveus"
+msgid "Number of channels"
+msgstr "Número de canals"
 
 msgctxt "#34101"
 msgid "2.0"
@@ -10333,10 +11069,6 @@ msgctxt "#34110"
 msgid "7.1"
 msgstr "7.1"
 
-msgctxt "#34111"
-msgid "When activated silence is output in order to keep alive receiver, otherwise sink is drained in idle state"
-msgstr "Quan està actiu es reprodueix el silenci per tal de mantenir despert el receptor, en cas contrari, en estat de repòs, la pica es drena."
-
 msgctxt "#34120"
 msgid "Play GUI sounds"
 msgstr "Reprodueix els sons de la interfície gràfica d'usuari"
@@ -10352,6 +11084,26 @@ msgstr "Sempre"
 msgctxt "#34123"
 msgid "Never"
 msgstr "Mai"
+
+msgctxt "#34124"
+msgid "44.1"
+msgstr "44.1"
+
+msgctxt "#34125"
+msgid "48.0"
+msgstr "48.0"
+
+msgctxt "#34126"
+msgid "88.2"
+msgstr "88.2"
+
+msgctxt "#34127"
+msgid "96.0"
+msgstr "96.0"
+
+msgctxt "#34128"
+msgid "192.0"
+msgstr "192.0"
 
 msgctxt "#34201"
 msgid "Can't find a next item to play"
@@ -10389,6 +11141,10 @@ msgctxt "#34401"
 msgid "Failed to init video filters/scalers, falling back to bilinear scaling"
 msgstr "No s'han pogut inicialitzar els filtres/escaladors, tornem a l'escalat bilineal"
 
+msgctxt "#34402"
+msgid "Failed to initialise audio device"
+msgstr "No s'ha pogut inicialitzar el dispositiu d'àudio"
+
 msgctxt "#34403"
 msgid "Check your audiosettings"
 msgstr "Revisi la seva configuració d'àudio"
@@ -10421,6 +11177,10 @@ msgctxt "#35001"
 msgid "Generic HID device"
 msgstr "Dispositiu genèric HID"
 
+msgctxt "#35002"
+msgid "Generic network adaptor"
+msgstr "Adaptador de xarxa genèric"
+
 msgctxt "#35003"
 msgid "Generic disk"
 msgstr "Disc genèric"
@@ -10443,7 +11203,7 @@ msgstr "Mapa de teclat a utilitzar per a aquest dispositiu"
 
 msgctxt "#35008"
 msgid "Keymap enabled"
-msgstr "Mapa de teclat activat"
+msgstr "Mapa de teclat habilitat"
 
 msgctxt "#35009"
 msgid "Do not use the custom keymap for this device"
@@ -10451,7 +11211,7 @@ msgstr "No utilitzeu el mapa de teclat personalitzat per a aquest dispositiu"
 
 msgctxt "#35100"
 msgid "Enable joystick and gamepad support"
-msgstr "Activa el suport de manaments de joc"
+msgstr "Habilita el suport de joystick i gamepad"
 
 msgctxt "#35102"
 msgid "Disable joystick when this device is present"
@@ -10477,6 +11237,10 @@ msgctxt "#35504"
 msgid "Product ID"
 msgstr "ID del producte"
 
+msgctxt "#36000"
+msgid "Pulse-Eight CEC adaptor"
+msgstr "Adaptador CEC Pulse-Eight"
+
 msgctxt "#36001"
 msgid "Pulse-Eight Nyxboard"
 msgstr "Nyxboard Pulse-Eight"
@@ -10495,15 +11259,19 @@ msgstr "Premeu el botó de comandament \"usuari\""
 
 msgctxt "#36005"
 msgid "Enable switch side commands"
-msgstr "Activa la commutació de comandes del costat"
+msgstr "Habilita la commutació de comandes del costat"
+
+msgctxt "#36006"
+msgid "Could not open the adaptor"
+msgstr "No s'ha pogut obrir l'adaptador"
 
 msgctxt "#36007"
-msgid "Devices to power on when starting XBMC"
-msgstr "Dispositius a encendre quan s'inicia l'XBMC"
+msgid "Devices to power on when starting Kodi"
+msgstr "Dispositius a encendre quan s'inicia el Kodi"
 
 msgctxt "#36008"
-msgid "Devices to power off when stopping XBMC"
-msgstr "Dispositius a apagar quan s'atura l'XBMC"
+msgid "Devices to power off when stopping Kodi"
+msgstr "Dispositius a apagar quan s'atura el Kodi"
 
 msgctxt "#36009"
 msgid "Put devices in standby mode when activating screensaver"
@@ -10517,6 +11285,10 @@ msgctxt "#36011"
 msgid "Could not detect the CEC com port. Set it up manually."
 msgstr "No s'ha pogut detectar el port CEC. Establiu-ho manualment."
 
+msgctxt "#36012"
+msgid "Could not initialise the CEC adaptor. Please check your settings."
+msgstr "No s'ha pogut inicialitzar l'adaptador CEC. Reviseu la vostra configuració."
+
 msgctxt "#36015"
 msgid "HDMI port number"
 msgstr "Número de port HDMI"
@@ -10524,6 +11296,10 @@ msgstr "Número de port HDMI"
 msgctxt "#36016"
 msgid "Connected"
 msgstr "Connectat"
+
+msgctxt "#36017"
+msgid "Could not initialise the CEC adaptor: libCEC was not found on your system."
+msgstr "No s'ha pogut inicialitzar l'adaptador CEC: libCEC no s'ha trobat en el sistema."
 
 msgctxt "#36018"
 msgid "Use the TV's language setting"
@@ -10534,8 +11310,8 @@ msgid "Connected to HDMI device"
 msgstr "Connectat a un dispositiu HDMI"
 
 msgctxt "#36020"
-msgid "Make XBMC the active source when starting"
-msgstr "Feu l'XBMC la font activa quan s'inicia"
+msgid "Make Kodi the active source when starting"
+msgstr "Feu el Kodi la font activa quan s'inicia"
 
 msgctxt "#36021"
 msgid "Physical address (overrules HDMI port)"
@@ -10554,8 +11330,8 @@ msgid "Failed to set the new configuration. Please check your settings."
 msgstr "No s'ha pogut establir la nova configuració. Reviseu la vostra configuració."
 
 msgctxt "#36025"
-msgid "Send 'inactive source' command when stopping XBMC"
-msgstr "Envia la ordre 'font inactiva' quan s'aturi l'XBMC"
+msgid "Send 'inactive source' command when stopping Kodi"
+msgstr "Envia la ordre 'font inactiva' quan s'aturi el Kodi"
 
 msgctxt "#36026"
 msgid "Put devices in standby mode when putting the PC in standby"
@@ -10576,6 +11352,14 @@ msgstr "Quan la TV està apagada"
 msgctxt "#36030"
 msgid "Connection lost"
 msgstr "Connexió perduda"
+
+msgctxt "#36031"
+msgid "This user does not have permissions to open the CEC adaptor"
+msgstr "Aquest usuari no té permisos per obrir l'adaptador CEC"
+
+msgctxt "#36032"
+msgid "The port is busy. Only one program can access the CEC adaptor"
+msgstr "El port es troba ocupat. Només un programa pot accedir a l'adaptador CEC"
 
 msgctxt "#36033"
 msgid "Pause playback when switching to another source"
@@ -10602,24 +11386,24 @@ msgid "TV and AVR device (explicit)"
 msgstr "TV i dispositiu AVR (explícit)"
 
 msgctxt "#36040"
-msgid "Unsupported libCEC interface version. %x is lower than the version XBMC supports (%x)"
-msgstr "La versió d'interfície de libCEC no està suportada. %x és menor que la versió que XBMC suporta (%x)"
+msgid "Unsupported libCEC interface version. %x is lower than the version Kodi supports (%x)"
+msgstr "La versió d'interfície de libCEC no està suportada. %x és menor que la versió que el Kodi suporta (%x)"
 
 msgctxt "#36041"
 msgid "* Item folder"
 msgstr "* Carpeta d'elements"
 
-msgctxt "#36101"
-msgid "Change the look and feel of the User Interface."
-msgstr "Canvia l'aparença de la interfície d'usuari."
+msgctxt "#36042"
+msgid "Use limited colour range (16-235)"
+msgstr "Utilitza una gamma de colors limitada (16-235)"
 
-msgctxt "#36102"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgctxt "#36101"
+msgid "Change the look and feel of the user interface."
+msgstr "Canvia l'aspecte de la interfície d'usuari."
 
 msgctxt "#36103"
-msgid "Select the skin for the User Interface. This will define the look and feel of XBMC."
-msgstr "Selecciona la pell per a la Interfície d'Usuari. Això definirà l'aparença de l'XBMC."
+msgid "Select the skin for the user interface. This will define the look and feel of Kodi."
+msgstr "Seleccioneu la pell per a la interfície d'usuari. Això definirà l'aparença del Kodi."
 
 msgctxt "#36104"
 msgid "Change specific skin settings. The available options are dependent on the skin used."
@@ -10633,21 +11417,9 @@ msgctxt "#36106"
 msgid "Change the colours of your selected skin."
 msgstr "Canvia els colors de la pell seleccionada."
 
-msgctxt "#36107"
-msgid "Choose the fonts displayed in the User Interface. The font sets are configured by your skin."
-msgstr "Escull les fonts que apareixen a la Interfície d'Usuari. Els conjunts de fonts es configuren a través de la pell."
-
-msgctxt "#36108"
-msgid "Resize the view of the GUI."
-msgstr "Canvia la mida de la vista de la interfície gràfica d'usuari (GUI)."
-
 msgctxt "#36109"
-msgid "Select the media window that XBMC displays on startup."
-msgstr "Selecciona la finestra de mitjans que l'XBMC mostra a l'iniciar."
-
-msgctxt "#36110"
-msgid "Select or disable the sound scheme used in the User Interface."
-msgstr "Selecciona o desactiva l'esquema de so utilitzat en la Interfície d'Usuari."
+msgid "Select the media window that Kodi displays on startup."
+msgstr "Seleccioneu la finestra de mitjans que el Kodi mostra a l'iniciar."
 
 msgctxt "#36111"
 msgid "Turn this off to remove the scrolling RSS news ticker."
@@ -10657,21 +11429,13 @@ msgctxt "#36112"
 msgid "Edit the RSS feeds."
 msgstr "Edita els canals RSS."
 
-msgctxt "#36113"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36114"
-msgid "Chooses the language of the User Interface."
-msgstr "trieu l'idioma de la interfície d'usuari."
+msgid "Chooses the language of the user interface."
+msgstr "Trieu l'idioma de la interfície d'usuari."
 
 msgctxt "#36115"
 msgid "Select the formats for temperature, time and date. The available options depend on the selected language."
 msgstr "Seleccioneu els formats de temperatura, hora i data. Les opcions disponibles depenen de l'idioma seleccionat."
-
-msgctxt "#36116"
-msgid "Choose which character set is used for displaying text in the GUI."
-msgstr "Tria quin joc de caràcters s'utilitza per mostrar text en la GUI."
 
 msgctxt "#36117"
 msgid "Select country location."
@@ -10683,15 +11447,11 @@ msgstr "Selecciona la teva zona horària actual."
 
 msgctxt "#36119"
 msgid "Select the default audio track when different language tracks are available."
-msgstr "Selecciona la pista d'àudio predeterminada quan hi han disponibles diferents pistes d'idiomes.\n\nSelecciona els subtítols predeterminats quan hi han diferents idiomes disponibles."
+msgstr "Selecciona la pista d'àudio predeterminada quan hi han disponibles diferents pistes d'idiomes."
 
 msgctxt "#36120"
 msgid "Select the default subtitles when different languages are available."
-msgstr "Selecciona els subtítols predeterminats quan hi han diferents idiomes disponibles."
-
-msgctxt "#36121"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgstr "Seleccioneu els subtítols per defecte quan hi hagin diferents idiomes disponibles."
 
 msgctxt "#36122"
 msgid "Display the (..) item in lists for visiting the parent folder."
@@ -10701,29 +11461,17 @@ msgctxt "#36123"
 msgid "Show file extensions on media files. For example, 'You Enjoy Myself.mp3' would be simply be shown as 'You Enjoy Myself'."
 msgstr "Mostrar les extensions dels arxius multimèdia. Per exemple, 'You Enjoy Myself.mp3' simplement apareixerà com a \"You Enjoy Miself'."
 
-msgctxt "#36124"
-msgid "Ignore certain tokens during sort operations. For example, 'The Simpsons' would simply be sorted as 'Simpsons'. To configure tokens, see http://wiki.xbmc.org/index.php?title=Settings/Appearance."
-msgstr "Ignora certes fitxes durant les operacions d'ordenació. Per exemple, 'Els Simpson' es limitaria a ser ordenat com 'Simpson'. Per configurar fitxes, consulta http://wiki.xbmc.org/index.php?title=Settings/Appearance."
-
 msgctxt "#36125"
 msgid "Allow files to be deleted and renamed through the user interface, via the contextual menu (press C on a keyboard, for example, to bring up this menu)."
 msgstr "Permet eliminar i renombrar fitxers a través de la interfície d'usuari, a través del menú contextual (prémer C en un teclat, per exemple, per obrir aquest menú)."
 
-msgctxt "#36126"
-msgid "Show the add source button from root sections of the user interface."
-msgstr "Mostra el botó d'afegir font des de les seccions d'arrel de la interfície d'usuari."
-
-msgctxt "#36127"
-msgid "Show hidden files and directories."
-msgstr "Mostra els fitxers i directoris ocults."
-
-msgctxt "#36128"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36129"
 msgid "Set the amount of idle time required before displaying the screensaver."
 msgstr "Estableix la quantitat de temps d'inactivitat requerit abans de mostrar el protector de pantalla."
+
+msgctxt "#36130"
+msgid "Select the screensaver. Kodi will force the 'Dim' screensaver when fullscreen video playback is paused or a dialogue box is active."
+msgstr "Selecciona el protector de pantalla. Kodi forçarà el protector de pantalla 'Dim' quan la reproducció de vídeo a pantalla completa està en pausa o un quadre de diàleg està actiu."
 
 msgctxt "#36131"
 msgid "Change specific screensaver settings. The available options are dependent on the screensaver used."
@@ -10732,6 +11480,10 @@ msgstr "Canvia la configuració de protector de pantalla específica. Les opcion
 msgctxt "#36132"
 msgid "Preview the selected screensaver."
 msgstr "Previsualitza l'estalvi de pantalla seleccionat."
+
+msgctxt "#36133"
+msgid "If music is being played, Kodi will start the selected visualisation instead of displaying the screensaver."
+msgstr "Si s'està reproduint música, el Kodi començarà la visualització seleccionada en comptes de mostrar el protector de pantalla."
 
 msgctxt "#36134"
 msgid "Dim the display when media is paused. Not valid for the 'Dim' screensaver mode."
@@ -10749,25 +11501,13 @@ msgctxt "#36137"
 msgid "No info available yet."
 msgstr "No hi ha informació disponible"
 
-msgctxt "#36138"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36139"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36140"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "Enable the video library."
+msgstr "Habilita la biblioteca de vídeo."
 
 msgctxt "#36141"
 msgid "Show plot information for unwatched media in the Video Library."
 msgstr "Mostra l'argument dels elements no vistos de la Videoteca."
-
-msgctxt "#36142"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
 
 msgctxt "#36143"
 msgid "Get thumbnails for actors when scanning media."
@@ -10782,8 +11522,8 @@ msgid "Group movies into 'Movie sets' when browsing the movie library."
 msgstr "Agrupa les pel·lícules en \"conjunts de pel·lícula\" al buscar per la videoteca."
 
 msgctxt "#36146"
-msgid "Check for new media files on XBMC startup."
-msgstr "Comprova si hi ha nous fitxers multimèdia a l'iniciar l'XBMC."
+msgid "Check for new media files on Kodi startup."
+msgstr "Comprova si hi ha nous fitxers multimèdia a l'iniciar el Kodi."
 
 msgctxt "#36147"
 msgid "Hide the library scanning progress bar during scans."
@@ -10801,73 +11541,21 @@ msgctxt "#36150"
 msgid "Import a XML file into the Video Library database."
 msgstr "Importa un fitxer XML a la Videoteca."
 
-msgctxt "#36151"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36152"
-msgid "Enable automatic playback of the next file in the list of the selected item."
-msgstr "Habilita la reproducció automàtica de l'element següent en la llista de l'opció seleccionada."
-
 msgctxt "#36153"
 msgid "Adjust the method used to process and display video."
 msgstr "Ajusta el mètode utilitzat per processar i mostrar el vídeo."
 
-msgctxt "#36154"
-msgid "No info available yet."
-msgstr "Encara no hi ha informació disponible."
-
-msgctxt "#36155"
-msgid "Enable hardware decoding of video files."
-msgstr "Activa el maquinari de descodificació d'arxius de vídeo."
-
-msgctxt "#36156"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36157"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36158"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36159"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36160"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36161"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36162"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36163"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36164"
-msgid "Select when the refresh rate adjustments should take place."
-msgstr "Selecciona quan els ajustos de valor de refresc s'han de dur a terme."
-
-msgctxt "#36165"
-msgid "Pause for a small amount of time during a refresh rate change. Activate to automatically set the refresh rate which is best matched with the video that is playing. This potentially allows for perfectly smooth video reproduction, as video material can be recorded in a variety of frame rates which need to be properly matched by the refresh rate of the display in order to be displayed smoothly."
-msgstr "Pausa curta durant el canvi de freqüència d'actualització. Activar per ajustar automàticament la velocitat d'actualització que millor es correspon amb el vídeo que s'està reproduint. Això permet una reproducció de vídeo perfectament llisa, així com que com el material de vídeo es pugui gravar en una varietat de velocitats de quadres correctament aparellat amb la freqüència d'actualització de la pantalla que farà què es mostri correctament."
+msgctxt "#36166"
+msgid "Synchronise the video to the refresh rate of the monitor."
+msgstr "Sincronitzar el vídeo a la velocitat de refresc del monitor."
 
 msgctxt "#36167"
 msgid "Audio has to stay in sync, this can either be done by resampling, skipping/duplicating packets, or adjusting the clock if it gets out of sync too far."
 msgstr "L'àudio ha d'estar sincronitzat i es pot fer mitjançant un nou mostreig, saltant-se/duplicant paquets o ajustant el rellotge si s'allnuya massa la sincronització."
 
-msgctxt "#36169"
-msgid "Resampling and other sound processing quality. Low quality is fast, higher quality will consume more CPU."
-msgstr "Resamplejat i altra qualitat de processament de so. La qualitat baixa és més ràpida i l'alta consumirà més CPU."
+msgctxt "#36168"
+msgid "Maximum video speed adjust to match actual screen refresh rate."
+msgstr "Ajust de velocitat de vídeo màxima per a fer coincidir amb la freqüència de refresc de la pantalla\n\nMáximo ajuste de la velocidad de vídeo para coincida con la frecuencia de refresco de la pantalla."
 
 msgctxt "#36170"
 msgid "Allow video player to ignoring aspect ratio by a certain amount to fill a larger amount of the screen with video."
@@ -10877,29 +11565,21 @@ msgctxt "#36171"
 msgid "Select the zoom level that 4:3 videos are shown on widescreen displays."
 msgstr "Selecciona el nivell de zoom que tindran els vídeos 4:3 mostrats en pantalles panoràmiques."
 
-msgctxt "#36173"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgctxt "#36172"
+msgid "VDPAU studio level conversion provides a way for advanced applications like Kodi to influence the colour space conversion."
+msgstr "La conversió de nivell d'estudi VDPAU proporciona un mètode perquè aplicacions avançades com l'Kodi puguin influir en la conversió d'espai de color."
 
 msgctxt "#36174"
 msgid "Enable Teletext when watching a live TV stream."
-msgstr "Activar el teletext durant una transmissió en directe per televisió."
+msgstr "Habilita el teletext durant una transmissió en directe per televisió."
 
 msgctxt "#36175"
 msgid "Scale Teletext to 4:3 ratio."
 msgstr "Escala el Teletext a la proporció 4:3."
 
-msgctxt "#36176"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36177"
 msgid "Toggle between Choose, Play (default), Resume and Show Information. Choose will select an item, e.g. open a directory in files mode. Resume will automatically resume videos from the last position that you were viewing them, even after restarting the system."
 msgstr "Alterna entre Triar, Jugar (per defecte), Resumir i Mostrar Informació. Triar seleccionarà un element, per exemple, obrir un directori en el mode d'arxius. Resumir reprendrà vídeos automàticament des de l'última posició en la que els estava veient, fins i tot després de reiniciar el sistema."
-
-msgctxt "#36178"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
 
 msgctxt "#36179"
 msgid "When a file is scanned into the library it will display the metadata title instead of the file name."
@@ -10913,53 +11593,21 @@ msgctxt "#36181"
 msgid "No info available yet."
 msgstr "No hi ha informació disponible"
 
-msgctxt "#36182"
-msgid "Enables direct playback of videos that are in folders, without having to open those folders first, as well as displaying multi-part video files as single items in non-library views."
-msgstr "Habilita la reproducció directa de vídeos que es troben en carpetes sense haver-les d'obrir prèviament, així com la visualització d'arxius de vídeo de diverses parts com a elements únics en vistes sense biblioteca."
-
 msgctxt "#36183"
 msgid "Removes the title, genre etc nodes from the library view. Selecting a category takes you straight to the title view."
 msgstr "Elimina els nodes de títol, gènere, etc de la vista de biblioteca. Seleccionar una categoria et porta directament a la vista del títol."
 
-msgctxt "#36184"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36185"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36186"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36187"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36188"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36189"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36190"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "Override ASS/SSA subtitles fonts."
+msgstr "Sobreescriu les fonts dels subtítols ASS/SSA"
 
 msgctxt "#36191"
 msgid "Set a custom directory for your subtitles. This can be a file share."
-msgstr "Estableix un directori personalitzat per als subtítols, com pot ser en un recurs compartit."
+msgstr "Establiu un directori personalitzat per als subtítols. Aquest pot ser un recurs compartit."
 
 msgctxt "#36192"
 msgid "Location of subtitles on the screen."
 msgstr "Ubicació dels subtítols a la pantalla."
-
-msgctxt "#36193"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
 
 msgctxt "#36194"
 msgid "Autorun DVD video when inserted in drive."
@@ -10989,29 +11637,13 @@ msgctxt "#36200"
 msgid "Default scraper used for adding music videos to your library."
 msgstr "Scraper per afegir videoclips a la teva biblioteca, per defecte."
 
-msgctxt "#36201"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36202"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36203"
-msgid "Enable the Personal Video Recorder (PVR) features in XBMC. This requires that at least one PVR add-on is installed."
-msgstr "Habilitar les funcions de gravadora de vídeo personal (PVR) de l'XBMC. Per a això és necessari que s'hagi instal·lat com a mínim un complement PVR."
-
 msgctxt "#36204"
 msgid "Import channel groups from the PVR backend (if supported). Will delete user created groups if they're not found on the backend."
 msgstr "Importa grups de canals des del backend PVR (si és compatible). Esborra els grups d'usuaris creats que no es trobin dins el backend."
 
-msgctxt "#36205"
-msgid "Sort the channels by channel number on the server, but uses XBMC's own numbering for channels."
-msgstr "Ordena els canals amb el nombre de canal al servidor pero utilitza la numeració pròpia de l'XBMC per mostrar als canals."
-
 msgctxt "#36206"
-msgid "Use numbering from the backend, instead of configuring them manually over XBMC."
-msgstr "Utilitza la numeració del backend en lloc de configurar-la manualment des de l'XBMC."
+msgid "Use numbering from the backend, instead of configuring them manually over Kodi."
+msgstr "Utilitza la numeració del backend en lloc de configurar-la manualment des del Kodi."
 
 msgctxt "#36207"
 msgid "Open the channel manager, which allows modifying the channel order, channel name, icon, etc."
@@ -11025,145 +11657,41 @@ msgctxt "#36209"
 msgid "Delete channel/EPG database and reimport the data from the backend afterwards."
 msgstr "Elimina la base de dades del canal i de l'EPG i torna a importar les dades des del backend."
 
-msgctxt "#36210"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36211"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36212"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36213"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36214"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36215"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36216"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36217"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36218"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36219"
-msgid "Default EPG window to show. Defaults to Timeline."
-msgstr "Finestra EPG per defecte. Per omissió és la línia de temps."
-
-msgctxt "#36220"
-msgid "Number of days of EPG data to import from backends. Defaults to 2 days."
-msgstr "Nombre de dies de dades de l'EPG per importar des de 'backends'. El valor per defecte és 2 dies."
-
-msgctxt "#36221"
-msgid "Time between EPG data imports from backends. Defaults to 120 minutes."
-msgstr "Temps entre les EPG del backend. Per omissió 120 minuts."
-
 msgctxt "#36222"
 msgid "Do not import EPG data while playing TV to minimise CPU usage."
 msgstr "No importar dades de l'EPG durant la reproducció de TV per minimitzar l'ús de CPU."
 
 msgctxt "#36223"
-msgid "By default, EPG data is stored in a local database to speed up importing when XBMC is restarted."
-msgstr "Per defecte, les dades EPG s'emmagatzemen en una base de dades local per accelerar la importació al reiniciar l'XBMC."
+msgid "By default, EPG data is stored in a local database to speed up importing when Kodi is restarted."
+msgstr "Per defecte, les dades EPG s'emmagatzemen en una base de dades local per accelerar la importació al reiniciar el Kodi."
 
 msgctxt "#36224"
 msgid "Hide \"no information available\" labels when no EPG data can be retrieved for a channel."
 msgstr "Amaga les etiquetes d'\"informació no disponible\" quan no es pugui recuperar la informació EPG d'un canal."
-
-msgctxt "#36225"
-msgid "Delete the EPG database in xbmc and reimport the data afterwards from the backend."
-msgstr "Elimina tota la base de dades de l'EPG i reimporta-la des del backend."
-
-msgctxt "#36226"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
 
 msgctxt "#36227"
 msgid "Display stream of selected channel in a small box instead of fullscreen."
 msgstr "Mostra l'stream del canal seleccionat en una caixa petita en comptes de a pantalla completa."
 
 msgctxt "#36228"
-msgid "Show the last viewed channel if switching to live tv."
-msgstr "Mostra l'últim canal vist al canviar al mode de TV en viu."
-
-msgctxt "#36229"
-msgid "Display signal quality information in the codec information window (if supported by the add-on and backend)."
-msgstr "Mostra informació sobre la qualitat del senyal a la finestra d'informació de còdec (si és compatible amb el complement i back-end)."
-
-msgctxt "#36230"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "Continue with the last viewed channel on startup."
+msgstr "Continua amb l'últim canal vist en l'inici."
 
 msgctxt "#36231"
 msgid "Pressing a number button in full screen mode will automatically switch to the channel number that was entered after 1 second."
 msgstr "Al pressionar un número dins el mode de pantalla completa canviarà automàticament al canal introduït, al cap d'1 segon."
 
-msgctxt "#36232"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36233"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36234"
-msgid "Duration of the recording when pressing the record button, or when creating a new manual timer. Defaults to 180 minutes."
-msgstr "Durada de l'enregistrament al prémer el botó de gravació o al crear un nou temporitzador manual. Per defecte 180 minuts."
-
-msgctxt "#36235"
-msgid "Priority of the recording. Higher number means higher priority. Defaults to 50. Not supported by all add-ons and backends."
-msgstr "Prioritat de l'enregistrament. Un nombre més alt significa una major prioritat. Per omissió és 50. No és compatible amb tots els complements i backends."
-
-msgctxt "#36236"
-msgid "Delete recording after this time. Defaults to 99 days. Not supported by all add-ons and backends."
-msgstr "Elimina la gravació després d'aquest temps. Per omissió és 99 dies. No és compatible amb tots els complements i backends."
-
-msgctxt "#36237"
-msgid "Start recordings before the actual time. Defaults to 2 minutes. Not supported by all add-ons and backends."
-msgstr "Inicia els enregistraments abans de l'hora actual. El valor per defecte és 2 minuts. No és compatible amb tots els complements i backends."
-
-msgctxt "#36238"
-msgid "End recordings after the actual time. Defaults to 10 minutes. Not supported by all add-ons and backends."
-msgstr "Finalitza les gravacions després de l'hora actual. El valor per defecte és 10 minuts. No és compatible amb tots els complements i backends."
-
 msgctxt "#36239"
 msgid "Display a notification when timers are added, finished or removed by the backend."
 msgstr "Mostra una notificació quan s'agreguen, acaben, o eliminen temporitzadors en el backend."
 
-msgctxt "#36240"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36241"
-msgid "Execute the \"wakeup command\" below when XBMC exits or is going into hibernation mode. The timestamp of the next scheduled recording is passed as parameter."
-msgstr "Executa la comanda \"wakeup\" de sota quan es tanca l'XBMC o està entrant en el mode d'hibernació. La data i hora de la següent gravació programada es passa com a paràmetre."
-
-msgctxt "#36242"
-msgid "The command will not be executed when a recording will be started within this timeout. Defaults to 15 minutes."
-msgstr "No s'executarà la comanda quan una gravació s'iniciï dins aquest temps d'espera. Per defecte 15 minuts."
+msgid "Execute the \"wakeup command\" below when Kodi exits or is going into hibernation mode. The timestamp of the next scheduled recording is passed as parameter."
+msgstr "Executa la comanda \"wakeup\" de sota quan es tanca l'Kodi o està entrant en el mode d'hibernació. La data i hora de la següent gravació programada es passa com a paràmetre."
 
 msgctxt "#36243"
-msgid "The command to execute. Defaults to '/usr/bin/setwakeup.sh'."
-msgstr "La comanda a executar. Per defecte a '/usr/bin/setwakeup.sh'."
-
-msgctxt "#36244"
-msgid "Time to substract from the start time of the next scheduled recording. Defaults to 15 minutes."
-msgstr "Temps per restar de l'hora d'inici de la següent gravació programada. Per defecte 15 minuts."
+msgid "The command to execute."
+msgstr "La comanda a executar."
 
 msgctxt "#36245"
 msgid "Execute the wakeup command every day at the given time."
@@ -11173,10 +11701,6 @@ msgctxt "#36246"
 msgid "When to execute the daily wakeup command."
 msgstr "Quan executar la comanda de wakeup diària."
 
-msgctxt "#36247"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36248"
 msgid "Asks for a pin code to access parental locked channels. Channels can be marked as locked in the channels editor on the general tab. Parental locked channels can not be played or recorded without entering a pin code, and the EPG information is hidden for those channels."
 msgstr "Demana un codi PIN per accedir a canals bloquejats parentalment. Els canals poden ser marcats com bloquejats a l'editor de canals, dins la pestanya general. Els canals bloquejats parentalment no es poden reproduir o gravar sense introduir un codi PIN, i també se'ls oculta la informació de l'EPG."
@@ -11185,25 +11709,9 @@ msgctxt "#36249"
 msgid "Enter a new pin code to unlock parental locked channels."
 msgstr "Introduïu un codi PIN nou per desbloquejar els canals bloquejats parentalment."
 
-msgctxt "#36250"
-msgid "Ask for the pin code again when trying to access a parental locked channel and the code hasn't been asked for this duration. Defaults to 300 seconds."
-msgstr "Torna a demanar el codi PIN al intentar accedir a un canal bloquejat parentalment després de no haver demanart el codi durant aquest temps. Per omissió 300 segons."
-
-msgctxt "#36251"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36252"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36253"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36254"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "Enable the music library."
+msgstr "Habilita la llibreria de música"
 
 msgctxt "#36255"
 msgid "Determine if artists that appear only on compilations are shown in the library artist view."
@@ -11213,25 +11721,17 @@ msgctxt "#36256"
 msgid "Automatically fetch album and artist information via scrapers during scan."
 msgstr "Recollir automàticament informació d'àlbum i artista a través de scrapers, durant l'exploració."
 
-msgctxt "#36257"
-msgid "Select the default album information source"
-msgstr "Selecciona la font d'informació d'àlbum per defecte"
-
 msgctxt "#36258"
 msgid "Select the default artist information source. See the Add-ons Manager for options."
 msgstr "Selecciona la font d'informació de l'artista per defecte. Veure l'Administrador de Complements per a les opcions."
 
 msgctxt "#36259"
-msgid "Check for new and removed media files on XBMC startup."
-msgstr "Buscar fitxers multimèdia nous i eliminats durant l'arrencada de l'XBMC."
+msgid "Check for new and removed media files on Kodi startup."
+msgstr "Buscar fitxers multimèdia nous i eliminats durant l'arrencada de l'Kodi."
 
 msgctxt "#36260"
 msgid "No info available yet."
 msgstr "Encara no hi ha informació disponible."
-
-msgctxt "#36261"
-msgid "Path where taken screenshots will be stored."
-msgstr "Ruta on s'emmagatzemaran les captures de pantalla."
 
 msgctxt "#36262"
 msgid "Export the Music Library database to XML files. This will optionally overwrite your current XML files."
@@ -11241,17 +11741,13 @@ msgctxt "#36263"
 msgid "Import a XML file into the Music Library database."
 msgstr "Importa un fitxer XML a la base de dades de la Biblioteca de Música."
 
-msgctxt "#36264"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36265"
-msgid "XBMC automatically plays the next item in the current folder. For example, in Files View: After a track has been played, XBMC would automatically play the next track in the same folder."
-msgstr "L'XBMC reproduirà automàticament el següent element de la carpeta actual. Per exemple, en la vista de Fitxers: Després d'una pista reproduïda, l'XBMC reproduirà automàticament la pista següent, de dins la mateixa carpeta."
+msgid "Kodi automatically plays the next item in the current folder. For example, in Files View: After a track has been played, Kodi would automatically play the next track in the same folder."
+msgstr "L'Kodi reproduirà automàticament el següent element de la carpeta actual. Per exemple, en la vista de Fitxers: Després d'una pista reproduïda, l'Kodi reproduirà automàticament la pista següent, de dins la mateixa carpeta."
 
-msgctxt "#36266"
-msgid "When songs are added to a playlist they are queued instead of playback starting immediately."
-msgstr "Quan s'afegeixen cançons a una llista de reproducció, es posen a la cua en lloc d'iniciar la reproducció immediatament."
+msgctxt "#36267"
+msgid "Kodi will read the ReplayGain information encoded in your audio files by a program such as MP3Gain and normalise the sound levels accordingly."
+msgstr "L'Kodi llegirà la informació de ReplayGain codificada en els teus fitxers d'àudio a través d'un programa com l'MP3Gain i normalitzarà els nivells de so en concordança.\n\n\nKodi leerá la información de repetición de ganancia codificada en tus archivos de audio por un programa como MP3Gain y normalizará el sonido en función de los valores obtenidos."
 
 msgctxt "#36268"
 msgid "Default is 89dB per standard. Change with caution."
@@ -11261,53 +11757,21 @@ msgctxt "#36269"
 msgid "Default is 89dB per standard. Change with caution."
 msgstr "Per omissió és 89 dB segons la norma. Canvieu-ho amb precaució."
 
-msgctxt "#36270"
-msgid "Reduce the volume of the file if clipping is likely to occur."
-msgstr "Reduir el volum de l'arxiu, si és probable que es produeixi clipping."
-
 msgctxt "#36271"
 msgid "Smoothly fade from one audio track to the next. You can set the amount of overlap from 1-15 seconds."
 msgstr "Atenuar suaument d'una pista d'àudio a una altra. Pots ajustar el valor de superposició entre 1-15 segons."
 
-msgctxt "#36272"
-msgid "Allow crassfading to occur when both tracks are from the same album."
-msgstr "Permetre el crossfading quan dues pistes són del mateix àlbum."
+msgctxt "#36273"
+msgid "Select the visualisation that will be displayed while listening to music."
+msgstr "Seleccioneu la visualització a mostrar durant l'escolta de música."
 
 msgctxt "#36274"
 msgid "Read the tag information from song files. For large directories this can slow down read time, especially over a network."
 msgstr "Llegeix la informació d'etiquetes d'arxius de música. Per a grans directoris, això pot retardar el temps de lectura, especialment en xarxa."
 
-msgctxt "#36275"
-msgid "Control the way that the names of songs are displayed in the User Interface. In order to function properly, ID3 tags need to be enabled."
-msgstr "Controla la forma com es mostren els noms de les cançons a la interfície d'usuari. Per funcionar correctament han d'estar activades les etiquetes ID3."
-
-msgctxt "#36276"
-msgid "Used for the information on the right-hand side of the UI. It is commonly used to display the length of tracks."
-msgstr "Utilitzat per a la informació del costat dret de la interfície d'usuari. S'utilitza generalment per mostrar la longitud de les pistes."
-
-msgctxt "#36277"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36278"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36279"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36280"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36281"
-msgid "XBMC will search for thumbs on remote shares and optical media. This can often slow down the listing of network folders."
-msgstr "L'XBMC buscarà miniatures en recursos remots i mitjans òptics. Sovint, això pot alentir el llistat de carpetes de xarxa."
-
-msgctxt "#36282"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "Kodi will search for thumbs on remote shares and optical media. This can often slow down the listing of network folders."
+msgstr "L'Kodi buscarà miniatures en recursos remots i mitjans òptics. Sovint, això pot alentir el llistat de carpetes de xarxa."
 
 msgctxt "#36283"
 msgid "Autorun CDs when inserted in drive."
@@ -11321,10 +11785,6 @@ msgctxt "#36285"
 msgid "Select the location on your hard drive where ripped tracks will be saved to."
 msgstr "Selecciona la ubicació del disc dur on s'emmagatzemaran les pistes ripejades."
 
-msgctxt "#36286"
-msgid "Tags: [B]%N[/B]: TrackNumber, [B]%S[/B]: DiscNumber, [B]%A[/B]: Artist, [B]%T[/B]: Title, [B]%B[/B]: Album, [B]%G[/B]: Genre, [B]%Y[/B]: Year, [B]%F[/B]: FileName, [B]%D[/B]: Duration, [B]%J[/B]: Date, [B]%R[/B]: Rating, [B]%I[/B]: FileSize."
-msgstr "Etiquetes: [B]%N[/B]: Núm.Pista, [B]%S[/B]: Núm.Disc, [B]%A[/B]: Artista, [B]%T[/B]: Títol, [B]%B[/B]: Àlbum, [B]%G[/B]: Gènere, [B]%Y[/B]: Any, [B]%F[/B]: NomFitxer, [B]%D[/B]: Duració, [B]%J[/B]: Data, [B]%R[/B]: Qualificació, [B]%I[/B]: MidaFitxer."
-
 msgctxt "#36287"
 msgid "Select which audio encoder to use when ripping."
 msgstr "Selecciona el codificador d'àudio per als ripejos."
@@ -11337,45 +11797,25 @@ msgctxt "#36289"
 msgid "Select which bitrate to use for the specified audio encoder for audio compression."
 msgstr "Selecciona la taxa de bits desitjada per a la compressió d'àudio"
 
-msgctxt "#36290"
-msgid "For FLAC define compression level, default 5"
-msgstr "Defineix el nivell de compressió de FLAC, per defecte 5"
-
 msgctxt "#36291"
 msgid "Auto eject disc after rip is complete."
 msgstr "Auto-expulsar el disc al completar el volcat."
 
-msgctxt "#36292"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36293"
-msgid "When playing any music file, XBMC will look for a matching .cdg file and display its graphics."
-msgstr "L'XBMC buscarà un arxiu .cdg coincident i mostrarà els seus gràfics durant la reproducció de qualsevol arxiu de música."
-
-msgctxt "#36294"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36295"
-msgid "Select the font used during karoake."
-msgstr "Seleccioneu la font utilitzada durant el karoake."
+msgid "When playing any music file, Kodi will look for a matching .cdg file and display its graphics."
+msgstr "L'Kodi buscarà un arxiu .cdg coincident i mostrarà els seus gràfics durant la reproducció de qualsevol arxiu de música."
 
 msgctxt "#36296"
-msgid "Select the size of the font used during karoake."
-msgstr "Seleccioneu la mida de la font utilitzada durant el karoake."
+msgid "Select the size of the font used during karaoke."
+msgstr "Seleccioneu la mida de la font utilitzada durant el karaoke."
+
+msgctxt "#36297"
+msgid "Select the font colour used during karaoke."
+msgstr "Seleccioneu el color de la font utilitzada durant el karaoke."
 
 msgctxt "#36298"
-msgid "Select the character set used during karoake."
-msgstr "Selecciona el conjunt de caràcters a utilitzar durant el karoake."
-
-msgctxt "#36299"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36300"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "Select the character set used during karaoke."
+msgstr "Seleccioneu el joc de caràcters utilitzat durant el karaoke."
 
 msgctxt "#36301"
 msgid "No info available yet."
@@ -11386,14 +11826,6 @@ msgid "No info available yet."
 msgstr "No hi ha informació disponible"
 
 msgctxt "#36303"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36304"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36305"
 msgid "No info available yet."
 msgstr "No hi ha informació disponible"
 
@@ -11409,15 +11841,7 @@ msgctxt "#36308"
 msgid "Pictures will automatically rotate according to information in the EXIF tag, if found."
 msgstr "Les fotos giraran automàticament d'acord a la informació de l'etiqueta EXIF, en cas que n'hi hagi."
 
-msgctxt "#36309"
-msgid "Show video media in picture file lists, since most digital cameras nowadays have video recording capabilities."
-msgstr "Mostra els mitjans de vídeo en llistes d'arxius d'imatge, ja que la majoria de les càmeres digitals actuals poden gravar vídeo."
-
 msgctxt "#36310"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36311"
 msgid "No info available yet."
 msgstr "No hi ha informació disponible"
 
@@ -11433,14 +11857,6 @@ msgctxt "#36314"
 msgid "View slideshow images in a random order."
 msgstr "Visualitza les diapositives en ordre aleatori."
 
-msgctxt "#36315"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36316"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36317"
 msgid "Select up to three locations for which the weather can be displayed."
 msgstr "Selecciona fins a un màxim de tres llocs per als quals es mostrarà el clima."
@@ -11449,245 +11865,117 @@ msgctxt "#36318"
 msgid "Specify the default weather information source. See the Add-ons Manager for options."
 msgstr "Especifica la font d'informació per defecte del temps. Veureq l'Administrador de Complements per a les opcions."
 
-msgctxt "#36319"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36320"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36321"
-msgid "Display name of the XBMC installation when using various network services."
-msgstr "Mostra el nom de la instal·lació XBMC al utilitzar diversos serveis de xarxa."
-
-msgctxt "#36322"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36323"
-msgid "Enable the UPnP server. This will allow you to stream media to any UPnP client."
-msgstr "Habilita el servidor UPnP. Això li permetrà fer streaming per a qualsevol client UPnP."
+msgid "Display name of the Kodi installation when using various network services."
+msgstr "Mostra el nom de la instal·lació Kodi al utilitzar diversos serveis de xarxa."
 
 msgctxt "#36324"
 msgid "When a manual or automatical library update occurs, notify UPnP clients."
 msgstr "Notifica als clients UPnP quan es produeix una actualització manual o automàtica de la biblioteca."
 
-msgctxt "#36325"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36326"
-msgid "Enable the UPnP client. This will allow you to stream media from any UPnP server with a control point and control playback from that server."
-msgstr "Habilita el client UPnP. Això et permetrà fer streaming de mitjans des de qualsevol servidor UPnP amb un punt de control i de reproducció des d'aquest servidor."
-
-msgctxt "#36327"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36328"
-msgid "Enable remote users to control XBMC through the built-in webserver."
-msgstr "Permet als usuaris remots controlar l'XBMC a través del servidor web incrustat."
+msgid "Enable remote users to control Kodi through the built-in webserver."
+msgstr "Permet als usuaris remots controlar l'Kodi a través del servidor web incrustat."
 
 msgctxt "#36329"
 msgid "Define the webserver port."
 msgstr "Definiu el port del servidor web."
 
-msgctxt "#36330"
-msgid "Define the webserver username."
-msgstr "Definiu l'usuari del servidor web."
-
-msgctxt "#36331"
-msgid "Define webserver password."
-msgstr "Definiu la contrasenya del servidor web."
-
 msgctxt "#36332"
 msgid "Select between web interfaces installed via the Add-on Manager."
 msgstr "Selecciona una de les interfícies web instal·lades a través de l'Administrador de Complements."
 
-msgctxt "#36333"
-msgid "No info available yet."
-msgstr "Encara no hi ha informació disponible."
-
 msgctxt "#36334"
-msgid "Allow programs on this computer to control XBMC via the Web Interface or the JSON-RPC interface protocol."
-msgstr "Permet que altres programes d'aquest ordinador puguin controlar l'XBMC a través de la interfície web o el protocol d'interfície JSON-RPC."
+msgid "Allow programs on this computer to control Kodi via the Web Interface or the JSON-RPC interface protocol."
+msgstr "Permet que altres programes d'aquest ordinador puguin controlar l'Kodi a través de la interfície web o el protocol d'interfície JSON-RPC."
 
 msgctxt "#36335"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "Define the remote control port."
+msgstr "Definiu el port de control remot."
 
 msgctxt "#36336"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "Define the remote control port range."
+msgstr "Definiu el rang de ports de control remot."
 
 msgctxt "#36337"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "Define the maximum number of clients that can connect."
+msgstr "Definiu el nombre màxim de clients que poden connectar-se."
 
 msgctxt "#36338"
-msgid "Allow programs on the network to control XBMC."
-msgstr "Permetre a programes de la xarxa que controlin l'XBMC."
+msgid "Allow programs on the network to control Kodi."
+msgstr "Permetre a programes de la xarxa que controlin l'Kodi."
 
 msgctxt "#36339"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "Initial repeat delay (ms)."
+msgstr "Retard de repetició inicial (ms)."
 
 msgctxt "#36340"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36341"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36342"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36343"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "Continuous repeat delay (ms)."
+msgstr "Retard de repetició contínua (ms)."
 
 msgctxt "#36344"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36345"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36346"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36347"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36348"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36349"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "Enable AirPlay password protection."
+msgstr "Habilita la protecció amb contrasenya de l'AirPlay."
 
 msgctxt "#36350"
 msgid "Automatically send 'Wake-On-Lan' to server(s) right before trying to access shared files or services."
 msgstr "Envia automàticament l'ordre 'Wake-On-Lan' al(s) servidor(s) just abans d'intentar accedir als arxius compartits o serveis."
 
-msgctxt "#36351"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36352"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36353"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36355"
-msgid "In a multi-screen configuration, the screens where XBMC is not displayed are blacked out."
-msgstr "Amb la configuració multi-pantalla s'apaguen les pantalles on no es mostra l'XBMC."
+msgid "In a multi-screen configuration, the screens where Kodi is not displayed are blacked out."
+msgstr "En una configuració multi-pantalla, es desactiven les pantalles on no es mostra l'Kodi."
 
 msgctxt "#36356"
 msgid "Eliminate vertical tearing."
 msgstr "Elimina l'esquinçat vertical."
 
-msgctxt "#36357"
-msgid "Calibrate the User Interface by adjusting the overscan. Use this tool if the image being displayed is too large or small for your display."
-msgstr "Calibra la Interfície d'Usuari ajustant el sobreescaneig. Utilitzeu aquesta eina si la imatge que es mostra és massa gran o petita per a la seva visualització."
-
 msgctxt "#36358"
 msgid "Test patterns for display hardware calibration."
 msgstr "Comprova els patrons per al calibratge del maquinari de la pantalla."
 
-msgctxt "#36359"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36360"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36361"
-msgid "Type of connection to the audio equipment."
-msgstr "Tipus de connexió amb l'equip d'àudio."
-
 msgctxt "#36362"
-msgid "Select your physical speaker layout."
-msgstr "Selecciona la disposició física d'altaveus."
+msgid "Select the number of channels supported by the audio connection, or the number of speakers if connected by analog connections. This setting does not apply to passthrough audio. Note - SPDIF supports 2.0 channels only but can still output multichannel audio using a format supported by passthrough."
+msgstr "Trieu el nombre de canals suportats per la connexió d'àudio o el nombre d'altaveus si la connexió és analògica. Aquesta configuració no s'aplica si l'àudio es fa passar directament (passthrough). Nota - SPDIF suporta 2.0 canals només però pot fer sortir àudio multicanal utilitzant un format suportat pel passthrough."
 
 msgctxt "#36363"
 msgid "Boost AC3 streams that have been downmixed to 2 channels."
 msgstr "Potencia els fluxos AC3 que s'han combinat a 2 canals."
 
-msgctxt "#36364"
-msgid "Upmix 2 channel stereo sources so the number of audio channels matches the number of speakers."
-msgstr "Divideix les fonts estèreo de 2 canals perquè el nombre de canals d'àudio coincideixi amb el nombre d'altaveus."
-
 msgctxt "#36365"
 msgid "Select this option if your receiver is capable of decoding AC3 streams."
-msgstr "Selecciona aquesta opció si el teu receptor és capaç de descodificar fluxos d'AC3."
+msgstr "Seleccioneu aquesta opció si el vostre receptor és capaç de descodificar fluxos d'AC3."
 
 msgctxt "#36366"
 msgid "Select this option if your receiver is capable of decoding DTS streams."
-msgstr "Selecciona aquesta opció si el teu receptor és capaç de descodificar fluxos DTS."
-
-msgctxt "#36367"
-msgid "Select this option if your receiver is capable of decoding AAC streams."
-msgstr "Selecciona aquesta opció si el teu receptor és capaç de descodificar fluxos AAC."
-
-msgctxt "#36368"
-msgid "Select this option if your receiver is capable of decoding LPCM streams."
-msgstr "Selecciona aquesta opció si el teu receptor és capaç de descodificar fluxos LPCM."
+msgstr "Seleccioneu aquesta opció si el vostre receptor és capaç de descodificar fluxos DTS."
 
 msgctxt "#36369"
 msgid "Select this option if your receiver is capable of decoding TrueHD streams."
-msgstr "Selecciona aquesta opció si el teu receptor és capaç de descodificar fluxos TrueHD."
+msgstr "Seleccioneu aquesta opció si el vostre receptor és capaç de descodificar fluxos TrueHD."
 
 msgctxt "#36370"
 msgid "Select this option if your receiver is capable of decoding DTS-HD streams."
-msgstr "Selecciona aquesta opció si el teu receptor és capaç de descodificar fluxos DTS-HD."
-
-msgctxt "#36371"
-msgid "Select the device you use to play audio decoded by XBMC such as mp3's and FLAC."
-msgstr "Selecciona el dispositiu que utilitzes per reproduir l'àudio descodificat per l'XBMC com els MP3 i els FLAC."
-
-msgctxt "#36372"
-msgid "Select the device you use to play encoded formats, these are any of the formats checked above in the 'capable receiver' options."
-msgstr "Selecciona el dispositiu que utilitzes per reproduir qualsevol dels formats codificats marcats a dalt en les opcions de 'receptor compatible'."
+msgstr "Seleccioneu aquesta opció si el vostre receptor és capaç de descodificar fluxos DTS-HD."
 
 msgctxt "#36373"
 msgid "Configure how interface sounds are handled, such as menu navigation and important notifications."
 msgstr "Configura com es manegen els sons d'interfície, com ara la navegació pels menús i les notificacions importants."
 
-msgctxt "#36374"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36375"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "Configure any attached peripheral devices."
+msgstr "Configureu els dispositius perifèrics connectats."
 
 msgctxt "#36376"
 msgid "When activated, your keyboard arrows will move the selection on the virtual keyboard. When deactivated, they will move the cursor from your text."
 msgstr "Quan s'activa, les fletxes del teclat mouran la selecció en el teclat virtual. Quan es desactiva, mouran el cursor de text."
 
 msgctxt "#36377"
-msgid "Use a mouse or touch screen device to control XBMC. Note: disabling will cause you to lose control over XBMC when no keyboard or remote is present."
-msgstr "Utilitza un ratolí o dispositiu de pantalla tàctil per controlar l'XBMC. Nota: La desactivació provocarà la pèrdua de control sobre l'XBMC quan no es detecti cap teclat ni comandament a distància."
+msgid "Use a mouse or touch screen device to control Kodi. Note: disabling will cause you to lose control over Kodi when no keyboard or remote is present."
+msgstr "Utilitza un ratolí o dispositiu de pantalla tàctil per controlar l'Kodi. Nota: La desactivació provocarà la pèrdua de control sobre l'Kodi quan no es detecti cap teclat ni comandament a distància."
 
 msgctxt "#36378"
-msgid "Use a joystick to control XBMC."
-msgstr "Utilitza un joystcik per controlar l'XBMC."
-
-msgctxt "#36379"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "Use a joystick to control Kodi."
+msgstr "Utilitza un joystcik per controlar l'Kodi."
 
 msgctxt "#36380"
 msgid "If your internet connection uses a proxy, configure it here."
@@ -11714,96 +12002,32 @@ msgid "Configure the proxy server password."
 msgstr "Configura la contrasenya del servidor proxy."
 
 msgctxt "#36386"
-msgid "If you have limited bandwidth available, XBMC will try to keep within these limits."
-msgstr "Si tens un ample de banda limitat, l'XBMC intentarà mantenir-se dins d'aquests límits."
-
-msgctxt "#36387"
-msgid "Turn off display when idle. Useful for TVs that turn off when there is no display signal detected, but you don't want to suspend/shutdown the whole computer."
-msgstr "Desactivar la visualització quan està inactiu. Útil per als televisors que s'apaguen quan no hi ha senyal de visualització detectat i no vols suspendre/apagar tot l'equip."
-
-msgctxt "#36388"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "If you have limited bandwidth available, Kodi will try to keep within these limits."
+msgstr "Si tens un ample de banda limitat, l'Kodi intentarà mantenir-se dins d'aquests límits."
 
 msgctxt "#36389"
-msgid "Define how long XBMC should idle before shutting down."
-msgstr "Defineix quant de temps l'XBMC ha de funcionar a relentí abans d'apagar."
+msgid "Define how long Kodi should idle before shutting down."
+msgstr "Defineix quant de temps l'Kodi ha de funcionar a relentí abans d'apagar."
 
 msgctxt "#36390"
-msgid "Define what action XBMC should do when it has been idle for a long period of time."
-msgstr "Definiu quina acció ha de fer l'XBMC quan ha estat inactiu durant un llarg període de temps."
+msgid "Define what action Kodi should do when it has been idle for a long period of time."
+msgstr "Definiu quina acció ha de fer l'Kodi quan ha estat inactiu durant un llarg període de temps."
 
-msgctxt "#36391"
+msgctxt "#36392"
 msgid "Turn debug logging on or off. Useful for troubleshooting."
 msgstr "Activa o desactiva el registre de depuració. Útil per a la solució de problemes."
 
-msgctxt "#36392"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36393"
-msgid "Folder used to save screenshots taken within XBMC."
-msgstr "Directori utilitzat per guardar les imatges capturades des de l'XBMC."
-
-msgctxt "#36394"
-msgid "Specify additional libraries to be included in the debug log."
-msgstr "Especifica les biblioteques addicionals que s'inclouran al registre de depuració."
+msgid "Folder used to save screenshots taken within Kodi."
+msgstr "Directori utilitzat per guardar les imatges capturades des de l'Kodi."
 
 msgctxt "#36396"
 msgid "Define the PIN code used for the master lock."
 msgstr "Defineix el codi PIN utilitzat per al bloqueig mestre."
 
-msgctxt "#36397"
-msgid "If enabled, the master lock code is required to unlock XBMC on startup "
-msgstr "Si està habilitat, es requereix el codi de bloqueig mestre per desbloquejar l'XBMC a l'iniciar."
-
 msgctxt "#36398"
-msgid "Define the maximum number of retries before XBMC is closed down."
-msgstr "Defineix el nombre màxim de re-intents abans de que l'XBMC es tanqui."
-
-msgctxt "#36399"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36400"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36401"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36402"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36403"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36404"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36405"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36406"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36407"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36408"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36409"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgid "Define the maximum number of retries before Kodi is closed down."
+msgstr "Defineix el nombre màxim de re-intents abans de que l'Kodi es tanqui."
 
 msgctxt "#36410"
 msgid "No info available yet."
@@ -11829,37 +12053,37 @@ msgctxt "#36415"
 msgid "No info available yet."
 msgstr "No hi ha informació disponible"
 
-msgctxt "#36416"
-msgid "Define the Apple remote standard used."
-msgstr "Defineix l'estàndard utilitzat per l'Apple Remote."
-
-msgctxt "#36417"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
-msgctxt "#36418"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
-
 msgctxt "#36419"
 msgid "Define locations used for retrieving weather information."
 msgstr "Defineix les localitzacions utilitzades per a recuperar informació meteorològica."
 
-msgctxt "#36420"
-msgid "No info available yet."
-msgstr "No hi ha informació disponible"
+msgctxt "#36425"
+msgid "Show context menu"
+msgstr "Mostra el menú contextual"
+
+msgctxt "#36426"
+msgid "Switch to channel"
+msgstr "Canvia al canal"
+
+msgctxt "#36427"
+msgid "Show information"
+msgstr "Mostra la informació"
+
+msgctxt "#36428"
+msgid "Record"
+msgstr "Grava"
 
 msgctxt "#36500"
-msgid "Stereoscopic mode (current)"
-msgstr "Mode estereoscòpic (actual)"
+msgid "Stereoscopic 3D mode (current)"
+msgstr "Mode estereoscòpic 3D (actual)"
 
 msgctxt "#36501"
-msgid "Stereoscopic mode"
-msgstr "Mode estereoscòpic"
+msgid "Stereoscopic 3D mode"
+msgstr "Mode estereoscòpic 3D"
 
 msgctxt "#36502"
-msgid "None"
-msgstr "Cap"
+msgid "Disabled"
+msgstr "Inhabilitat"
 
 msgctxt "#36503"
 msgid "Over/Under"
@@ -11886,20 +12110,16 @@ msgid "Hardware Based"
 msgstr "Maquinari Basat"
 
 msgctxt "#36509"
-msgid "Monoscopic - 2D"
-msgstr "Monoscòpic - 2D"
+msgid "Monoscopic (2D)"
+msgstr "Monoscòpic (2D)"
 
 msgctxt "#36520"
-msgid "Playback mode of stereoscopic videos"
-msgstr "Mode de reproducció de vídeos estereoscòpics"
+msgid "Playback mode of stereoscopic 3D videos"
+msgstr "Mode de reproducció de vídeos estereoscòpics 3D"
 
 msgctxt "#36521"
 msgid "Ask me"
 msgstr "Pregunta'm"
-
-msgctxt "#36522"
-msgid "Use preferred mode"
-msgstr "Utilitza el mode preferit"
 
 msgctxt "#36524"
 msgid "Preferred mode"
@@ -11909,26 +12129,6 @@ msgctxt "#36525"
 msgid "Same as movie (autodetect)"
 msgstr "El mateix que la pel·lícula (detecció automàtica)"
 
-msgctxt "#36526"
-msgid "Disable stereoscopic mode when playback is stopped"
-msgstr "Desactiva el mode estereoscòpic quan s'atura la reproducció"
-
-msgctxt "#36527"
-msgid "This video is stereoscopic. Select playback mode"
-msgstr "Aquest vídeo és estereoscòpic. Selecciona el mode de reproducció"
-
-msgctxt "#36528"
-msgid "Select stereoscopic mode"
-msgstr "Selecciona el mode estereoscòpic"
-
-msgctxt "#36529"
-msgid "Mono (2D)"
-msgstr "Mono (2D)"
-
-msgctxt "#36530"
-msgid "Preferred mode"
-msgstr "Mode preferit"
-
 msgctxt "#36531"
 msgid "Select alternate mode..."
 msgstr "Selecciona el mode alternatiu..."
@@ -11937,33 +12137,109 @@ msgctxt "#36532"
 msgid "Same as movie"
 msgstr "El mateix que la pel·lícula"
 
-msgctxt "#36535"
-msgid "Stereoscopic mode of video"
-msgstr "Mode estereoscòpic del vídeo"
-
-msgctxt "#36536"
-msgid "Stereoscopic mode inverted"
-msgstr "Mode estereoscòpic invertit"
-
-msgctxt "#36537"
-msgid "No info available yet."
-msgstr "Encara no hi ha informació disponible."
-
-msgctxt "#36538"
-msgid "No info available yet."
-msgstr "Encara no hi ha informació disponible."
-
-msgctxt "#36539"
-msgid "No info available yet."
-msgstr "Encara no hi ha informació disponible."
-
-msgctxt "#36540"
-msgid "No info available yet."
-msgstr "Encara no hi ha informació disponible."
-
 msgctxt "#36541"
 msgid "Allows volume control from AirPlay clients."
 msgstr "Permet als clients AirPlay controlar el volum."
+
+msgctxt "#36542"
+msgid "Output to both analogue (headphones) and HDMI"
+msgstr "Extreu-lo tant per analògic (auriculars) com per HDMI"
+
+msgctxt "#36543"
+msgid "Enable this to make dialogue louder compared to background sounds when downmixing multichannel audio"
+msgstr "Habilita-ho per potenciar els diàlegs en comparació amb els so de fons quan es redueixi el nombre de canals d'àudio"
+
+msgctxt "#36544"
+msgid "Enable hardware decoding of video files."
+msgstr "Habilita el maquinari de descodificació d'arxius de vídeo."
+
+msgctxt "#36900"
+msgid "movie"
+msgstr "pel·lícula"
+
+msgctxt "#36901"
+msgid "movies"
+msgstr "pel·lícules"
+
+msgctxt "#36902"
+msgid "TV show"
+msgstr "Sèrie de TV"
+
+msgctxt "#36903"
+msgid "TV shows"
+msgstr "Sèries de TV"
+
+msgctxt "#36904"
+msgid "season"
+msgstr "temporada"
+
+msgctxt "#36905"
+msgid "seasons"
+msgstr "temporades"
+
+msgctxt "#36906"
+msgid "episode"
+msgstr "episodi"
+
+msgctxt "#36907"
+msgid "episodes"
+msgstr "episodis"
+
+msgctxt "#36908"
+msgid "musicvideo"
+msgstr "vídeo musical"
+
+msgctxt "#36909"
+msgid "musicvideos"
+msgstr "vídeos musicals"
+
+msgctxt "#36910"
+msgid "set"
+msgstr "Estableix"
+
+msgctxt "#36911"
+msgid "sets"
+msgstr "Sets"
+
+msgctxt "#36912"
+msgid "video"
+msgstr "Vídeo"
+
+msgctxt "#36913"
+msgid "videos"
+msgstr "Vídeos"
+
+msgctxt "#36914"
+msgid "music"
+msgstr "música"
+
+msgctxt "#36915"
+msgid "music"
+msgstr "música"
+
+msgctxt "#36916"
+msgid "artist"
+msgstr "artista"
+
+msgctxt "#36917"
+msgid "artists"
+msgstr "artistes"
+
+msgctxt "#36918"
+msgid "album"
+msgstr "Àlbum"
+
+msgctxt "#36919"
+msgid "albums"
+msgstr "àlbums"
+
+msgctxt "#36920"
+msgid "song"
+msgstr "Cançó"
+
+msgctxt "#36921"
+msgid "songs"
+msgstr "Cançons"
 
 msgctxt "#37000"
 msgid "(Visually Impaired)"
@@ -11996,3 +12272,47 @@ msgstr "Darrer perfil utilitzat"
 msgctxt "#37015"
 msgid "Browse Into"
 msgstr "Buscar dins"
+
+msgctxt "#37016"
+msgid "Select this option if your receiver is capable of decoding E-AC3 streams."
+msgstr "Seleccioneu aquesta opció si el vostre receptor és capaç de descodificar fluxos d'E-AC3."
+
+msgctxt "#37017"
+msgid "Dual audio output"
+msgstr "Sortida d'àudio dual"
+
+msgctxt "#37018"
+msgid "Boost centre channel when downmixing"
+msgstr "Potencia el canal central al reduir el nombre de canals"
+
+msgctxt "#37021"
+msgid "Set GUI resolution limit"
+msgstr "Establir límit de resolució de la interfície"
+
+msgctxt "#37022"
+msgid "UPnP Player"
+msgstr "Reproductor UPnP"
+
+msgctxt "#37023"
+msgid "Do you wish to stop playback on the remote device?"
+msgstr "Voleu parar la reproducció al dispositiu remot?"
+
+msgctxt "#37026"
+msgid "Auto"
+msgstr "Auto"
+
+msgctxt "#37027"
+msgid "540"
+msgstr "540"
+
+msgctxt "#37028"
+msgid "720"
+msgstr "720"
+
+msgctxt "#37029"
+msgid "900"
+msgstr "900"
+
+msgctxt "#37030"
+msgid "Unlimited"
+msgstr "Il·limitat"

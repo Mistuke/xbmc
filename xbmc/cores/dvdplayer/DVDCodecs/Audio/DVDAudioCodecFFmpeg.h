@@ -21,10 +21,13 @@
  */
 
 #include "DVDAudioCodec.h"
-#include "DllAvCodec.h"
-#include "DllAvFormat.h"
-#include "DllAvUtil.h"
-#include "DllSwResample.h"
+
+extern "C" {
+#include "libavcodec/avcodec.h"
+#include "libavformat/avformat.h"
+#include "libavutil/avutil.h"
+#include "libswresample/swresample.h"
+}
 
 class CDVDAudioCodecFFmpeg : public CDVDAudioCodec
 {
@@ -39,35 +42,21 @@ public:
   virtual int GetChannels();
   virtual CAEChannelInfo GetChannelMap();
   virtual int GetSampleRate();
-  virtual int GetEncodedSampleRate();
   virtual enum AEDataFormat GetDataFormat();
   virtual const char* GetName() { return "FFmpeg"; }
-  virtual int GetBufferSize() { return m_iBuffered; }
   virtual int GetBitRate();
 
 protected:
   AVCodecContext*     m_pCodecContext;
-  SwrContext*         m_pConvert;
   enum AVSampleFormat m_iSampleFormat;  
   CAEChannelInfo      m_channelLayout;
-  bool                m_bLpcmMode;  
-  bool                m_bNeedConversion;
 
   AVFrame* m_pFrame1;
-  int      m_iBufferSize1;
-  uint8_t*    m_pBuffer2;
-  int      m_iBufferSize2;
-  int      m_iBufferTotalSize2;
+  int m_gotFrame;
 
   bool m_bOpenedCodec;
-  int m_iBuffered;
-
   int      m_channels;
   uint64_t m_layout;
-
-  DllAvCodec m_dllAvCodec;
-  DllAvUtil m_dllAvUtil;
-  DllSwResample m_dllSwResample;
 
   void BuildChannelMap();
   void ConvertToFloat();  

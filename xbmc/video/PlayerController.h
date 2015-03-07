@@ -20,7 +20,8 @@
  *
  */
 
-#include "dialogs/GUIDialogSlider.h"
+#include "guilib/ISliderCallback.h"
+#include "input/Key.h"
 
 /*! \brief Player controller class to handle user actions.
 

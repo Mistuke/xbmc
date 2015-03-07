@@ -35,7 +35,7 @@
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "input/ButtonTranslator.h"
-#include "input/MouseStat.h"
+#include "input/InputManager.h"
 #include "settings/Settings.h"
 #if !defined(TARGET_WINDOWS) && defined(HAS_DVD_DRIVE)
 #include "storage/DetectDVDType.h"
@@ -80,11 +80,6 @@ CProfilesManager& CProfilesManager::Get()
   return sProfilesManager;
 }
 
-bool CProfilesManager::OnSettingsLoading()
-{
-  return true;
-}
-
 void CProfilesManager::OnSettingsLoaded()
 {
   // check them all
@@ -101,10 +96,10 @@ void CProfilesManager::OnSettingsLoaded()
   CDirectory::Create(URIUtils::AddFileToFolder(strDir,"mixed"));
 }
 
-bool CProfilesManager::OnSettingsSaved()
+void CProfilesManager::OnSettingsSaved()
 {
   // save mastercode
-  return Save();
+  Save();
 }
 
 void CProfilesManager::OnSettingsCleared()
@@ -138,7 +133,7 @@ bool CProfilesManager::Load(const std::string &file)
         XMLUtils::GetInt(rootElement, XML_AUTO_LOGIN, m_autoLoginProfile);
         XMLUtils::GetInt(rootElement, XML_NEXTID, m_nextProfileId);
         
-        CStdString defaultDir("special://home/userdata");
+        std::string defaultDir("special://home/userdata");
         if (!CDirectory::Exists(defaultDir))
           defaultDir = "special://xbmc/userdata";
         
@@ -211,7 +206,7 @@ bool CProfilesManager::Save(const std::string &file) const
   XMLUtils::SetInt(pRoot, XML_AUTO_LOGIN, m_autoLoginProfile);
   XMLUtils::SetInt(pRoot, XML_NEXTID, m_nextProfileId);      
 
-  for (vector<CProfile>::const_iterator profile = m_profiles.begin(); profile != m_profiles.end(); profile++)
+  for (vector<CProfile>::const_iterator profile = m_profiles.begin(); profile != m_profiles.end(); ++profile)
     profile->Save(pRoot);
 
   // save the file
@@ -221,11 +216,11 @@ bool CProfilesManager::Save(const std::string &file) const
 void CProfilesManager::Clear()
 {
   CSingleLock lock(m_critical);
-  m_profiles.clear();
   m_usingLoginScreen = false;
   m_lastUsedProfile = 0;
   m_nextProfileId = 0;
   SetCurrentProfileId(0);
+  m_profiles.clear();
 }
 
 bool CProfilesManager::LoadProfile(size_t index)
@@ -267,7 +262,7 @@ bool CProfilesManager::LoadProfile(size_t index)
 
   CDatabaseManager::Get().Initialize();
 
-  g_Mouse.SetEnabled(CSettings::Get().GetBool("input.enablemouse"));
+  CInputManager::Get().SetMouseEnabled(CSettings::Get().GetBool("input.enablemouse"));
 
   g_infoManager.ResetCache();
   g_infoManager.ResetLibraryBools();
@@ -360,7 +355,7 @@ void CProfilesManager::CreateProfileFolders()
   CDirectory::Create(GetVideoThumbFolder());
   CDirectory::Create(GetBookmarksThumbFolder());
   for (size_t hex = 0; hex < 16; hex++)
-    CDirectory::Create(URIUtils::AddFileToFolder(GetThumbnailsFolder(), StringUtils::Format("%x", hex)));
+    CDirectory::Create(URIUtils::AddFileToFolder(GetThumbnailsFolder(), StringUtils::Format("%lx", hex)));
 
   CDirectory::Create("special://profile/addon_data");
   CDirectory::Create("special://profile/keymaps");
@@ -369,7 +364,7 @@ void CProfilesManager::CreateProfileFolders()
 const CProfile& CProfilesManager::GetMasterProfile() const
 {
   CSingleLock lock(m_critical);
-  if (m_profiles.size() > 0)
+  if (!m_profiles.empty())
     return m_profiles[0];
 
   CLog::Log(LOGERROR, "%s: master profile doesn't exist", __FUNCTION__);
@@ -507,7 +502,7 @@ std::string CProfilesManager::GetLibraryFolder() const
 
 std::string CProfilesManager::GetSettingsFile() const
 {
-  CStdString settings;
+  std::string settings;
   if (m_currentProfile == 0)
     return "special://masterprofile/guisettings.xml";
 

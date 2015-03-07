@@ -16,8 +16,15 @@ PREFIX=@prefix@/@deps_dir@
 NATIVEPREFIX=@prefix@/@tool_dir@
 ARCHIVE_TOOL_NATIVE=$(NATIVEPREFIX)/bin/tar
 OS=@platform_os@
+NATIVE_OS=@build_os@
 CROSS_COMPILING=@cross_compiling@
 ARCH_DEFINES=@ARCH_DEFINES@
+NATIVE_ARCH_DEFINES=@NATIVE_ARCH_DEFINES@
+TARGET_PLATFORM=@use_platform@
+XCODE_VERSION=@use_xcode@
+AAPT=@AAPT@
+DX=@DX@
+ZIPALIGN=@ZIPALIGN@
 
 HAS_ZLIB=@has_zlib@
 NEED_LIBICONV=@need_libiconv@
@@ -83,4 +90,5 @@ export LIBTOOL=@prefix@/@tool_dir@/bin/libtool
 export LIBTOOLIZE=@prefix@/@tool_dir@/bin/libtoolize
 
 export AUTORECONF=@prefix@/@tool_dir@/bin/autoreconf
+export JSON_BUILDER=$(NATIVEPREFIX)/bin/JsonSchemaBuilder
 

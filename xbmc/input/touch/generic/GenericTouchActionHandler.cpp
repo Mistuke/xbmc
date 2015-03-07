@@ -21,7 +21,7 @@
 #include "GenericTouchActionHandler.h"
 #include "ApplicationMessenger.h"
 #include "guilib/GUIWindowManager.h"
-#include "guilib/Key.h"
+#include "input/Key.h"
 #include "windowing/WinEvents.h"
 
 CGenericTouchActionHandler &CGenericTouchActionHandler::Get()
@@ -184,14 +184,13 @@ void CGenericTouchActionHandler::sendEvent(int actionId, float x, float y, float
 
 void CGenericTouchActionHandler::focusControl(float x, float y)
 {
-  // Send a mouse motion event for getting the current guiitem selected
   XBMC_Event newEvent;
   memset(&newEvent, 0, sizeof(newEvent));
 
-  newEvent.type = XBMC_MOUSEMOTION;
-  newEvent.motion.type = XBMC_MOUSEMOTION;
-  newEvent.motion.x = (uint16_t)x;
-  newEvent.motion.y = (uint16_t)y;
+  newEvent.type = XBMC_SETFOCUS;
+  newEvent.focus.type = XBMC_SETFOCUS;
+  newEvent.focus.x = (uint16_t)x;
+  newEvent.focus.y = (uint16_t)y;
 
   CWinEvents::MessagePush(&newEvent);
 }

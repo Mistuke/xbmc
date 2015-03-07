@@ -22,7 +22,7 @@
 
 #include "guilib/GUIControl.h"
 #include "guilib/GUIFont.h"
-#include "guilib/Key.h"
+#include "input/Key.h"
 
 #include "Alternative.h"
 #include "Tuple.h"
@@ -132,7 +132,7 @@ namespace XBMCAddon
        * visible          : string - Visible condition.\n
        * allowHiddenFocus : bool - True=gains focus even if hidden.
        * 
-       * List of Conditions - http://wiki.xbmc.org/index.php?title=List_of_Boolean_Conditions 
+       * List of Conditions - http://kodi.wiki/view/List_of_Boolean_Conditions
        * 
        * example:
        *   - self.button.setVisibleCondition('[Control.IsVisible(41) + !Control.IsVisible(12)]', True)
@@ -146,7 +146,7 @@ namespace XBMCAddon
        * 
        * enable           : string - Enable condition.
        * 
-       * List of Conditions - http://wiki.xbmc.org/index.php?title=List_of_Boolean_Conditions 
+       * List of Conditions - http://kodi.wiki/view/List_of_Boolean_Conditions
        * 
        * example:
        *   - self.button.setEnableCondition('System.InternetState')
@@ -161,7 +161,7 @@ namespace XBMCAddon
        *   - event        : string - The event to animate.
        *   - attr         : string - The whole attribute string separated by spaces.
        * 
-       * Animating your skin - http://wiki.xbmc.org/?title=Animating_Your_Skin 
+       * Animating your skin - http://kodi.wiki/view/Animating_Your_Skin
        * 
        * example:
        *   - self.button.setAnimations([('focus', 'effect=zoom end=90,247,220,56 time=0',)])
@@ -891,6 +891,15 @@ namespace XBMCAddon
        */
       virtual void setText(const String& text) throw(UnimplementedException);
 
+      // getText() Method
+      /**
+       * getText() -- Returns the text value for this textbox.
+       *
+       * example:
+       *   - text = self.text.getText()
+       */
+      virtual String getText() throw(UnimplementedException);
+
       // reset() Method
       /**
        * reset() -- Clear's this textbox.
@@ -910,6 +919,19 @@ namespace XBMCAddon
        *   - self.textbox.scroll(10)
        */
       virtual void scroll(long id) throw(UnimplementedException);
+
+      // autoScroll() Method
+      /**
+       * autoScroll(delay, time, repeat) -- Set autoscrolling times.
+       *
+       * delay           : integer - Scroll delay (in ms)
+       * time            : integer - Scroll time (in ms)
+       * repeat          : integer - Repeat time
+       *
+       * example:
+       *   - self.textbox.autoScroll(1, 2, 1)
+       */
+      virtual void autoScroll(int delay, int time, int repeat) throw(UnimplementedException);
 
 #ifndef SWIG
       std::string strFont;
@@ -950,14 +972,15 @@ namespace XBMCAddon
                    const char* colorDiffuse = NULL);
 
       /**
-       * setImage(filename) -- Changes the image.
+       * setImage(filename, useCache) -- Changes the image.
        * 
        * filename       : string - image filename.
+       * useCache       : [opt] bool - true/use cache, false/don't use cache
        * 
        * example:
        *   - self.image.setImage('special://home/scripts/test.png')
        */
-      virtual void setImage(const char* imageFilename) throw (UnimplementedException);
+      virtual void setImage(const char* imageFilename, const bool useCache = true) throw (UnimplementedException);
 
       /**
        * setColorDiffuse(colorDiffuse) -- Changes the images color.
@@ -1294,30 +1317,30 @@ namespace XBMCAddon
     /**
      * ControlRadioButton class.
      * 
-     * ControlRadioButton(x, y, width, height, label[, focusOnTexture, noFocusOnTexture,
-     *                   focusOffTexture, noFocusOffTexture, focusTexture, noFocusTexture,
+     * ControlRadioButton(x, y, width, height, label[, focusOnTexture, noFocusOnTexture,\n
+     *                   focusOffTexture, noFocusOffTexture, focusTexture, noFocusTexture,\n
      *                   textOffsetX, textOffsetY, alignment, font, textColor, disabledColor])
      * 
-     * x                 : integer - x coordinate of control.
-     * y                 : integer - y coordinate of control.
-     * width             : integer - width of control.
-     * height            : integer - height of control.
-     * label             : string or unicode - text string.
-     * focusOnTexture    : [opt] string - filename for radio ON focused texture.
-     * noFocusOnTexture  : [opt] string - filename for radio ON not focused texture.
-     * focusOfTexture    : [opt] string - filename for radio OFF focused texture.
-     * noFocusOffTexture : [opt] string - filename for radio OFF not focused texture.
-     * focusTexture      : [opt] string - filename for radio ON texture (deprecated, use focusOnTexture and noFocusOnTexture).
-     * noFocusTexture    : [opt] string - filename for radio OFF texture (deprecated, use focusOffTexture and noFocusOffTexture).
-     * textOffsetX       : [opt] integer - horizontal text offset
-     * textOffsetY       : [opt] integer - vertical text offset
-     * alignment         : [opt] integer - alignment of label - *Note, see xbfont.h
-     * font              : [opt] string - font used for label text. (e.g. 'font13')
-     * textColor         : [opt] hexstring - color of enabled checkmark's label. (e.g. '0xFFFFFFFF')
+     * x                 : integer - x coordinate of control.\n
+     * y                 : integer - y coordinate of control.\n
+     * width             : integer - width of control.\n
+     * height            : integer - height of control.\n
+     * label             : string or unicode - text string.\n
+     * focusOnTexture    : [opt] string - filename for radio ON focused texture.\n
+     * noFocusOnTexture  : [opt] string - filename for radio ON not focused texture.\n
+     * focusOfTexture    : [opt] string - filename for radio OFF focused texture.\n
+     * noFocusOffTexture : [opt] string - filename for radio OFF not focused texture.\n
+     * focusTexture      : [opt] string - filename for radio ON texture (deprecated, use focusOnTexture and noFocusOnTexture).\n
+     * noFocusTexture    : [opt] string - filename for radio OFF texture (deprecated, use focusOffTexture and noFocusOffTexture).\n
+     * textOffsetX       : [opt] integer - horizontal text offset\n
+     * textOffsetY       : [opt] integer - vertical text offset\n
+     * alignment         : [opt] integer - alignment of label - *Note, see xbfont.h\n
+     * font              : [opt] string - font used for label text. (e.g. 'font13')\n
+     * textColor         : [opt] hexstring - color of enabled checkmark's label. (e.g. '0xFFFFFFFF')\n
      * disabledColor     : [opt] hexstring - color of disabled checkmark's label. (e.g. '0xFFFF3300')
      * 
-     * *Note, You can use the above as keywords for arguments and skip certain optional arguments.
-     *        Once you use a keyword, all following arguments require the keyword.
+     * *Note, You can use the above as keywords for arguments and skip certain optional arguments.\n
+     *        Once you use a keyword, all following arguments require the keyword.\n
      *        After you create the control, you need to add it to the window with addControl().
      * 
      * example:
@@ -1335,9 +1358,7 @@ namespace XBMCAddon
                          long _alignment = (XBFONT_LEFT | XBFONT_CENTER_Y), 
                          const char* font = NULL, const char* textColor = NULL,
                          const char* disabledColor = NULL, long angle = 0,
-                         const char* shadowColor = NULL, const char* focusedColor = NULL,
-                         const char* TextureRadioFocus = NULL, 
-                         const char* TextureRadioNoFocus = NULL);
+                         const char* shadowColor = NULL, const char* focusedColor = NULL);
 
       // setSelected() Method
       /**

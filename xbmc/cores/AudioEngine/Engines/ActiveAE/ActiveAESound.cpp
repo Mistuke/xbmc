@@ -18,14 +18,17 @@
  *
  */
 
-#include "Interfaces/AESound.h"
+#include "cores/AudioEngine/Interfaces/AESound.h"
 
-#include "AEFactory.h"
-#include "Utils/AEAudioFormat.h"
+#include "cores/AudioEngine/AEFactory.h"
+#include "cores/AudioEngine/Utils/AEAudioFormat.h"
 #include "ActiveAE.h"
 #include "ActiveAESound.h"
 #include "utils/log.h"
-#include "DllAvUtil.h"
+
+extern "C" {
+#include "libavutil/avutil.h"
+}
 
 using namespace ActiveAE;
 using namespace XFILE;
@@ -41,6 +44,9 @@ CActiveAESound::CActiveAESound(const std::string &filename) :
   m_orig_sound = NULL;
   m_dst_sound = NULL;
   m_pFile = NULL;
+  m_isSeekPossible = false;
+  m_fileSize = 0;
+  m_isConverted = false;
 }
 
 CActiveAESound::~CActiveAESound()
@@ -129,7 +135,7 @@ bool CActiveAESound::Prepare()
     m_pFile = NULL;
     return false;
   }
-  m_isSeekPosible = m_pFile->IoControl(IOCTRL_SEEK_POSSIBLE, NULL) != 0;
+  m_isSeekPossible = m_pFile->IoControl(IOCTRL_SEEK_POSSIBLE, NULL) != 0;
   m_fileSize = m_pFile->GetLength();
   return true;
 }
@@ -151,7 +157,7 @@ int CActiveAESound::Read(void *h, uint8_t* buf, int size)
   return pFile->Read(buf, size);
 }
 
-offset_t CActiveAESound::Seek(void *h, offset_t pos, int whence)
+int64_t CActiveAESound::Seek(void *h, int64_t pos, int whence)
 {
   CFile* pFile = static_cast<CActiveAESound*>(h)->m_pFile;
   if(whence == AVSEEK_SIZE)

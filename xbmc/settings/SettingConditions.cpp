@@ -18,139 +18,294 @@
  *
  */
 
+#include "system.h"
 #include "SettingConditions.h"
-#include "SettingsManager.h"
-#include "utils/StringUtils.h"
-#include "utils/XBMCTinyXML.h"
+#include "Application.h"
+#include "GUIPassword.h"
+#include "Util.h"
+#include "addons/AddonManager.h"
+#include "addons/Skin.h"
+#if defined(TARGET_ANDROID)
+#include "android/activity/AndroidFeatures.h"
+#endif // defined(TARGET_ANDROID)
+#include "cores/AudioEngine/AEFactory.h"
+#include "cores/dvdplayer/DVDCodecs/Video/DVDVideoCodec.h"
+#include "guilib/LocalizeStrings.h"
+#include "peripherals/Peripherals.h"
+#include "profiles/ProfilesManager.h"
+#include "pvr/PVRManager.h"
+#include "settings/SettingAddon.h"
+#if defined(HAS_LIBAMCODEC)
+#include "utils/AMLUtils.h"
+#endif // defined(HAS_LIBAMCODEC)
+#include "utils/SystemInfo.h"
+#include "windowing/WindowingFactory.h"
+#if defined(TARGET_DARWIN_OSX)
+#include "osx/DarwinUtils.h"
+#endif// defined(TARGET_DARWIN_OSX)
 
-bool CSettingConditionItem::Deserialize(const TiXmlNode *node)
+bool AddonHasSettings(const std::string &condition, const std::string &value, const CSetting *setting)
 {
-  if (!CBooleanLogicValue::Deserialize(node))
+  if (setting == NULL)
     return false;
 
-  const TiXmlElement *elem = node->ToElement();
-  if (elem == NULL)
+  const CSettingAddon *settingAddon = dynamic_cast<const CSettingAddon*>(setting);
+  if (settingAddon == NULL)
     return false;
 
-  // get the "name" attribute
-  const char *strAttribute = elem->Attribute("name");
-  if (strAttribute != NULL)
-    m_name = strAttribute;
-
-  // get the "setting" attribute
-  strAttribute = elem->Attribute("setting");
-  if (strAttribute != NULL)
-    m_setting = strAttribute;
-
-  return true;
-}
-
-bool CSettingConditionItem::Check() const
-{
-  if (m_settingsManager == NULL)
+  ADDON::AddonPtr addon;
+  if (!ADDON::CAddonMgr::Get().GetAddon(settingAddon->GetValue(), addon, settingAddon->GetAddonType()) || addon == NULL)
     return false;
 
-  return m_settingsManager->GetConditions().Check(m_name, m_value, m_setting) == !m_negated;
+  if (addon->Type() == ADDON::ADDON_SKIN)
+    return ((ADDON::CSkinInfo*)addon.get())->HasSkinFile("SkinSettings.xml");
+
+  return addon->HasSettings();
 }
 
-bool CSettingConditionCombination::Check() const
+bool CheckMasterLock(const std::string &condition, const std::string &value, const CSetting *setting)
 {
-  bool ok = false;
-  for (CBooleanLogicOperations::const_iterator operation = m_operations.begin();
-       operation != m_operations.end(); ++operation)
-  {
-    if (*operation == NULL)
-      continue;
-
-    CSettingConditionCombination *combination = static_cast<CSettingConditionCombination*>((*operation).get());
-    if (combination == NULL)
-      continue;
-    
-    if (combination->Check())
-      ok = true;
-    else if (m_operation == BooleanLogicOperationAnd)
-      return false;
-  }
-
-  for (CBooleanLogicValues::const_iterator value = m_values.begin();
-       value != m_values.end(); ++value)
-  {
-    if (*value == NULL)
-      continue;
-
-    CSettingConditionItem *condition = static_cast<CSettingConditionItem*>((*value).get());
-    if (condition == NULL)
-      continue;
-
-    if (condition->Check())
-      ok = true;
-    else if (m_operation == BooleanLogicOperationAnd)
-      return false;
-  }
-
-  return ok;
+  return g_passwordManager.IsMasterLockUnlocked(StringUtils::EqualsNoCase(value, "true"));
 }
 
-CSettingCondition::CSettingCondition(CSettingsManager *settingsManager /* = NULL */)
-  : ISettingCondition(settingsManager)
+bool CheckPVRParentalPin(const std::string &condition, const std::string &value, const CSetting *setting)
 {
-  m_operation = CBooleanLogicOperationPtr(new CSettingConditionCombination(settingsManager));
+  return PVR::g_PVRManager.CheckParentalPIN(g_localizeStrings.Get(19262).c_str());
 }
 
-bool CSettingCondition::Check() const
+bool HasPeripherals(const std::string &condition, const std::string &value, const CSetting *setting)
 {
-  CSettingConditionCombination *combination = static_cast<CSettingConditionCombination*>(m_operation.get());
-  if (combination == NULL)
+  return PERIPHERALS::g_peripherals.GetNumberOfPeripherals() > 0;
+}
+
+bool IsFullscreen(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  return g_Windowing.IsFullScreen();
+}
+
+bool IsMasterUser(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  return g_passwordManager.bMasterUser;
+}
+
+bool IsUsingTTFSubtitles(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  return CUtil::IsUsingTTFSubtitles();
+}
+
+bool ProfileCanWriteDatabase(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  return CProfilesManager::Get().GetCurrentProfile().canWriteDatabases();
+}
+
+bool ProfileCanWriteSources(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  return CProfilesManager::Get().GetCurrentProfile().canWriteSources();
+}
+
+bool ProfileHasAddons(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  return CProfilesManager::Get().GetCurrentProfile().hasAddons();
+}
+
+bool ProfileHasDatabase(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  return CProfilesManager::Get().GetCurrentProfile().hasDatabases();
+}
+
+bool ProfileHasSources(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  return CProfilesManager::Get().GetCurrentProfile().hasSources();
+}
+
+bool ProfileHasAddonManagerLocked(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  return CProfilesManager::Get().GetCurrentProfile().addonmanagerLocked();
+}
+
+bool ProfileHasFilesLocked(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  return CProfilesManager::Get().GetCurrentProfile().filesLocked();
+}
+
+bool ProfileHasMusicLocked(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  return CProfilesManager::Get().GetCurrentProfile().musicLocked();
+}
+
+bool ProfileHasPicturesLocked(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  return CProfilesManager::Get().GetCurrentProfile().picturesLocked();
+}
+
+bool ProfileHasProgramsLocked(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  return CProfilesManager::Get().GetCurrentProfile().programsLocked();
+}
+
+bool ProfileHasSettingsLocked(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  LOCK_LEVEL::SETTINGS_LOCK slValue=LOCK_LEVEL::ALL;
+  if (StringUtils::EqualsNoCase(value, "none"))
+    slValue = LOCK_LEVEL::NONE;
+  else if (StringUtils::EqualsNoCase(value, "standard"))
+    slValue = LOCK_LEVEL::STANDARD;
+  else if (StringUtils::EqualsNoCase(value, "advanced"))
+    slValue = LOCK_LEVEL::ADVANCED;
+  else if (StringUtils::EqualsNoCase(value, "expert"))
+    slValue = LOCK_LEVEL::EXPERT;
+  return slValue <= CProfilesManager::Get().GetCurrentProfile().settingsLockLevel();
+}
+
+bool ProfileHasVideosLocked(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  return CProfilesManager::Get().GetCurrentProfile().videoLocked();
+}
+
+bool ProfileLockMode(const std::string &condition, const std::string &value, const CSetting *setting)
+{
+  char *tmp = NULL;
+  LockType lock = (LockType)strtol(value.c_str(), &tmp, 0);
+  if (tmp != NULL && *tmp != '\0')
     return false;
 
-  return combination->Check();
+  return CProfilesManager::Get().GetCurrentProfile().getLockMode() == lock;
 }
 
-void CSettingConditionsManager::AddCondition(const std::string &condition)
+std::set<std::string> CSettingConditions::m_simpleConditions;
+std::map<std::string, SettingConditionCheck> CSettingConditions::m_complexConditions;
+
+void CSettingConditions::Initialize()
 {
-  if (condition.empty())
+  if (!m_simpleConditions.empty())
     return;
 
-  m_defines.insert(condition);
+  // add simple conditions
+  m_simpleConditions.insert("true");
+#ifdef HAS_UPNP
+  m_simpleConditions.insert("has_upnp");
+#endif
+#ifdef HAS_AIRPLAY
+  m_simpleConditions.insert("has_airplay");
+#endif
+#ifdef HAS_EVENT_SERVER
+  m_simpleConditions.insert("has_event_server");
+#endif
+#ifdef HAVE_X11
+  m_simpleConditions.insert("have_x11");
+#endif
+#ifdef HAS_GL
+  m_simpleConditions.insert("has_gl");
+#endif
+#ifdef HAS_GLX
+  m_simpleConditions.insert("has_glx");
+#endif
+#ifdef HAS_GLES
+  m_simpleConditions.insert("has_gles");
+#endif
+#if HAS_GLES == 2
+  m_simpleConditions.insert("has_glesv2");
+#endif
+#ifdef HAS_KARAOKE
+  m_simpleConditions.insert("has_karaoke");
+#endif
+#ifdef HAS_SDL_JOYSTICK
+  m_simpleConditions.insert("has_sdl_joystick");
+#endif
+#ifdef HAS_TOUCH_SKIN
+  m_simpleConditions.insert("has_touch_skin");
+#endif
+#ifdef HAS_TIME_SERVER
+  m_simpleConditions.insert("has_time_server");
+#endif
+#ifdef HAS_WEB_SERVER
+  m_simpleConditions.insert("has_web_server");
+#endif
+#ifdef HAS_ZEROCONF
+  m_simpleConditions.insert("has_zeroconf");
+#endif
+#ifdef HAVE_LIBOPENMAX
+  m_simpleConditions.insert("have_libopenmax");
+#endif
+#ifdef HAS_OMXPLAYER
+  m_simpleConditions.insert("has_omxplayer");
+#endif
+#ifdef HAVE_LIBVA
+  m_simpleConditions.insert("have_libva");
+#endif
+#ifdef HAVE_LIBVDPAU
+  m_simpleConditions.insert("have_libvdpau");
+#endif
+#ifdef TARGET_ANDROID
+  m_simpleConditions.insert("has_mediacodec");
+#endif
+#ifdef HAS_LIBSTAGEFRIGHT
+  m_simpleConditions.insert("have_libstagefrightdecoder");
+#endif
+#ifdef HAVE_VIDEOTOOLBOXDECODER
+  m_simpleConditions.insert("have_videotoolboxdecoder");
+  if (g_sysinfo.HasVideoToolBoxDecoder())
+    m_simpleConditions.insert("hasvideotoolboxdecoder");
+#endif
+#ifdef TARGET_DARWIN_OSX
+  m_simpleConditions.insert("HasVDA");
+#endif
+#ifdef HAS_LIBAMCODEC
+  if (aml_present())
+    m_simpleConditions.insert("have_amcodec");
+#endif
+#ifdef TARGET_DARWIN_IOS_ATV2
+  if (g_sysinfo.IsAppleTV2())
+    m_simpleConditions.insert("isappletv2");
+#endif
+#ifdef TARGET_DARWIN_OSX
+  if (CDarwinUtils::IsSnowLeopard())
+    m_simpleConditions.insert("osxissnowleopard");
+#endif
+#if defined(TARGET_WINDOWS) && defined(HAS_DX)
+  m_simpleConditions.insert("has_dx");
+  m_simpleConditions.insert("hasdxva2");
+#endif
+
+  if (g_application.IsStandAlone())
+    m_simpleConditions.insert("isstandalone");
+
+  if(CAEFactory::SupportsQualitySetting())
+    m_simpleConditions.insert("has_ae_quality_levels");
+
+  // add complex conditions
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("addonhassettings",              AddonHasSettings));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("checkmasterlock",               CheckMasterLock));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("checkpvrparentalpin",           CheckPVRParentalPin));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("hasperipherals",                HasPeripherals));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("isfullscreen",                  IsFullscreen));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("ismasteruser",                  IsMasterUser));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("isusingttfsubtitles",           IsUsingTTFSubtitles));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilecanwritedatabase",       ProfileCanWriteDatabase));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilecanwritesources",        ProfileCanWriteSources));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilehasaddons",              ProfileHasAddons));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilehasdatabase",            ProfileHasDatabase));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilehassources",             ProfileHasSources));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilehasaddonmanagerlocked",  ProfileHasAddonManagerLocked));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilehasfileslocked",         ProfileHasFilesLocked));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilehasmusiclocked",         ProfileHasMusicLocked));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilehaspictureslocked",      ProfileHasPicturesLocked));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilehasprogramslocked",      ProfileHasProgramsLocked));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilehassettingslocked",      ProfileHasSettingsLocked));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilehasvideoslocked",        ProfileHasVideosLocked));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilelockmode",               ProfileLockMode));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("aesettingvisible",              CAEFactory::IsSettingVisible));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("codecoptionvisible",            CDVDVideoCodec::IsSettingVisible));
 }
 
-void CSettingConditionsManager::AddCondition(const std::string &identifier, SettingConditionCheck condition)
+bool CSettingConditions::Check(const std::string &condition, const std::string &value /* = "" */, const CSetting *setting /* = NULL */)
 {
-  if (identifier.empty() || condition == NULL)
-    return;
+  if (m_simpleConditions.find(condition) != m_simpleConditions.end())
+    return true;
 
-  m_conditions.insert(SettingConditionPair(identifier, condition));
-}
+  std::map<std::string, SettingConditionCheck>::const_iterator itCondition = m_complexConditions.find(condition);
+  if (itCondition != m_complexConditions.end())
+    return itCondition->second(condition, value, setting);
 
-bool CSettingConditionsManager::Check(const std::string &condition, const std::string &value /* = "" */, const std::string &settingId /* = "" */) const
-{
-  if (condition.empty())
-    return false;
-
-  std::string tmpCondition = condition;
-  StringUtils::ToLower(tmpCondition);
-
-  // special handling of "isdefined" conditions
-  if (tmpCondition == "isdefined")
-  {
-    std::string tmpValue = value;
-    StringUtils::ToLower(tmpValue);
-
-    return m_defines.find(tmpValue) != m_defines.end();
-  }
-
-  SettingConditionMap::const_iterator conditionIt = m_conditions.find(tmpCondition);
-  if (conditionIt == m_conditions.end())
-    return false;
-
-  return conditionIt->second(tmpCondition, value, settingId);
-}
-
-CSettingConditionsManager::CSettingConditionsManager()
-{ }
-
-CSettingConditionsManager::~CSettingConditionsManager()
-{
-  m_conditions.clear();
-  m_defines.clear();
+  return Check(condition);
 }

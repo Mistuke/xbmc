@@ -19,7 +19,8 @@
  *
  */
 
-#include "utils/Archive.h"
+#include <string>
+#include "utils/IArchivable.h"
 
 class CTemperature : public IArchivable
 {
@@ -95,7 +96,7 @@ public:
   double ToNewton() const;
 
   double ToLocale() const;
-  CStdString ToString() const;
+  std::string ToString() const;
 
 protected:
   CTemperature(double value);

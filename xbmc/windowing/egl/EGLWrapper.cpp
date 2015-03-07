@@ -28,6 +28,7 @@
 #include "EGLNativeTypeRaspberryPI.h"
 #include "EGLNativeTypeOdroid.h"
 #include "EGLNativeTypeWayland.h"
+#include "EGLNativeTypeIMX.h"
 #include "EGLWrapper.h"
 
 #define CheckError() m_result = eglGetError(); if(m_result != EGL_SUCCESS) CLog::Log(LOGERROR, "EGL error in %s: %x",__FUNCTION__, m_result);
@@ -86,6 +87,7 @@ bool CEGLWrapper::Initialize(const std::string &implementation)
       (nativeGuess = CreateEGLNativeType<CEGLNativeTypeAmlogic>(implementation)) ||
       (nativeGuess = CreateEGLNativeType<CEGLNativeTypeRaspberryPI>(implementation)) ||
       (nativeGuess = CreateEGLNativeType<CEGLNativeTypeOdroid>(implementation)))
+      (nativeGuess = CreateEGLNativeType<CEGLNativeTypeIMX>(implementation))
   {
     m_nativeTypes = nativeGuess;
 
@@ -215,12 +217,11 @@ bool CEGLWrapper::InitDisplay(EGLDisplay *display)
 
 bool CEGLWrapper::ChooseConfig(EGLDisplay display, EGLint *configAttrs, EGLConfig *config)
 {
-  EGLBoolean eglStatus = true;
   EGLint     configCount = 0;
   EGLConfig* configList = NULL;
 
   // Find out how many configurations suit our needs
-  eglStatus = eglChooseConfig(display, configAttrs, NULL, 0, &configCount);
+  EGLBoolean eglStatus = eglChooseConfig(display, configAttrs, NULL, 0, &configCount);
   CheckError();
 
   if (!eglStatus || !configCount)

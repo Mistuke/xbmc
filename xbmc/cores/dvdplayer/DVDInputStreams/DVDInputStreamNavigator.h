@@ -106,6 +106,7 @@ public:
   int GetTotalButtons();
   bool GetCurrentButtonInfo(CDVDOverlaySpu* pOverlayPicture, CDVDDemuxSPU* pSPU, int iButtonType /* 0 = selection, 1 = action (clicked)*/);
 
+  bool HasMenu() { return true; }
   bool IsInMenu() { return m_bInMenu; }
 
   int GetActiveSubtitleStream();
@@ -126,7 +127,8 @@ public:
 
   int GetChapter()      { return m_iPart; }      // the current part in the current title
   int GetChapterCount() { return m_iPartCount; } // the number of parts in the current title
-  void GetChapterName(std::string& name) {};
+  void GetChapterName(std::string& name, int idx=-1) {};
+  int64_t GetChapterPos(int ch=-1);
   bool SeekChapter(int iChapter);
 
   int GetTotalTime(); // the total time in milli seconds

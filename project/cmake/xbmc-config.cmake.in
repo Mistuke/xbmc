@@ -1,5 +1,4 @@
-SET(XBMC_INCLUDE_DIR @prefix@/include)
-LIST(APPEND CMAKE_MODULE_PATH @prefix@/lib/xbmc)
-ADD_DEFINITIONS(@ARCH_DEFINES@)
+message(WARNING "find_package(xbmc) has been deprecated, please use find_package(kodi)")
 
-include(xbmc-addon-helpers)
+find_package(kodi REQUIRED)
+set(XBMC_INCLUDE_DIR ${KODI_INCLUDE_DIR})

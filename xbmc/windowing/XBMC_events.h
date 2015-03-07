@@ -36,6 +36,17 @@
 #define XBMC_RELEASED	0
 #define XBMC_PRESSED	1
 
+/* Hat definitions */
+#define XBMC_HAT_CENTERED    0
+#define XBMC_HAT_UP          0x01
+#define XBMC_HAT_RIGHT       0x02
+#define XBMC_HAT_DOWN        0x04
+#define XBMC_HAT_LEFT        0x08
+#define XBMC_HAT_LEFTUP      XBMC_HAT_UP   | XBMC_HAT_LEFT
+#define XBMC_HAT_RIGHTUP     XBMC_HAT_UP   | XBMC_HAT_RIGHT
+#define XBMC_HAT_LEFTDOWN    XBMC_HAT_DOWN | XBMC_HAT_LEFT
+#define XBMC_HAT_RIGHTDOWN   XBMC_HAT_DOWN | XBMC_HAT_RIGHT
+
 /* Event enumerations */
 typedef enum {
        XBMC_NOEVENT = 0,        /* Unused (do not remove) */
@@ -57,6 +68,7 @@ typedef enum {
        XBMC_VIDEOEXPOSE,        /* Screen needs to be redrawn */
        XBMC_APPCOMMAND,         /* Media commands, such as WM_APPCOMMAND on Windows for media keys. */
        XBMC_TOUCH,
+       XBMC_SETFOCUS,
        XBMC_USEREVENT,
 
        XBMC_MAXEVENT = 256      /* XBMC_EventType is represented as uchar */
@@ -102,6 +114,7 @@ typedef struct XBMC_JoyAxisEvent {
 	unsigned char which;	/* The joystick device index */
 	unsigned char axis;	/* The joystick axis index */
 	int16_t value;	/* The axis value (range: -32768 to 32767) */
+	float   fvalue; /* The axis value (range: -1.0 to 1.0) */
 } XBMC_JoyAxisEvent;
 
 /* Joystick trackball motion event structure */
@@ -192,6 +205,12 @@ typedef struct XBMC_TouchEvent {
   int pointers;         /* number of touch pointers */
 } XBMC_TouchEvent;
 
+typedef struct XBMC_SetFocusEvent {
+	unsigned char type;	/* XBMC_SETFOCUS */
+	int x;		/* x position */
+	int y;		/* y position */
+} XBMC_SetFocusEvent;
+
 /* General event structure */
 typedef union XBMC_Event {
   unsigned char type;
@@ -211,6 +230,7 @@ typedef union XBMC_Event {
   XBMC_SysWMEvent syswm;
   XBMC_AppCommandEvent appcommand;
   XBMC_TouchEvent touch;
+  XBMC_SetFocusEvent focus;
 } XBMC_Event;
 
 #endif /* _XBMC_events_h */

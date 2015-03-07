@@ -34,8 +34,9 @@ using namespace XFILE;
 //////////////////////////////////////////////////////////////////////
 //*********************************************************************************************
 CISOFile::CISOFile()
+  : m_bOpened(false)
+  , m_hFile(INVALID_HANDLE_VALUE)
 {
-  m_bOpened = false;
 }
 
 //*********************************************************************************************
@@ -67,9 +68,13 @@ bool CISOFile::Open(const CURL& url)
 }
 
 //*********************************************************************************************
-unsigned int CISOFile::Read(void *lpBuf, int64_t uiBufSize)
+ssize_t CISOFile::Read(void *lpBuf, size_t uiBufSize)
 {
-  if (!m_bOpened) return 0;
+  if (!m_bOpened)
+    return -1;
+  if (uiBufSize > SSIZE_MAX)
+    uiBufSize = SSIZE_MAX;
+
   char *pData = (char *)lpBuf;
 
   if (m_cache.getSize() > 0)
@@ -99,10 +104,8 @@ unsigned int CISOFile::Read(void *lpBuf, int64_t uiBufSize)
     }
     return lTotalBytesRead;
   }
-  int iResult = m_isoReader.ReadFile( m_hFile, (uint8_t*)pData, (long)uiBufSize);
-  if (iResult == -1)
-    return 0;
-  return iResult;
+
+  return m_isoReader.ReadFile( m_hFile, (uint8_t*)pData, (long)uiBufSize);;
 }
 
 //*********************************************************************************************

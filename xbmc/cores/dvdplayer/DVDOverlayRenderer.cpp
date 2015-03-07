@@ -24,6 +24,7 @@
 #include "DVDCodecs/Overlay/DVDOverlayText.h"
 #include "DVDCodecs/Overlay/DVDOverlayImage.h"
 #include "DVDCodecs/Overlay/DVDOverlaySSA.h"
+#include "cores/VideoRenderers/OverlayRendererUtil.h"
 
 #define CLAMP(a, min, max) ((a) > (max) ? (max) : ( (a) < (min) ? (min) : a ))
 
@@ -55,7 +56,7 @@ void CDVDOverlayRenderer::Render(DVDPictureRenderer* pPicture, CDVDOverlay* pOve
       if (e->IsElementType(CDVDOverlayText::ELEMENT_TYPE_TEXT))
       {
         CDVDOverlayText::CElementText* t = (CDVDOverlayText::CElementText*)e;
-        CLog::Log(LOGDEBUG, " - %s", t->m_text);
+        CLog::Log(LOGDEBUG, " - %s", t->GetTextPtr());
       }
       e = e->pNext;
     }
@@ -71,6 +72,8 @@ void CDVDOverlayRenderer::Render(DVDPictureRenderer* pPicture, CDVDOverlaySSA* p
   width = pPicture->width;
 
   ASS_Image* img = pOverlay->m_libass->RenderImage(width, height, pts);
+
+  int depth = OVERLAY::GetStereoscopicDepth();
 
   while(img)
   {
@@ -94,7 +97,7 @@ void CDVDOverlayRenderer::Render(DVDPictureRenderer* pPicture, CDVDOverlaySSA* p
     uint8_t u     = (uint8_t)(127.5 + 255 * CLAMP(-0.169 * r - 0.331 * g + 0.500 * b, -0.5, 0.5));
 
     int y = std::max(0,std::min(img->dst_y, pPicture->height-img->h));
-    int x = std::max(0,std::min(img->dst_x, pPicture->width-img->w));
+    int x = std::max(0,std::min(img->dst_x + depth, pPicture->width-img->w));
 
     for(int i=0; i<img->h; i++)
     {

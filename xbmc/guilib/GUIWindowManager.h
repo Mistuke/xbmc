@@ -33,6 +33,7 @@
 #include "IMsgTargetCallback.h"
 #include "DirtyRegionTracker.h"
 #include "utils/GlobalsHandling.h"
+#include "guilib/WindowIDs.h"
 #include <list>
 
 class CGUIDialog;
@@ -57,9 +58,9 @@ public:
   void AddCustomWindow(CGUIWindow* pWindow);
   void Remove(int id);
   void Delete(int id);
-  void ActivateWindow(int iWindowID, const CStdString &strPath = "");
-  void ChangeActiveWindow(int iNewID, const CStdString &strPath = "");
-  void ActivateWindow(int iWindowID, const std::vector<CStdString>& params, bool swappingWindows = false);
+  void ActivateWindow(int iWindowID, const std::string &strPath = "");
+  void ChangeActiveWindow(int iNewID, const std::string &strPath = "");
+  void ActivateWindow(int iWindowID, const std::vector<std::string>& params, bool swappingWindows = false);
   void PreviousWindow();
 
   void CloseDialogs(bool forceClose = false) const;
@@ -109,6 +110,16 @@ public:
    */
   bool Initialized() const { return m_initialized; };
 
+  /*! \brief Create and initialize all windows and dialogs
+   */
+  void CreateWindows();
+
+  /*! \brief Destroy and remove all windows and dialogs
+  *
+  * \return true on success, false if destruction fails for any window
+  */
+  bool DestroyWindows();
+
   CGUIWindow* GetWindow(int id) const;
   void ProcessRenderLoop(bool renderOnly = false);
   void SetCallback(IWindowManagerCallback& callback);
@@ -126,15 +137,16 @@ public:
   int RemoveThreadMessageByMessageIds(int *pMessageIDList);
   void AddMsgTarget( IMsgTargetCallback* pMsgTarget );
   int GetActiveWindow() const;
+  int GetActiveWindowID();
   int GetFocusedWindow() const;
   bool HasModalDialog() const;
   bool HasDialogOnScreen() const;
   bool IsWindowActive(int id, bool ignoreClosing = true) const;
   bool IsWindowVisible(int id) const;
   bool IsWindowTopMost(int id) const;
-  bool IsWindowActive(const CStdString &xmlFile, bool ignoreClosing = true) const;
-  bool IsWindowVisible(const CStdString &xmlFile) const;
-  bool IsWindowTopMost(const CStdString &xmlFile) const;
+  bool IsWindowActive(const std::string &xmlFile, bool ignoreClosing = true) const;
+  bool IsWindowVisible(const std::string &xmlFile) const;
+  bool IsWindowTopMost(const std::string &xmlFile) const;
   bool IsOverlayAllowed() const;
   void ShowOverlay(CGUIWindow::OVERLAY_STATE state);
   void GetActiveModelessWindows(std::vector<int> &ids);
@@ -143,6 +155,7 @@ public:
 #endif
 private:
   void RenderPass() const;
+  void RenderEx() const;
 
   void LoadNotOnDemandWindows();
   void UnloadNotOnDemandWindows();
@@ -153,7 +166,7 @@ private:
   CGUIWindow *GetTopMostDialog() const;
 
   friend class CApplicationMessenger;
-  void ActivateWindow_Internal(int windowID, const std::vector<CStdString> &params, bool swappingWindows);
+  void ActivateWindow_Internal(int windowID, const std::vector<std::string> &params, bool swappingWindows);
 
   typedef std::map<int, CGUIWindow *> WindowMap;
   WindowMap m_mapWindows;
@@ -177,6 +190,32 @@ private:
   bool m_initialized;
 
   CDirtyRegionTracker m_tracker;
+
+private:
+  class CGUIWindowManagerIdCache
+  {
+  public:
+    CGUIWindowManagerIdCache(void) : m_id(WINDOW_INVALID) {}
+    CGUIWindow *Get(int id)
+    {
+      if (id == m_id)
+        return m_window;
+      return NULL;
+    }
+    void Set(int id, CGUIWindow *window)
+    {
+      m_id = id;
+      m_window = window;
+    }
+    void Invalidate(void)
+    {
+      m_id = WINDOW_INVALID;
+    }
+  private:
+    int m_id;
+    CGUIWindow *m_window;
+  };
+  mutable CGUIWindowManagerIdCache m_idCache;
 };
 
 /*!

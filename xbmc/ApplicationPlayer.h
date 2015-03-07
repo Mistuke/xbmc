@@ -20,8 +20,9 @@
  *
  */
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "threads/SingleLock.h"
+#include "threads/SystemClock.h"
 #include "cores/playercorefactory/PlayerCoreFactory.h"
 
 typedef enum
@@ -34,9 +35,9 @@ typedef enum
 namespace PVR
 {
   class CPVRChannel;
+  typedef std::shared_ptr<PVR::CPVRChannel> CPVRChannelPtr;
 }
 
-class IAudioCallback;
 class CAction;
 class CPlayerOptions;
 class CStreamDetails;
@@ -48,11 +49,17 @@ struct TextCacheStruct_t;
 
 class CApplicationPlayer
 {
-  boost::shared_ptr<IPlayer> m_pPlayer;
+  std::shared_ptr<IPlayer> m_pPlayer;
   unsigned int m_iPlayerOPSeq;  // used to detect whether an OpenFile request on player is canceled by us.
   PLAYERCOREID m_eCurrentPlayer;
 
   CCriticalSection  m_player_lock;
+
+  // cache player state
+  XbmcThreads::EndTime m_audioStreamUpdate;
+  int m_iAudioStream;
+  XbmcThreads::EndTime m_subtitleStreamUpdate;
+  int m_iSubtitleStream;
   
 public:
   CApplicationPlayer();
@@ -60,12 +67,12 @@ public:
   int m_iPlaySpeed;
 
   // player management
-  void CloseFile();
+  void CloseFile(bool reopen = false);
   void ClosePlayer();
   void ClosePlayerGapless(PLAYERCOREID newCore);
   void CreatePlayer(PLAYERCOREID newCore, IPlayerCallback& callback);
   PLAYERCOREID GetCurrentPlayer() const { return m_eCurrentPlayer; }
-  boost::shared_ptr<IPlayer> GetInternal() const;
+  std::shared_ptr<IPlayer> GetInternal() const;
   int  GetPlaySpeed() const;
   bool HasPlayer() const;
   PlayBackRet OpenFile(const CFileItem& item, const CPlayerOptions& options);
@@ -73,34 +80,30 @@ public:
   void SetPlaySpeed(int iSpeed, bool bApplicationMuted);
 
   // proxy calls
-  int   AddSubtitle(const CStdString& strSubPath);
+  int   AddSubtitle(const std::string& strSubPath);
   bool  CanPause();
   bool  CanRecord();
   bool  CanSeek();
   bool  ControlsVolume() const;
   void  DoAudioWork();
   void  GetAudioCapabilities(std::vector<int> &audioCaps);
-  void  GetAudioInfo( CStdString& strAudioInfo);
+  void  GetAudioInfo(std::string& strAudioInfo);
   int   GetAudioStream();
   int   GetAudioStreamCount();
   void  GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info);
-  int   GetBitsPerSample();
   int   GetCacheLevel() const;
   float GetCachePercentage() const;
   int   GetChapterCount();
   int   GetChapter();  
-  void  GetChapterName(CStdString& strChapterName);
+  void  GetChapterName(std::string& strChapterName, int chapterIdx=-1);
+  int64_t GetChapterPos(int chapterIdx=-1);
   void  GetDeinterlaceMethods(std::vector<int> &deinterlaceMethods);
   void  GetDeinterlaceModes(std::vector<int> &deinterlaceModes);
-  bool  GetCurrentSubtitle(CStdString& strSubtitle);
-  void  GetGeneralInfo( CStdString& strVideoInfo);
+  void  GetGeneralInfo(std::string& strVideoInfo);
   float GetPercentage() const;
-  int   GetPictureHeight();
-  int   GetPictureWidth();
-  CStdString GetPlayerState();
-  CStdString GetPlayingTitle();
+  std::string GetPlayerState();
+  std::string GetPlayingTitle();
   void  GetRenderFeatures(std::vector<int> &renderFeatures);
-  int   GetSampleRate();
   void  GetScalingMethods(std::vector<int> &scalingMethods);
   bool  GetStreamDetails(CStreamDetails &details);
   int   GetSubtitle();
@@ -111,7 +114,7 @@ public:
   TextCacheStruct_t* GetTeletextCache();
   int64_t GetTime() const;
   int64_t GetTotalTime() const;
-  void  GetVideoInfo( CStdString& strVideoInfo);
+  void  GetVideoInfo(std::string& strVideoInfo);
   void  GetVideoStreamInfo(SPlayerVideoStreamInfo &info);
   bool  HasAudio() const;
   bool  HasMenu() const;
@@ -131,7 +134,6 @@ public:
   void  Pause();
   bool  QueueNextFile(const CFileItem &file);
   bool  Record(bool bOnOff);
-  void  RegisterAudioCallback(IAudioCallback* pCallback);
   void  Seek(bool bPlus = true, bool bLargeStep = false, bool bChapterOverride = false);
   int   SeekChapter(int iChapter);
   void  SeekPercentage(float fPercent = 0);
@@ -141,12 +143,11 @@ public:
   void  SetAVDelay(float fValue = 0.0f);
   void  SetDynamicRangeCompression(long drc);
   void  SetMute(bool bOnOff);
-  bool  SetPlayerState(CStdString state);
+  bool  SetPlayerState(const std::string& state);
   void  SetSubtitle(int iStream);
   void  SetSubTitleDelay(float fValue = 0.0f);
   void  SetSubtitleVisible(bool bVisible);
   void  SetVolume(float volume);
-  bool  SwitchChannel(const PVR::CPVRChannel &channel);
+  bool  SwitchChannel(const PVR::CPVRChannelPtr &channel);
   void  ToFFRW(int iSpeed = 0);
-  void  UnRegisterAudioCallback();
 };

@@ -22,6 +22,9 @@
 #include "StreamDetails.h"
 #include "StreamUtils.h"
 #include "Variant.h"
+#include "LangInfo.h"
+#include "utils/LangCodeExpander.h"
+#include "utils/Archive.h"
 
 const float VIDEOASPECT_EPSILON = 0.025f;
 
@@ -49,6 +52,7 @@ void CStreamDetailVideo::Archive(CArchive& ar)
     ar << m_iHeight;
     ar << m_iWidth;
     ar << m_iDuration;
+    ar << m_strStereoMode;
   }
   else
   {
@@ -57,6 +61,7 @@ void CStreamDetailVideo::Archive(CArchive& ar)
     ar >> m_iHeight;
     ar >> m_iWidth;
     ar >> m_iDuration;
+    ar >> m_strStereoMode;
   }
 }
 void CStreamDetailVideo::Serialize(CVariant& value) const
@@ -66,6 +71,7 @@ void CStreamDetailVideo::Serialize(CVariant& value) const
   value["height"] = m_iHeight;
   value["width"] = m_iWidth;
   value["duration"] = m_iDuration;
+  value["stereomode"] = m_strStereoMode;
 }
 
 bool CStreamDetailVideo::IsWorseThan(CStreamDetail *that)
@@ -149,15 +155,13 @@ bool CStreamDetailSubtitle::IsWorseThan(CStreamDetail *that)
   if (that->m_eType != CStreamDetail::SUBTITLE)
     return true;
 
-  // the preferred subtitle should be the one in the user's language
-  if (m_pParent)
-  {
-    if (m_pParent->m_strLanguage == m_strLanguage)
-      return false;  // already the best
-    else
-      return (m_pParent->m_strLanguage == ((CStreamDetailSubtitle *)that)->m_strLanguage);
-  }
-  return false;
+  if (g_LangCodeExpander.CompareLangCodes(m_strLanguage, ((CStreamDetailSubtitle *)that)->m_strLanguage))
+    return false;
+
+  // the best subtitle should be the one in the user's preferred language
+  // If preferred language is set to "original" this is "eng"
+  return m_strLanguage.empty() ||
+    g_LangCodeExpander.CompareLangCodes(((CStreamDetailSubtitle *)that)->m_strLanguage, g_langInfo.GetSubtitleLanguage());
 }
 
 CStreamDetailSubtitle& CStreamDetailSubtitle::operator=(const CStreamDetailSubtitle &that)
@@ -176,7 +180,7 @@ CStreamDetails& CStreamDetails::operator=(const CStreamDetails &that)
   {
     Reset();
     std::vector<CStreamDetail *>::const_iterator iter;
-    for (iter = that.m_vecItems.begin(); iter != that.m_vecItems.end(); iter++)
+    for (iter = that.m_vecItems.begin(); iter != that.m_vecItems.end(); ++iter)
     {
       switch ((*iter)->m_eType)
       {
@@ -267,7 +271,7 @@ int CStreamDetails::GetStreamCount(CStreamDetail::StreamType type) const
 {
   int retVal = 0;
   std::vector<CStreamDetail *>::const_iterator iter;
-  for (iter = m_vecItems.begin(); iter != m_vecItems.end(); iter++)
+  for (iter = m_vecItems.begin(); iter != m_vecItems.end(); ++iter)
     if ((*iter)->m_eType == type)
       retVal++;
   return retVal;
@@ -306,7 +310,7 @@ void CStreamDetails::Reset(void)
   m_pBestSubtitle = NULL;
 
   std::vector<CStreamDetail *>::iterator iter;
-  for (iter = m_vecItems.begin(); iter != m_vecItems.end(); iter++)
+  for (iter = m_vecItems.begin(); iter != m_vecItems.end(); ++iter)
     delete *iter;
   m_vecItems.clear();
 }
@@ -333,7 +337,7 @@ const CStreamDetail* CStreamDetails::GetNthStream(CStreamDetail::StreamType type
   }
 
   std::vector<CStreamDetail *>::const_iterator iter;
-  for (iter = m_vecItems.begin(); iter != m_vecItems.end(); iter++)
+  for (iter = m_vecItems.begin(); iter != m_vecItems.end(); ++iter)
     if ((*iter)->m_eType == type)
     {
       idx--;
@@ -344,7 +348,7 @@ const CStreamDetail* CStreamDetails::GetNthStream(CStreamDetail::StreamType type
   return NULL;
 }
 
-CStdString CStreamDetails::GetVideoCodec(int idx) const
+std::string CStreamDetails::GetVideoCodec(int idx) const
 {
   CStreamDetailVideo *item = (CStreamDetailVideo *)GetNthStream(CStreamDetail::VIDEO, idx);
   if (item)
@@ -389,7 +393,23 @@ int CStreamDetails::GetVideoDuration(int idx) const
     return 0;
 }
 
-CStdString CStreamDetails::GetAudioCodec(int idx) const
+void CStreamDetails::SetVideoDuration(int idx, const int duration)
+{
+  CStreamDetailVideo *item = (CStreamDetailVideo *)GetNthStream(CStreamDetail::VIDEO, idx);
+  if (item)
+    item->m_iDuration = duration;
+}
+
+std::string CStreamDetails::GetStereoMode(int idx) const
+{
+  CStreamDetailVideo *item = (CStreamDetailVideo *)GetNthStream(CStreamDetail::VIDEO, idx);
+  if (item)
+    return item->m_strStereoMode;
+  else
+    return "";
+}
+
+std::string CStreamDetails::GetAudioCodec(int idx) const
 {
   CStreamDetailAudio *item = (CStreamDetailAudio *)GetNthStream(CStreamDetail::AUDIO, idx);
   if (item)
@@ -398,7 +418,7 @@ CStdString CStreamDetails::GetAudioCodec(int idx) const
     return "";
 }
 
-CStdString CStreamDetails::GetAudioLanguage(int idx) const
+std::string CStreamDetails::GetAudioLanguage(int idx) const
 {
   CStreamDetailAudio *item = (CStreamDetailAudio *)GetNthStream(CStreamDetail::AUDIO, idx);
   if (item)
@@ -416,7 +436,7 @@ int CStreamDetails::GetAudioChannels(int idx) const
     return -1;
 }
 
-CStdString CStreamDetails::GetSubtitleLanguage(int idx) const
+std::string CStreamDetails::GetSubtitleLanguage(int idx) const
 {
   CStreamDetailSubtitle *item = (CStreamDetailSubtitle *)GetNthStream(CStreamDetail::SUBTITLE, idx);
   if (item)
@@ -432,7 +452,7 @@ void CStreamDetails::Archive(CArchive& ar)
     ar << (int)m_vecItems.size();
 
     std::vector<CStreamDetail *>::const_iterator iter;
-    for (iter = m_vecItems.begin(); iter != m_vecItems.end(); iter++)
+    for (iter = m_vecItems.begin(); iter != m_vecItems.end(); ++iter)
     {
       // the type goes before the actual item.  When loading we need
       // to know the type before we can construct an instance to serialize
@@ -469,7 +489,7 @@ void CStreamDetails::Serialize(CVariant& value) const
 
   std::vector<CStreamDetail *>::const_iterator iter;
   CVariant v;
-  for (iter = m_vecItems.begin(); iter != m_vecItems.end(); iter++)
+  for (iter = m_vecItems.begin(); iter != m_vecItems.end(); ++iter)
   {
     v.clear();
     (*iter)->Serialize(v);
@@ -495,7 +515,7 @@ void CStreamDetails::DetermineBestStreams(void)
   m_pBestSubtitle = NULL;
 
   std::vector<CStreamDetail *>::const_iterator iter;
-  for (iter = m_vecItems.begin(); iter != m_vecItems.end(); iter++)
+  for (iter = m_vecItems.begin(); iter != m_vecItems.end(); ++iter)
   {
     CStreamDetail **champion;
     switch ((*iter)->m_eType)
@@ -521,7 +541,7 @@ void CStreamDetails::DetermineBestStreams(void)
   }  /* for each */
 }
 
-CStdString CStreamDetails::VideoDimsToResolutionDescription(int iWidth, int iHeight)
+std::string CStreamDetails::VideoDimsToResolutionDescription(int iWidth, int iHeight)
 {
   if (iWidth == 0 || iHeight == 0)
     return "";
@@ -541,11 +561,13 @@ CStdString CStreamDetails::VideoDimsToResolutionDescription(int iWidth, int iHei
   else if (iWidth <= 1920 && iHeight <= 1080)
     return "1080";
   // 4K
-  else
+  else if (iWidth * iHeight >= 6000000)
     return "4K";
+  else
+    return "";
 }
 
-CStdString CStreamDetails::VideoAspectToAspectDescription(float fAspect)
+std::string CStreamDetails::VideoAspectToAspectDescription(float fAspect)
 {
   if (fAspect == 0.0f)
     return "";

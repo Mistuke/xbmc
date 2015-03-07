@@ -62,7 +62,7 @@ CMusicArtistInfo& CMusicInfoScraper::GetArtist(int iArtist)
   return m_vecArtists[iArtist];
 }
 
-void CMusicInfoScraper::FindAlbumInfo(const CStdString& strAlbum, const CStdString& strArtist /* = "" */)
+void CMusicInfoScraper::FindAlbumInfo(const std::string& strAlbum, const std::string& strArtist /* = "" */)
 {
   m_strAlbum=strAlbum;
   m_strArtist=strArtist;
@@ -71,7 +71,7 @@ void CMusicInfoScraper::FindAlbumInfo(const CStdString& strAlbum, const CStdStri
   Create();
 }
 
-void CMusicInfoScraper::FindArtistInfo(const CStdString& strArtist)
+void CMusicInfoScraper::FindArtistInfo(const std::string& strArtist)
 {
   m_strArtist=strArtist;
   m_bSucceeded=false;
@@ -99,7 +99,7 @@ void CMusicInfoScraper::LoadAlbumInfo(int iAlbum)
   Create();
 }
 
-void CMusicInfoScraper::LoadArtistInfo(int iArtist, const CStdString &strSearch)
+void CMusicInfoScraper::LoadArtistInfo(int iArtist, const std::string &strSearch)
 {
   m_iAlbum=-1;
   m_iArtist=iArtist;
@@ -125,7 +125,7 @@ void CMusicInfoScraper::LoadArtistInfo()
     return;
 
   CMusicArtistInfo& artist=m_vecArtists[m_iArtist];
-  artist.GetArtist().strArtist.Empty();
+  artist.GetArtist().strArtist.clear();
   if (artist.Load(*m_http,m_scraper,m_strSearch))
     m_bSucceeded=true;
 }
@@ -165,13 +165,13 @@ void CMusicInfoScraper::Process()
     if (m_strAlbum.size())
     {
       FindAlbumInfo();
-      m_strAlbum.Empty();
-      m_strArtist.Empty();
+      m_strAlbum.clear();
+      m_strArtist.clear();
     }
     else if (m_strArtist.size())
     {
       FindArtistInfo();
-      m_strArtist.Empty();
+      m_strArtist.clear();
     }
     if (m_iAlbum>-1)
     {
@@ -190,7 +190,7 @@ void CMusicInfoScraper::Process()
   }
 }
 
-bool CMusicInfoScraper::CheckValidOrFallback(const CStdString &fallbackScraper)
+bool CMusicInfoScraper::CheckValidOrFallback(const std::string &fallbackScraper)
 {
   return true;
 /*

@@ -21,10 +21,9 @@
 
 #include "system_gl.h"
 
-#include "DllAvCodec.h"
 #include "DVDVideoCodecFFmpeg.h"
 
-struct vda_context;
+struct AVVDAContext;
 
 namespace VDA {
 
@@ -40,15 +39,14 @@ public:
   virtual int  Check     (AVCodecContext* avctx);
   virtual void Close();
   virtual const std::string Name() { return "vda"; }
-  virtual CCriticalSection* Section() {  return NULL; }
   virtual unsigned GetAllowedReferences();
 
-  int   GetBuffer(AVCodecContext *avctx, AVFrame *pic);
-  void  RelBuffer(AVCodecContext *avctx, AVFrame *pic);
+  int   GetBuffer(AVCodecContext *avctx, AVFrame *pic, int flags);
+  void  RelBuffer(uint8_t *data);
 protected:
   bool                   Create(AVCodecContext* avctx);
   unsigned               m_renderbuffers_count;
-  vda_context*           m_ctx;
+  struct AVVDAContext*   m_ctx;
 };
 
 }

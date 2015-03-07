@@ -28,6 +28,9 @@
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
+#include "utils/StringUtils.h"
+
+#include <cassert>
 
 extern "C" {
 #include "libhts/htsmsg.h"
@@ -90,7 +93,7 @@ CHTSPDirectorySession* CHTSPDirectorySession::Acquire(const CURL& url)
 {
   CSingleLock lock(g_section);
 
-  for(SSessions::iterator it = g_sessions.begin(); it != g_sessions.end(); it++)
+  for(SSessions::iterator it = g_sessions.begin(); it != g_sessions.end(); ++it)
   {
     if(it->hostname == url.GetHostName()
     && it->port     == url.GetPort()
@@ -128,7 +131,7 @@ void CHTSPDirectorySession::Release(CHTSPDirectorySession* &session)
     return;
 
   CSingleLock lock(g_section);
-  for(SSessions::iterator it = g_sessions.begin(); it != g_sessions.end(); it++)
+  for(SSessions::iterator it = g_sessions.begin(); it != g_sessions.end(); ++it)
   {
     if(it->session == session)
     {
@@ -138,7 +141,7 @@ void CHTSPDirectorySession::Release(CHTSPDirectorySession* &session)
     }
   }
   CLog::Log(LOGERROR, "CHTSPDirectorySession::Release - release of invalid session");
-  ASSERT(0);
+  assert(0);
 }
 
 void CHTSPDirectorySession::CheckIdle(DWORD idle)
@@ -155,7 +158,7 @@ void CHTSPDirectorySession::CheckIdle(DWORD idle)
       it = g_sessions.erase(it);
     }
     else
-      it++;
+      ++it;
   }
 }
 
@@ -170,7 +173,7 @@ bool CHTSPDirectorySession::Open(const CURL& url)
     return false;
   }
 
-  if(!url.GetUserName().IsEmpty())
+  if(!url.GetUserName().empty())
     m_session.Auth(url.GetUserName(), url.GetPassWord());
 
   if(!m_session.SendEnableAsync())
@@ -328,7 +331,7 @@ SChannels CHTSPDirectorySession::GetChannels(STag& tag)
   SChannels channels;
 
   std::vector<int>::iterator it;
-  for(it = tag.channels.begin(); it != tag.channels.end(); it++)
+  for(it = tag.channels.begin(); it != tag.channels.end(); ++it)
   {
     SChannels::iterator it2 = m_channels.find(*it);
     if(it2 == m_channels.end())
@@ -374,7 +377,7 @@ bool CHTSPDirectory::GetChannels( const CURL &base
 
   SEvent event;
 
-  for(SChannels::iterator it = channels.begin(); it != channels.end(); it++)
+  for(SChannels::iterator it = channels.begin(); it != channels.end(); ++it)
   {
     if(!m_session->GetEvent(event, it->second.event))
       event.Clear();
@@ -386,7 +389,7 @@ bool CHTSPDirectory::GetChannels( const CURL &base
     CHTSPSession::ParseItem(it->second, tag, event, *item);
     item->m_bIsFolder = false;
     item->SetLabel(item->m_strTitle);
-    item->m_strTitle.Format("%d", it->second.num);
+    item->m_strTitle = StringUtils::Format("%d", it->second.num);
 
     items.Add(item);
   }
@@ -405,7 +408,9 @@ bool CHTSPDirectory::GetTag(const CURL &base, CFileItemList &items)
 {
   CURL url(base);
 
-  int id = atoi(url.GetFileName().Mid(5));
+  int id = 0;
+  if (url.GetFileName().size() >= 5)
+    id = atoi(url.GetFileName().substr(5).c_str());
 
   SChannels channels = m_session->GetChannels(id);
   if(channels.empty())
@@ -415,36 +420,36 @@ bool CHTSPDirectory::GetTag(const CURL &base, CFileItemList &items)
 }
 
 
-bool CHTSPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items)
+bool CHTSPDirectory::GetDirectory(const CURL& url, CFileItemList &items)
 {
-  CURL                    url(strPath);
-
   CHTSPDirectorySession::Release(m_session);
   if(!(m_session = CHTSPDirectorySession::Acquire(url)))
     return false;
 
 
-  if(url.GetFileName().IsEmpty())
+  if(url.GetFileName().empty())
   {
     CFileItemPtr item;
 
     item.reset(new CFileItem("", true));
-    url.SetFileName("tags/0/");
-    item->SetPath(url.Get());
+    CURL url2(url);
+    url2.SetFileName("tags/0/");
+    item->SetURL(url2);
     item->SetLabel(g_localizeStrings.Get(22018));
     item->SetLabelPreformated(true);
     items.Add(item);
 
     STags tags = m_session->GetTags();
-    CStdString filename, label;
-    for(STags::iterator it = tags.begin(); it != tags.end(); it++)
+    std::string filename, label;
+    for(STags::iterator it = tags.begin(); it != tags.end(); ++it)
     {
-      filename.Format("tags/%d/", it->second.id);
-      label.Format("Tag: %s", it->second.name);
+      filename = StringUtils::Format("tags/%d/", it->second.id);
+      label = StringUtils::Format("Tag: %s", it->second.name.c_str());
 
       item.reset(new CFileItem("", true));
-      url.SetFileName(filename);
-      item->SetPath(url.Get());
+      CURL url2(url);
+      url2.SetFileName(filename);
+      item->SetURL(url2);
       item->SetLabel(label);
       item->SetLabelPreformated(true);
       item->SetArt("thumb", it->second.icon);
@@ -453,7 +458,7 @@ bool CHTSPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &item
 
     return true;
   }
-  else if(url.GetFileName().Left(5) == "tags/")
+  else if (StringUtils::StartsWith(url.GetFileName(), "tags/"))
     return GetTag(url, items);
   return false;
 }

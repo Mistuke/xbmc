@@ -24,7 +24,6 @@
 #if defined(TARGET_ANDROID)
 #include "IFile.h"
 #include "URL.h"
-#include "utils/StdString.h"
 namespace XFILE
 {
 class CFileAndroidApp : public IFile
@@ -38,7 +37,7 @@ public:
   virtual int Stat(const CURL& url, struct __stat64* buffer);
 
   /*! \brief Return 32bit rgba raw bitmap. */
-  virtual unsigned int Read(void* lpBuf, int64_t uiBufSize);
+  virtual ssize_t Read(void* lpBuf, size_t uiBufSize);
   virtual void Close();
   virtual int64_t GetLength();
   virtual int64_t Seek(int64_t, int) {return -1;};
@@ -56,7 +55,7 @@ protected:
 
 private:
   CURL              m_url;
-  CStdString        m_appname;
+  std::string       m_appname;
   int               m_iconWidth;
   int               m_iconHeight;
 };

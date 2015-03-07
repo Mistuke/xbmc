@@ -49,10 +49,15 @@ enum DVDStreamType
 #define DVDSTREAM_BLOCK_SIZE_FILE (2048 * 16)
 #define DVDSTREAM_BLOCK_SIZE_DVD  2048
 
+namespace XFILE
+{
+  class CFile;
+}
+
 namespace PVR
 {
   class CPVRChannel;
-  typedef boost::shared_ptr<PVR::CPVRChannel> CPVRChannelPtr;
+  typedef std::shared_ptr<PVR::CPVRChannel> CPVRChannelPtr;
 }
 
 class CDVDInputStream
@@ -65,8 +70,8 @@ public:
     virtual bool NextChannel(bool preview = false) = 0;
     virtual bool PrevChannel(bool preview = false) = 0;
     virtual bool SelectChannelByNumber(unsigned int channel) = 0;
-    virtual bool SelectChannel(const PVR::CPVRChannel &channel) { return false; };
-    virtual bool GetSelectedChannel(PVR::CPVRChannelPtr&) { return false; };
+    virtual bool SelectChannel(const PVR::CPVRChannelPtr &channel) { return false; };
+    virtual PVR::CPVRChannelPtr GetSelectedChannel() { return PVR::CPVRChannelPtr(); };
     virtual bool UpdateItem(CFileItem& item) = 0;
     virtual bool CanRecord() = 0;
     virtual bool IsRecording() = 0;
@@ -96,7 +101,8 @@ public:
     virtual ~IChapter() {};
     virtual int  GetChapter() = 0;
     virtual int  GetChapterCount() = 0;
-    virtual void GetChapterName(std::string& name) = 0;
+    virtual void GetChapterName(std::string& name, int ch=-1) = 0;
+    virtual int64_t GetChapterPos(int ch=-1) = 0;
     virtual bool SeekChapter(int ch) = 0;
   };
 
@@ -118,6 +124,7 @@ public:
     virtual void OnPrevious() = 0;
     virtual bool OnMouseMove(const CPoint &point) = 0;
     virtual bool OnMouseClick(const CPoint &point) = 0;
+    virtual bool HasMenu() = 0;
     virtual bool IsInMenu() = 0;
     virtual void SkipStill() = 0;
     virtual double GetTimeStampCorrection() = 0;

@@ -43,7 +43,11 @@ using namespace std;
 #define SEEKTIMOUT 30000
 
 #ifdef HAS_FILESYSTEM_RAR
-CRarFileExtractThread::CRarFileExtractThread() : CThread("RarFileExtract"), hRunning(true), hQuit(true)
+CRarFileExtractThread::CRarFileExtractThread()
+  : CThread("RarFileExtract")
+  , hRunning(true)
+  , hQuit(true)
+  , m_iSize(0)
 {
   m_pArc = NULL;
   m_pCmd = NULL;
@@ -113,10 +117,10 @@ void CRarFileExtractThread::Process()
 
 CRarFile::CRarFile()
 {
-  m_strCacheDir.Empty();
-  m_strRarPath.Empty();
-  m_strPassword.Empty();
-  m_strPathInRar.Empty();
+  m_strCacheDir.clear();
+  m_strRarPath.clear();
+  m_strPassword.clear();
+  m_strPathInRar.clear();
   m_bFileOptions = 0;
 #ifdef HAS_FILESYSTEM_RAR
   m_pArc = NULL;
@@ -130,6 +134,9 @@ CRarFile::CRarFile()
   m_bUseFile = false;
   m_bOpen = false;
   m_bSeekable = true;
+  m_iFilePosition = 0;
+  m_iFileSize = 0;
+  m_iBufferStart = 0;
 }
 
 CRarFile::~CRarFile()
@@ -200,7 +207,7 @@ bool CRarFile::Open(const CURL& url)
       if ((!info || !CFile::Exists(info->m_strCachedPath)) && m_bFileOptions & EXFILE_NOCACHE)
         return false;
       m_bUseFile = true;
-      CStdString strPathInCache;
+      std::string strPathInCache;
 
       if (!g_RarManager.CacheRarredFile(strPathInCache, m_strRarPath, m_strPathInRar,
                                         EXFILE_AUTODELETE | m_bFileOptions, m_strCacheDir,
@@ -269,11 +276,14 @@ bool CRarFile::OpenForWrite(const CURL& url)
   return false;
 }
 
-unsigned int CRarFile::Read(void *lpBuf, int64_t uiBufSize)
+ssize_t CRarFile::Read(void *lpBuf, size_t uiBufSize)
 {
 #ifdef HAS_FILESYSTEM_RAR
   if (!m_bOpen)
-    return 0;
+    return -1;
+
+  if (uiBufSize > SSIZE_MAX)
+    uiBufSize = SSIZE_MAX;
 
   if (m_bUseFile)
     return m_File.Read(lpBuf,uiBufSize);
@@ -284,7 +294,7 @@ unsigned int CRarFile::Read(void *lpBuf, int64_t uiBufSize)
   if( !m_pExtract->GetDataIO().hBufferEmpty->WaitMSec(5000) )
   {
     CLog::Log(LOGERROR, "%s - Timeout waiting for buffer to empty", __FUNCTION__);
-    return 0;
+    return -1;
   }
 
 
@@ -351,15 +361,10 @@ unsigned int CRarFile::Read(void *lpBuf, int64_t uiBufSize)
 
   m_pExtract->GetDataIO().hBufferEmpty->Set();
 
-  return static_cast<unsigned int>(uiBufSize-uicBufSize);
+  return (ssize_t)(uiBufSize-uicBufSize);
 #else
   return 0;
 #endif
-}
-
-unsigned int CRarFile::Write(void *lpBuf, int64_t uiBufSize)
-{
-  return 0;
 }
 
 void CRarFile::Close()
@@ -527,7 +532,7 @@ int64_t CRarFile::GetPosition()
   return m_iFilePosition;
 }
 
-int CRarFile::Write(const void* lpBuf, int64_t uiBufSize)
+ssize_t CRarFile::Write(const void* lpBuf, size_t uiBufSize)
 {
   return -1;
 }
@@ -547,21 +552,22 @@ void CRarFile::InitFromUrl(const CURL& url)
   m_strPathInRar = url.GetFileName();
 
   vector<std::string> options;
-  StringUtils::Tokenize(url.GetOptions().Mid(1), options, "&");
+  if (!url.GetOptions().empty())
+    StringUtils::Tokenize(url.GetOptions().substr(1), options, "&");
 
   m_bFileOptions = 0;
 
-  for( vector<std::string>::iterator it = options.begin();it != options.end(); it++)
+  for( vector<std::string>::iterator it = options.begin();it != options.end(); ++it)
   {
-    int iEqual = (*it).find('=');
-    if( iEqual >= 0 )
+    size_t iEqual = (*it).find('=');
+    if(iEqual != std::string::npos)
     {
-      CStdString strOption = StringUtils::Left((*it), iEqual);
-      CStdString strValue = StringUtils::Mid((*it), iEqual+1);
+      std::string strOption = StringUtils::Left((*it), iEqual);
+      std::string strValue = StringUtils::Mid((*it), iEqual+1);
 
-      if( strOption.Equals("flags") )
+      if( strOption == "flags" )
         m_bFileOptions = atoi(strValue.c_str());
-      else if( strOption.Equals("cache") )
+      else if( strOption == "cache" )
         m_strCacheDir = strValue;
     }
   }
@@ -646,11 +652,10 @@ bool CRarFile::OpenInArchive()
     AddEndSlash(m_pCmd->ExtrPath);
 
     // Set password for encrypted archives
-    if ((m_strPassword.size() > 0) &&
-        (m_strPassword.size() < sizeof (m_pCmd->Password)))
-    {
-      strcpy(m_pCmd->Password, m_strPassword.c_str());
-    }
+    if (m_strPassword.length() > MAXPASSWORD - 1)
+      CLog::Log(LOGWARNING,"OpenInArchive: Supplied password is too long %d", (int) m_strPassword.length());
+    strncpy(m_pCmd->Password, m_strPassword.c_str(), sizeof (m_pCmd->Password) - 1);
+    m_pCmd->Password[sizeof (m_pCmd->Password) - 1] = 0;
 
     m_pCmd->ParseDone();
 
@@ -695,7 +700,7 @@ bool CRarFile::OpenInArchive()
 
       if (m_pArc->GetHeaderType() == FILE_HEAD)
       {
-        CStdString strFileName;
+        std::string strFileName;
 
         if (wcslen(m_pArc->NewLhd.FileNameW) > 0)
         {
@@ -708,7 +713,7 @@ bool CRarFile::OpenInArchive()
 
         /* replace back slashes into forward slashes */
         /* this could get us into troubles, file could two different files, one with / and one with \ */
-        strFileName.Replace('\\', '/');
+        StringUtils::Replace(strFileName, '\\', '/');
 
         if (strFileName == m_strPathInRar)
         {

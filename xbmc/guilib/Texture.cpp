@@ -25,7 +25,6 @@
 #include "DDSImage.h"
 #include "filesystem/SpecialProtocol.h"
 #include "filesystem/File.h"
-#include "utils/FileUtils.h"
 #if defined(TARGET_DARWIN_IOS)
 #include <ImageIO/ImageIO.h>
 #include "filesystem/File.h"
@@ -34,10 +33,6 @@
 #if defined(TARGET_ANDROID)
 #include "URL.h"
 #include "filesystem/AndroidAppFile.h"
-#endif
-
-#if defined(HAS_OMXPLAYER)
-#include "xbmc/cores/omxplayer/OMXImage.h"
 #endif
 
 /************************************************************************/
@@ -101,8 +96,13 @@ void CBaseTexture::Allocate(unsigned int width, unsigned int height, unsigned in
   CLAMP(m_textureHeight, g_Windowing.GetMaxTextureSize());
   CLAMP(m_imageWidth, m_textureWidth);
   CLAMP(m_imageHeight, m_textureHeight);
+
   delete[] m_pixels;
-  m_pixels = new unsigned char[GetPitch() * GetRows()];
+  m_pixels = NULL;
+  if (GetPitch() * GetRows() > 0)
+  {
+    m_pixels = new unsigned char[GetPitch() * GetRows()];
+  }
 }
 
 void CBaseTexture::Update(unsigned int width, unsigned int height, unsigned int pitch, unsigned int format, const unsigned char *pixels, bool loadToGPU)
@@ -174,11 +174,11 @@ void CBaseTexture::ClampToEdge()
   }
 }
 
-CBaseTexture *CBaseTexture::LoadFromFile(const CStdString& texturePath, unsigned int idealWidth, unsigned int idealHeight, bool autoRotate)
+CBaseTexture *CBaseTexture::LoadFromFile(const std::string& texturePath, unsigned int idealWidth, unsigned int idealHeight, bool autoRotate, bool requirePixels, const std::string& strMimeType)
 {
 #if defined(TARGET_ANDROID)
   CURL url(texturePath);
-  if (url.GetProtocol() == "androidapp")
+  if (url.IsProtocol("androidapp"))
   {
     XFILE::CFileAndroidApp file;
     if (file.Open(url))
@@ -202,7 +202,7 @@ CBaseTexture *CBaseTexture::LoadFromFile(const CStdString& texturePath, unsigned
   }
 #endif
   CTexture *texture = new CTexture();
-  if (texture->LoadFromFileInternal(texturePath, idealWidth, idealHeight, autoRotate))
+  if (texture->LoadFromFileInternal(texturePath, idealWidth, idealHeight, autoRotate, requirePixels, strMimeType))
     return texture;
   delete texture;
   return NULL;
@@ -217,33 +217,8 @@ CBaseTexture *CBaseTexture::LoadFromFileInMemory(unsigned char *buffer, size_t b
   return NULL;
 }
 
-bool CBaseTexture::LoadFromFileInternal(const CStdString& texturePath, unsigned int maxWidth, unsigned int maxHeight, bool autoRotate)
+bool CBaseTexture::LoadFromFileInternal(const std::string& texturePath, unsigned int maxWidth, unsigned int maxHeight, bool autoRotate, bool requirePixels, const std::string& strMimeType)
 {
-#if defined(HAS_OMXPLAYER)
-  if (URIUtils::HasExtension(texturePath, ".jpg|.tbn")
-      /*|| URIUtils::HasExtension(texturePath, ".png")*/)
-  {
-    COMXImageFile *file = COMXImage::LoadJpeg(texturePath);
-    if (file)
-    {
-      bool okay = false;
-      int orientation = file->GetOrientation();
-      // limit the sizes of jpegs (even if we fail to decode)
-      COMXImage::ClampLimits(maxWidth, maxHeight, file->GetWidth(), file->GetHeight(), orientation & 4);
-      Allocate(maxWidth, maxHeight, XB_FMT_A8R8G8B8);
-      if (m_pixels && COMXImage::DecodeJpeg(file, maxWidth, GetRows(), GetPitch(), (void *)m_pixels))
-      {
-        m_hasAlpha = false;
-        if (autoRotate && orientation)
-          m_orientation = orientation - 1;
-        okay = true;
-      }
-      COMXImage::CloseJpeg(file);
-      if (okay)
-        return true;
-    }
-  }
-#endif
   if (URIUtils::HasExtension(texturePath, ".dds"))
   { // special case for DDS images
     CDDSImage image;
@@ -259,28 +234,31 @@ bool CBaseTexture::LoadFromFileInternal(const CStdString& texturePath, unsigned 
   unsigned int height = maxHeight ? std::min(maxHeight, g_Windowing.GetMaxTextureSize()) : g_Windowing.GetMaxTextureSize();
 
   // Read image into memory to use our vfs
-  void *inputBuff = NULL;
-  unsigned int inputBuffSize = CFileUtils::LoadFile(texturePath, inputBuff);
+  XFILE::CFile file;
+  XFILE::auto_buffer buf;
 
-  if (inputBuffSize == 0)
+  if (file.LoadFile(texturePath, buf) <= 0)
     return false;
 
-  CURL url(texturePath);
-  IImage* pImage = ImageFactory::CreateLoader(url);
-  if(!LoadIImage(pImage, (unsigned char *) inputBuff, inputBuffSize, width, height, autoRotate))
+  IImage* pImage;
+
+  if(strMimeType.empty())
+    pImage = ImageFactory::CreateLoader(texturePath);
+  else
+    pImage = ImageFactory::CreateLoaderFromMimeType(strMimeType);
+
+  if (!LoadIImage(pImage, (unsigned char *)buf.get(), buf.size(), width, height, autoRotate))
   {
     delete pImage;
     pImage = ImageFactory::CreateFallbackLoader(texturePath);
-    if(!LoadIImage(pImage, (unsigned char *) inputBuff, inputBuffSize, width, height))
+    if (!LoadIImage(pImage, (unsigned char *)buf.get(), buf.size(), width, height))
     {
       CLog::Log(LOGDEBUG, "%s - Load of %s failed.", __FUNCTION__, texturePath.c_str());
       delete pImage;
-      free(inputBuff);
       return false;
     }
   }
   delete pImage;
-  free(inputBuff);
 
   return true;
 }

@@ -23,6 +23,7 @@
 
 #define BOOL XBMC_BOOL 
 #include "utils/log.h"
+#include "CompileInfo.h"
 #undef BOOL
 
 #import <Cocoa/Cocoa.h>
@@ -50,7 +51,7 @@ static CVDisplayLinkRef displayLink = NULL;
 
 CGDirectDisplayID Cocoa_GetDisplayIDFromScreen(NSScreen *screen);
 
-int Cocoa_GL_GetCurrentDisplayID(void)
+uint32_t Cocoa_GL_GetCurrentDisplayID(void)
 {
   // Find which display we are on from the current context (default to main display)
   CGDirectDisplayID display_id = kCGDirectMainDisplay;
@@ -74,7 +75,7 @@ int Cocoa_GL_GetCurrentDisplayID(void)
     }
   }
   
-  return((int)display_id);
+  return((uint32_t)display_id);
 }
 
 bool Cocoa_CVDisplayLinkCreate(void *displayLinkcallback, void *displayLinkContext)
@@ -151,8 +152,9 @@ double Cocoa_GetCVDisplayLinkRefreshPeriod(void)
   }
   else
   {
+    
     CGDisplayModeRef display_mode;
-    display_mode = (CGDisplayModeRef)Cocoa_GL_GetCurrentDisplayID();
+    display_mode = CGDisplayCopyDisplayMode((CGDirectDisplayID)Cocoa_GL_GetCurrentDisplayID());
     fps = CGDisplayModeGetRefreshRate(display_mode);
     CGDisplayModeRelease(display_mode);
     if (fps <= 0.0)
@@ -177,9 +179,19 @@ void Cocoa_DoAppleScript(const char* scriptSource)
 void Cocoa_DoAppleScriptFile(const char* filePath)
 {
   NSString* scriptFile = [NSString stringWithUTF8String:filePath];
-  NSString* userScriptsPath = [@"~/Library/Application Support/XBMC/scripts" stringByExpandingTildeInPath];
-  NSString* bundleScriptsPath = [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"Contents/Resources/XBMC/scripts"];
-  NSString* bundleSysScriptsPath = [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"Contents/Resources/XBMC/system/AppleScripts"];
+  NSString* appName = [NSString stringWithUTF8String:CCompileInfo::GetAppName()];
+  NSMutableString *tmpStr = [NSMutableString stringWithString:@"~/Library/Application Support/"];
+  [tmpStr appendString:appName];
+  [tmpStr appendString:@"/scripts"];
+  NSString* userScriptsPath = [tmpStr stringByExpandingTildeInPath];
+  [tmpStr setString:@"Contents/Resources/"];
+  [tmpStr appendString:appName];
+  [tmpStr appendString:@"/scripts"];
+  NSString* bundleScriptsPath = [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:tmpStr];
+  [tmpStr setString:@"Contents/Resources/"];
+  [tmpStr appendString:appName];
+  [tmpStr appendString:@"/system/AppleScripts"];
+  NSString* bundleSysScriptsPath = [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:tmpStr];
 
   // Check whether a script exists in the app bundle's AppleScripts folder
   if ([[NSFileManager defaultManager] fileExistsAtPath:[bundleSysScriptsPath stringByAppendingPathComponent:scriptFile]])
@@ -213,7 +225,11 @@ const char* Cocoa_GetIconFromBundle(const char *_bundlePath, const char* _iconNa
   if (![[NSFileManager defaultManager] fileExistsAtPath:iconPath]) return NULL;
 
   // Get the path to the target PNG icon
-  NSString* pngFile = [[NSString stringWithFormat:@"~/Library/Application Support/XBMC/userdata/Thumbnails/%@-%@.png",
+  NSString* appName = [NSString stringWithUTF8String:CCompileInfo::GetAppName()];
+  NSMutableString *tmpStr = [NSMutableString stringWithString:@"~/Library/Application Support/"];
+  [tmpStr appendString:appName];
+  [tmpStr appendString:@"/userdata/Thumbnails/%@-%@.png"];
+  NSString* pngFile = [[NSString stringWithFormat:tmpStr,
     bundleIdentifier, iconName] stringByExpandingTildeInPath];
 
   // If no PNG has been created, open the ICNS file & convert
@@ -261,12 +277,12 @@ char* Cocoa_MountPoint2DeviceName(char *path)
   return path;
 }
 
-bool Cocoa_GetVolumeNameFromMountPoint(const char *mountPoint, CStdString &volumeName)
+bool Cocoa_GetVolumeNameFromMountPoint(const std::string &mountPoint, std::string &volumeName)
 {
   CCocoaAutoPool pool;
   unsigned i, count = 0;
   struct statfs *buf = NULL;
-  CStdString mountpoint, devicepath;
+  std::string mountpoint, devicepath;
 
   count = getmntinfo(&buf, 0);
   for (i=0; i<count; i++)

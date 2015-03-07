@@ -25,7 +25,7 @@
 #include "utils/JobManager.h"
 #include "FileItem.h"
 #include "settings/AdvancedSettings.h"
-#include "Key.h"
+#include "input/Key.h"
 #include "TextureCache.h"
 #include "WindowIDs.h"
 #include "utils/StringUtils.h"
@@ -99,12 +99,12 @@ void CGUIMultiImage::UpdateInfo(const CGUIListItem *item)
   // alloc as this can free our resources
   if (!m_texturePath.IsConstant())
   {
-    CStdString texturePath;
+    std::string texturePath;
     if (item)
       texturePath = m_texturePath.GetItemLabel(item, true);
     else
       texturePath = m_texturePath.GetLabel(m_parentID);
-    if (texturePath != m_currentPath && !texturePath.IsEmpty())
+    if (texturePath != m_currentPath && !texturePath.empty())
     {
       // a new path - set our current path and tell ourselves to load our directory
       m_currentPath = texturePath;
@@ -221,7 +221,7 @@ void CGUIMultiImage::LoadDirectory()
   m_files.clear();
 
   // don't load any images if our path is empty
-  if (m_currentPath.IsEmpty()) return;
+  if (m_currentPath.empty()) return;
 
   /* Check the fast cases:
    1. Picture extension
@@ -284,12 +284,12 @@ void CGUIMultiImage::SetInfo(const CGUIInfoLabel &info)
     m_currentPath = m_texturePath.GetLabel(WINDOW_INVALID);
 }
 
-CStdString CGUIMultiImage::GetDescription() const
+std::string CGUIMultiImage::GetDescription() const
 {
   return m_image.GetDescription();
 }
 
-CGUIMultiImage::CMultiImageJob::CMultiImageJob(const CStdString &path)
+CGUIMultiImage::CMultiImageJob::CMultiImageJob(const std::string &path)
   : m_path(path)
 {
 }
@@ -307,8 +307,8 @@ bool CGUIMultiImage::CMultiImageJob::DoWork()
   {
     // Load in images from the directory specified
     // m_path is relative (as are all skin paths)
-    CStdString realPath = g_TextureManager.GetTexturePath(m_path, true);
-    if (realPath.IsEmpty())
+    std::string realPath = g_TextureManager.GetTexturePath(m_path, true);
+    if (realPath.empty())
       return true;
 
     URIUtils::AddSlashAtEnd(realPath);

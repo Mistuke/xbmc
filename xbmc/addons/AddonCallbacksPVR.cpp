@@ -22,9 +22,10 @@
 #include "AddonCallbacksPVR.h"
 #include "settings/AdvancedSettings.h"
 #include "utils/log.h"
+#include "utils/StringUtils.h"
 #include "dialogs/GUIDialogKaiToast.h"
 
-#include "epg/Epg.h"
+#include "epg/EpgContainer.h"
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/channels/PVRChannelGroupInternal.h"
@@ -130,7 +131,7 @@ void CAddonCallbacksPVR::PVRTransferChannelGroupMember(void *addonData, const AD
   else if (group->IsRadio() == channel->IsRadio())
   {
     /* transfer this entry to the group */
-    group->AddToGroup(*channel, member->iChannelNumber);
+    group->AddToGroup(channel, member->iChannelNumber);
   }
 }
 
@@ -170,7 +171,7 @@ void CAddonCallbacksPVR::PVRTransferChannelEntry(void *addonData, const ADDON_HA
   }
 
   /* transfer this entry to the internal channels group */
-  CPVRChannel transferChannel(*channel, client->GetID());
+  CPVRChannelPtr transferChannel(new CPVRChannel(*channel, client->GetID()));
   xbmcChannels->UpdateFromClient(transferChannel);
 }
 
@@ -191,7 +192,7 @@ void CAddonCallbacksPVR::PVRTransferRecordingEntry(void *addonData, const ADDON_
   }
 
   /* transfer this entry to the recordings container */
-  CPVRRecording transferRecording(*recording, client->GetID());
+  CPVRRecordingPtr transferRecording(new CPVRRecording(*recording, client->GetID()));
   xbmcRecordings->UpdateFromClient(transferRecording);
 }
 
@@ -219,7 +220,7 @@ void CAddonCallbacksPVR::PVRTransferTimerEntry(void *addonData, const ADDON_HAND
   }
 
   /* transfer this entry to the timers container */
-  CPVRTimerInfoTag transferTimer(*timer, channel, client->GetID());
+  CPVRTimerInfoTagPtr transferTimer(new CPVRTimerInfoTag(*timer, channel, client->GetID()));
   xbmcTimers->UpdateFromClient(transferTimer);
 }
 
@@ -254,13 +255,13 @@ void CAddonCallbacksPVR::PVRRecording(void *addonData, const char *strName, cons
     return;
   }
 
-  CStdString strLine1;
+  std::string strLine1;
   if (bOnOff)
-    strLine1.Format(g_localizeStrings.Get(19197), client->Name());
+    strLine1 = StringUtils::Format(g_localizeStrings.Get(19197).c_str(), client->Name().c_str());
   else
-    strLine1.Format(g_localizeStrings.Get(19198), client->Name());
+    strLine1 = StringUtils::Format(g_localizeStrings.Get(19198).c_str(), client->Name().c_str());
 
-  CStdString strLine2;
+  std::string strLine2;
   if (strName)
     strLine2 = strName;
   else if (strFileName)
@@ -307,18 +308,7 @@ void CAddonCallbacksPVR::PVRTriggerEpgUpdate(void *addonData, unsigned int iChan
     return;
   }
 
-  // get the channel
-  CPVRChannelPtr channel = g_PVRChannelGroups->GetByUniqueID(iChannelUid, client->GetID());
-  CEpg* epg(NULL);
-  // get the EPG for the channel
-  if (!channel || (epg = channel->GetEPG()) == NULL)
-  {
-    CLog::Log(LOGERROR, "PVR - %s - invalid channel or channel doesn't have an EPG", __FUNCTION__);
-    return;
-  }
-
-  // force an update
-  epg->ForceUpdate();
+  g_EpgContainer.UpdateRequest(client->GetID(), iChannelUid);
 }
 
 void CAddonCallbacksPVR::PVRFreeDemuxPacket(void *addonData, DemuxPacket* pPacket)

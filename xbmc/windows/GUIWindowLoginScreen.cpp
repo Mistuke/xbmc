@@ -33,6 +33,7 @@
 #endif
 #include "interfaces/Builtins.h"
 #include "utils/Weather.h"
+#include "utils/StringUtils.h"
 #include "network/Network.h"
 #include "addons/Skin.h"
 #include "guilib/GUIMessage.h"
@@ -42,10 +43,12 @@
 #include "dialogs/GUIDialogOK.h"
 #include "settings/Settings.h"
 #include "FileItem.h"
-#include "guilib/Key.h"
+#include "input/Key.h"
 #include "guilib/LocalizeStrings.h"
 #include "addons/AddonManager.h"
 #include "view/ViewState.h"
+#include "pvr/PVRManager.h"
+#include "ContextMenuManager.h"
 
 #define CONTROL_BIG_LIST               52
 #define CONTROL_LABEL_HEADER            2
@@ -138,9 +141,10 @@ bool CGUIWindowLoginScreen::OnAction(const CAction &action)
   // this forces only navigation type actions to be performed.
   if (action.GetID() == ACTION_BUILT_IN_FUNCTION)
   {
-    CStdString actionName = action.GetName();
-    actionName.ToLower();
-    if (actionName.Find("shutdown") != -1)
+    std::string actionName = action.GetName();
+    StringUtils::ToLower(actionName);
+    if ((actionName.find("shutdown") != std::string::npos) &&
+        PVR::g_PVRManager.CanSystemPowerdown())
       CBuiltins::Execute(action.GetName());
     return true;
   }
@@ -158,8 +162,7 @@ void CGUIWindowLoginScreen::FrameMove()
   if (GetFocusedControlID() == CONTROL_BIG_LIST && g_windowManager.GetTopMostModalDialogID() == WINDOW_INVALID)
     if (m_viewControl.HasControl(CONTROL_BIG_LIST))
       m_iSelectedItem = m_viewControl.GetSelectedItem();
-  CStdString strLabel;
-  strLabel.Format(g_localizeStrings.Get(20114),m_iSelectedItem+1, CProfilesManager::Get().GetNumberOfProfiles());
+  std::string strLabel = StringUtils::Format(g_localizeStrings.Get(20114).c_str(), m_iSelectedItem+1, CProfilesManager::Get().GetNumberOfProfiles());
   SET_CONTROL_LABEL(CONTROL_LABEL_SELECTED_PROFILE,strLabel);
   CGUIWindow::FrameMove();
 }
@@ -198,14 +201,14 @@ void CGUIWindowLoginScreen::Update()
   {
     const CProfile *profile = CProfilesManager::Get().GetProfile(i);
     CFileItemPtr item(new CFileItem(profile->getName()));
-    CStdString strLabel;
-    if (profile->getDate().IsEmpty())
+    std::string strLabel;
+    if (profile->getDate().empty())
       strLabel = g_localizeStrings.Get(20113);
     else
-      strLabel.Format(g_localizeStrings.Get(20112), profile->getDate());
+      strLabel = StringUtils::Format(g_localizeStrings.Get(20112).c_str(), profile->getDate().c_str());
     item->SetLabel2(strLabel);
     item->SetArt("thumb", profile->getThumb());
-    if (profile->getThumb().IsEmpty() || profile->getThumb().Equals("-"))
+    if (profile->getThumb().empty() || profile->getThumb() == "-")
       item->SetArt("thumb", "unknown-user.png");
     item->SetLabelPreformated(true);
     m_vecItems->Add(item);
@@ -218,9 +221,10 @@ bool CGUIWindowLoginScreen::OnPopupMenu(int iItem)
 {
   if ( iItem < 0 || iItem >= m_vecItems->Size() ) return false;
 
-  bool bSelect = m_vecItems->Get(iItem)->IsSelected();
+  CFileItemPtr pItem = m_vecItems->Get(iItem);
+  bool bSelect = pItem->IsSelected();
   // mark the item
-  m_vecItems->Get(iItem)->Select(true);
+  pItem->Select(true);
 
   CContextButtons choices;
   choices.Add(1, 20067);
@@ -228,6 +232,8 @@ bool CGUIWindowLoginScreen::OnPopupMenu(int iItem)
     choices.Add(2, 117); */
   if (iItem == 0 && g_passwordManager.iMasterLockRetriesLeft == 0)
     choices.Add(3, 12334);
+
+  CContextMenuManager::Get().AddVisibleItems(pItem, choices);
 
   int choice = CGUIDialogContextMenu::ShowAndGetChoice(choices);
   if (choice == 3)
@@ -258,7 +264,9 @@ bool CGUIWindowLoginScreen::OnPopupMenu(int iItem)
   if (iItem < (int)CProfilesManager::Get().GetNumberOfProfiles())
     m_vecItems->Get(iItem)->Select(bSelect);
 
-  return (choice > 0);
+  if (choice >= CONTEXT_BUTTON_FIRST_ADDON)
+    return CContextMenuManager::Get().Execute(choice, pItem);
+  return false;
 }
 
 CFileItemPtr CGUIWindowLoginScreen::GetCurrentListItem(int offset)

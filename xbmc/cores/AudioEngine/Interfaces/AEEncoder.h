@@ -19,8 +19,11 @@
  *
  */
 
-#include "DllAvCodec.h"
 #include "cores/AudioEngine/Utils/AEAudioFormat.h"
+
+extern "C" {
+#include "libavcodec/avcodec.h"
+}
 
 /**
  * IAEEncoder interface for on the fly audio compression
@@ -43,7 +46,7 @@ public:
    * @param format the format to compare
    * @return true if compatible, false if not
    */
-  virtual bool IsCompatible(AEAudioFormat format) = 0;
+  virtual bool IsCompatible(const AEAudioFormat& format) = 0;
 
   /**
    * Called to setup the encoder to accept data in the specified format

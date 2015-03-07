@@ -48,7 +48,7 @@ namespace XFILE
     virtual bool          Exists(const CURL& url);
     virtual int           Stat(const CURL& url, struct __stat64* buffer);
 
-    virtual unsigned int  Read(void* lpBuf, int64_t uiBufSize);
+    virtual ssize_t       Read(void* lpBuf, size_t uiBufSize);
 
     virtual int64_t       Seek(int64_t iFilePosition, int iWhence);
     virtual int64_t       GetPosition();
@@ -58,14 +58,15 @@ namespace XFILE
 
     IFile *GetFileImp();
 
-    virtual CStdString GetContent();
+    virtual std::string GetContent();
+    virtual std::string GetContentCharset(void);
 
   private:
     CCacheStrategy *m_pCache;
     bool      m_bDeleteCache;
     int        m_seekPossible;
     CFile      m_source;
-    CStdString    m_sourcePath;
+    std::string    m_sourcePath;
     CEvent      m_seekEvent;
     CEvent      m_seekEnded;
     int64_t      m_nSeekResult;

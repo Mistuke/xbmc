@@ -41,10 +41,10 @@ bool CGUIAction::ExecuteActions(int controlID, int parentID) const
 {
   if (m_actions.size() == 0) return false;
   // take a copy of actions that satisfy our conditions
-  vector<CStdString> actions;
+  vector<std::string> actions;
   for (ciActions it = m_actions.begin() ; it != m_actions.end() ; ++it)
   {
-    if (it->condition.IsEmpty() || g_infoManager.EvaluateBool(it->condition))
+    if (it->condition.empty() || g_infoManager.EvaluateBool(it->condition))
     {
       if (!StringUtils::IsInteger(it->action))
         actions.push_back(it->action);
@@ -52,7 +52,7 @@ bool CGUIAction::ExecuteActions(int controlID, int parentID) const
   }
   // execute them
   bool retval = false;
-  for (vector<CStdString>::iterator i = actions.begin(); i != actions.end(); ++i)
+  for (vector<std::string>::iterator i = actions.begin(); i != actions.end(); ++i)
   {
     CGUIMessage msg(GUI_MSG_EXECUTE, controlID, parentID);
     msg.SetStringParam(*i);
@@ -71,7 +71,7 @@ int CGUIAction::GetNavigation() const
   {
     if (StringUtils::IsInteger(it->action))
     {
-      if (it->condition.IsEmpty() || g_infoManager.EvaluateBool(it->condition))
+      if (it->condition.empty() || g_infoManager.EvaluateBool(it->condition))
         return atoi(it->action.c_str());
     }
   }
@@ -81,11 +81,10 @@ int CGUIAction::GetNavigation() const
 void CGUIAction::SetNavigation(int id)
 {
   if (id == 0) return;
-  CStdString strId;
-  strId.Format("%i", id);
+  std::string strId = StringUtils::Format("%i", id);
   for (iActions it = m_actions.begin() ; it != m_actions.end() ; ++it)
   {
-    if (StringUtils::IsInteger(it->action) && it->condition.IsEmpty())
+    if (StringUtils::IsInteger(it->action) && it->condition.empty())
     {
       it->action = strId;
       return;
@@ -100,7 +99,7 @@ bool CGUIAction::HasActionsMeetingCondition() const
 {
   for (ciActions it = m_actions.begin() ; it != m_actions.end() ; ++it)
   {
-    if (it->condition.IsEmpty() || g_infoManager.EvaluateBool(it->condition))
+    if (it->condition.empty() || g_infoManager.EvaluateBool(it->condition))
       return true;
   }
   return false;

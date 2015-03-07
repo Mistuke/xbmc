@@ -21,6 +21,8 @@
 
 #include "DynamicDll.h"
 #include "threads/CriticalSection.h"
+#include <stdio.h>
+#include <vector>
 
 /* put types of curl in namespace to avoid namespace pollution */
 namespace XCURL
@@ -79,6 +81,10 @@ namespace XCURL
     DEFINE_METHOD2(struct curl_slist*, slist_append, (struct curl_slist * p1, const char * p2))
     DEFINE_METHOD1(void, slist_free_all, (struct curl_slist * p1))
     DEFINE_METHOD1(const char *, easy_strerror, (CURLcode p1))
+#if defined(HAS_CURL_STATIC)
+    DEFINE_METHOD1(void, crypto_set_id_callback, (unsigned long (*p1)(void)))
+    DEFINE_METHOD1(void, crypto_set_locking_callback, (void (*p1)(int, int, const char *, int)))
+#endif
     BEGIN_METHOD_RESOLVE()
       RESOLVE_METHOD_RENAME(curl_global_init, global_init)
       RESOLVE_METHOD_RENAME(curl_global_cleanup, global_cleanup)
@@ -101,6 +107,10 @@ namespace XCURL
       RESOLVE_METHOD_RENAME(curl_multi_cleanup, multi_cleanup)
       RESOLVE_METHOD_RENAME(curl_slist_append, slist_append)
       RESOLVE_METHOD_RENAME(curl_slist_free_all, slist_free_all)
+#if defined(HAS_CURL_STATIC)
+      RESOLVE_METHOD_RENAME(CRYPTO_set_id_callback, crypto_set_id_callback)
+      RESOLVE_METHOD_RENAME(CRYPTO_set_locking_callback, crypto_set_locking_callback)
+#endif
     END_METHOD_RESOLVE()
 
   };
@@ -123,8 +133,8 @@ namespace XCURL
     typedef struct SSession
     {
       unsigned int  m_idletimestamp;  // timestamp of when this object when idle
-      CStdString    m_protocol;
-      CStdString    m_hostname;
+      std::string   m_protocol;
+      std::string   m_hostname;
       bool          m_busy;
       CURL_HANDLE*  m_easy;
       CURLM*        m_multi;

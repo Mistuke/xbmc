@@ -1,11 +1,11 @@
-# XBMC Media Center language file
+# Kodi Media Center language file
 msgid ""
 msgstr ""
 "Project-Id-Version: XBMC Main\n"
 "Report-Msgid-Bugs-To: http://trac.xbmc.org/\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: XBMC Translation Team\n"
+"Last-Translator: Kodi Translation Team\n"
 "Language-Team: Ossetic (http://www.transifex.com/projects/p/xbmc-main/language/os/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -38,8 +38,8 @@ msgid "Settings"
 msgstr "Уаг"
 
 msgctxt "#6"
-msgid "XBMC SVN"
-msgstr "XBMC SVN"
+msgid "Kodi SVN"
+msgstr "Kodi SVN"
 
 msgctxt "#7"
 msgid "File manager"
@@ -50,8 +50,8 @@ msgid "Weather"
 msgstr "Боныгъӕд"
 
 msgctxt "#9"
-msgid "xbmc media center"
-msgstr "xbmc медиа центр"
+msgid "Kodi media center"
+msgstr "Kodi медиа центр"
 
 msgctxt "#11"
 msgid "Monday"
@@ -369,10 +369,6 @@ msgctxt "#121"
 msgid "Confirm file move"
 msgstr "Сбӕлвырд кӕн файлы хаст"
 
-msgctxt "#122"
-msgid "Confirm file delete?"
-msgstr "Файлы хафт бӕлвырд уӕт?"
-
 msgctxt "#123"
 msgid "Copy these files?"
 msgstr "Ацы файлтӕ хъӕуы халдих кӕнын?"
@@ -569,6 +565,10 @@ msgctxt "#444"
 msgid "Video"
 msgstr "Видео"
 
+msgctxt "#558"
+msgid "Album"
+msgstr "Альбомтӕ"
+
 msgctxt "#719"
 msgid "IP address"
 msgstr "IP адрис"
@@ -588,6 +588,10 @@ msgstr "Видео"
 msgctxt "#1213"
 msgid "Pictures"
 msgstr "Нывтӕ"
+
+msgctxt "#1390"
+msgid "Settings"
+msgstr "Уаг"
 
 msgctxt "#1403"
 msgid "Sun"
@@ -637,13 +641,45 @@ msgctxt "#13280"
 msgid "Video"
 msgstr "Видео"
 
+msgctxt "#13284"
+msgid "CPU speed:"
+msgstr "CPU:"
+
 msgctxt "#13398"
 msgid "Shortcuts"
 msgstr "Цыбыргӕнӕнтӕ"
 
+msgctxt "#14096"
+msgid "Rip"
+msgstr "Цпр"
+
 msgctxt "#16000"
 msgid "General"
 msgstr "Сӕйраг"
+
+msgctxt "#19149"
+msgid "Mo"
+msgstr "С"
+
+msgctxt "#19150"
+msgid "Tu"
+msgstr "Мар"
+
+msgctxt "#19152"
+msgid "Th"
+msgstr "Ц"
+
+msgctxt "#19154"
+msgid "Sa"
+msgstr "Х"
+
+msgctxt "#19155"
+msgid "Su"
+msgstr "Хцб"
+
+msgctxt "#21373"
+msgid "Video output"
+msgstr "Видео"
 
 msgctxt "#21417"
 msgid "Settings"
@@ -652,3 +688,15 @@ msgstr "Уаг"
 msgctxt "#24027"
 msgid "Weather"
 msgstr "Боныгъӕд"
+
+msgctxt "#36912"
+msgid "video"
+msgstr "Видео"
+
+msgctxt "#36913"
+msgid "videos"
+msgstr "Видео"
+
+msgctxt "#36921"
+msgid "songs"
+msgstr "Зарджытӕ"

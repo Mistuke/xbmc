@@ -22,16 +22,18 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+#include <Platinum/Source/Platinum/Platinum.h>
+#include <Platinum/Source/Devices/MediaServer/PltSyncMediaBrowser.h>
+
 #include "UPnPDirectory.h"
 #include "URL.h"
 #include "network/upnp/UPnP.h"
 #include "network/upnp/UPnPInternal.h"
-#include "Platinum.h"
-#include "PltSyncMediaBrowser.h"
 #include "video/VideoInfoTag.h"
 #include "FileItem.h"
 #include "utils/log.h"
 #include "utils/URIUtils.h"
+#include "utils/StringUtils.h"
 
 using namespace MUSIC_INFO;
 using namespace XFILE;
@@ -40,7 +42,7 @@ using namespace UPNP;
 namespace XFILE
 {
 
-static CStdString GetContentMapping(NPT_String& objectClass)
+static std::string GetContentMapping(NPT_String& objectClass)
 {
     struct SClassMapping
     {
@@ -109,9 +111,9 @@ static bool FindDeviceWait(CUPnP* upnp, const char* uuid, PLT_DeviceDataReferenc
 |   CUPnPDirectory::GetFriendlyName
 +---------------------------------------------------------------------*/
 const char*
-CUPnPDirectory::GetFriendlyName(const char* url)
+CUPnPDirectory::GetFriendlyName(const CURL& url)
 {
-    NPT_String path = url;
+    NPT_String path = url.Get().c_str();
     if (!path.EndsWith("/")) path += "/";
 
     if (path.Left(7).Compare("upnp://", true) != 0) {
@@ -141,17 +143,17 @@ CUPnPDirectory::GetFriendlyName(const char* url)
 +---------------------------------------------------------------------*/
 bool CUPnPDirectory::GetResource(const CURL& path, CFileItem &item)
 {
-    if(path.GetProtocol() != "upnp")
+    if(!path.IsProtocol("upnp"))
       return false;
 
     CUPnP* upnp = CUPnP::GetInstance();
     if(!upnp)
         return false;
 
-    CStdString uuid   = path.GetHostName();
-    CStdString object = path.GetFileName();
-    object.TrimRight("/");
-    CURL::Decode(object);
+    std::string uuid   = path.GetHostName();
+    std::string object = path.GetFileName();
+    StringUtils::TrimRight(object, "/");
+    object = CURL::Decode(object);
 
     PLT_DeviceDataReference device;
     if(!FindDeviceWait(upnp, uuid.c_str(), device)) {
@@ -182,7 +184,7 @@ bool CUPnPDirectory::GetResource(const CURL& path, CFileItem &item)
 |   CUPnPDirectory::GetDirectory
 +---------------------------------------------------------------------*/
 bool
-CUPnPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items)
+CUPnPDirectory::GetDirectory(const CURL& url, CFileItemList &items)
 {
     CUPnP* upnp = CUPnP::GetInstance();
 
@@ -190,7 +192,7 @@ CUPnPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items)
     items.SetCacheToDisc(CFileItemList::CACHE_NEVER);
 
     // We accept upnp://devuuid/[item_id/]
-    NPT_String path = strPath.c_str();
+    NPT_String path = url.Get().c_str();
     if (!path.StartsWith("upnp://", true)) {
         return false;
     }
@@ -206,7 +208,7 @@ CUPnPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items)
             NPT_String uuid = (*device)->GetUUID();
 
             CFileItemPtr pItem(new CFileItem((const char*)name));
-            pItem->SetPath(CStdString((const char*) "upnp://" + uuid + "/"));
+            pItem->SetPath(std::string((const char*) "upnp://" + uuid + "/"));
             pItem->m_bIsFolder = true;
             pItem->SetArt("thumb", (const char*)(*device)->GetIconUrl("image/png"));
 
@@ -224,9 +226,7 @@ CUPnPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items)
         NPT_String object_id = (next_slash==-1)?"":path.SubString(next_slash+1);
         object_id.TrimRight("/");
         if (object_id.GetLength()) {
-            CStdString tmp = (char*) object_id;
-            CURL::Decode(tmp);
-            object_id = tmp;
+            object_id = CURL::Decode((char*)object_id).c_str();
         }
 
         // try to find the device with wait on startup
@@ -245,11 +245,11 @@ CUPnPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items)
         bool video = true;
         bool audio = true;
         bool image = true;
-        m_strFileMask.TrimLeft("/");
-        if (!m_strFileMask.IsEmpty()) {
-            video = m_strFileMask.Find(".wmv") >= 0;
-            audio = m_strFileMask.Find(".wma") >= 0;
-            image = m_strFileMask.Find(".jpg") >= 0;
+        StringUtils::TrimLeft(m_strFileMask, "/");
+        if (!m_strFileMask.empty()) {
+            video = m_strFileMask.find(".wmv") != std::string::npos;
+            audio = m_strFileMask.find(".wma") != std::string::npos;
+            image = m_strFileMask.find(".jpg") != std::string::npos;
         }
 
         // special case for Windows Media Connect and WMP11 when looking for root
@@ -326,15 +326,15 @@ CUPnPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items)
                 continue;
             }
 
-            CStdString id;
+            std::string id;
             if ((*entry)->m_ReferenceID.IsEmpty())
                 id = (const char*) (*entry)->m_ObjectID;
             else
                 id = (const char*) (*entry)->m_ReferenceID;
 
-            CURL::Encode(id);
+            id = CURL::Encode(id);
             URIUtils::AddSlashAtEnd(id);
-            pItem->SetPath(CStdString((const char*) "upnp://" + uuid + "/" + id.c_str()));
+            pItem->SetPath(std::string((const char*) "upnp://" + uuid + "/" + id.c_str()));
 
             items.Add(pItem);
 
@@ -343,7 +343,7 @@ CUPnPDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items)
 
         NPT_String max_string = "";
         int        max_count  = 0;
-        for(std::map<NPT_String, int>::iterator it = classes.begin(); it != classes.end(); it++)
+        for(std::map<NPT_String, int>::iterator it = classes.begin(); it != classes.end(); ++it)
         {
           if(it->second > max_count)
           {

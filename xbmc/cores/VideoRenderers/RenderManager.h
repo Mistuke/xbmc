@@ -42,6 +42,7 @@ struct DVDVideoPicture;
 #define ERRORBUFFSIZE 30
 
 class CWinRenderer;
+class CMMALRenderer;
 class CLinuxRenderer;
 class CLinuxRendererGL;
 class CLinuxRendererGLES;
@@ -58,8 +59,11 @@ public:
   void Update();
   void FrameMove();
   void FrameFinish();
-  bool FrameWait(int ms);
-  void Render(bool clear, DWORD flags = 0, DWORD alpha = 255);
+  void FrameWait(int ms);
+  bool HasFrame();
+  void Render(bool clear, DWORD flags = 0, DWORD alpha = 255, bool gui = true);
+  bool IsGuiLayer();
+  bool IsVideoLayer();
   void SetupScreenshot();
 
   CRenderCapture* AllocRenderCapture();
@@ -98,10 +102,11 @@ public:
    *
    * @param bStop reference to stop flag of calling thread
    * @param timestamp of frame delivered with AddVideoPicture
+   * @param pts used for lateness detection
    * @param source depreciated
    * @param sync signals frame, top, or bottom field
    */
-  void FlipPage(volatile bool& bStop, double timestamp = 0.0, int source = -1, EFIELDSYNC sync = FS_NONE);
+  void FlipPage(volatile bool& bStop, double timestamp = 0.0, double pts = 0.0, int source = -1, EFIELDSYNC sync = FS_NONE);
   unsigned int PreInit();
   void UnInit();
   bool Flush();
@@ -137,14 +142,14 @@ public:
   static double GetPresentTime();
   void  WaitPresentTime(double presenttime);
 
-  CStdString GetVSyncState();
+  std::string GetVSyncState();
 
   void UpdateResolution();
 
-  bool RendererHandlesPresent() const;
-
 #ifdef HAS_GL
   CLinuxRendererGL    *m_pRenderer;
+#elif defined(HAS_MMAL)
+  CMMALRenderer       *m_pRenderer;
 #elif HAS_GLES == 2
   CLinuxRendererGLES  *m_pRenderer;
 #elif defined(HAS_DX)
@@ -153,7 +158,7 @@ public:
   CLinuxRenderer      *m_pRenderer;
 #endif
 
-  unsigned int GetProcessorSize();
+  unsigned int GetOptimalBufferSize();
 
   // Supported pixel formats, can be called before configure
   std::vector<ERenderFormat> SupportedFormats();
@@ -176,6 +181,12 @@ public:
   int WaitForBuffer(volatile bool& bStop, int timeout = 100);
 
   /**
+   * Can be called by player for lateness detection. This is done best by
+   * looking at the end of the queue.
+   */
+  bool GetStats(double &sleeptime, double &pts, int &bufferLevel);
+
+  /**
    * Video player call this on flush in oder to discard any queued frames
    */
   void DiscardBuffer();
@@ -190,10 +201,11 @@ protected:
 
   EINTERLACEMETHOD AutoInterlaceMethodInternal(EINTERLACEMETHOD mInt);
 
-  bool m_bIsStarted;
   CSharedSection m_sharedSection;
 
+  bool m_bIsStarted;
   bool m_bReconfigured;
+  bool m_bRenderGUI;
 
   int m_rendermethod;
 
@@ -222,6 +234,7 @@ protected:
 
   struct SPresent
   {
+    double         pts;
     double         timestamp;
     EFIELDSYNC     presentfield;
     EPRESENTMETHOD presentmethod;
@@ -233,6 +246,8 @@ protected:
 
   ERenderFormat   m_format;
 
+  double     m_sleeptime;
+  double     m_presentpts;
   double     m_presentcorr;
   double     m_presenterr;
   double     m_errorbuff[ERRORBUFFSIZE];
@@ -242,9 +257,11 @@ protected:
   XbmcThreads::ConditionVariable  m_presentevent;
   CCriticalSection m_presentlock;
   CEvent     m_flushEvent;
+  double     m_clock_framefinish;
 
 
   OVERLAY::CRenderer m_overlays;
+  bool m_renderedOverlay;
 
   void RenderCapture(CRenderCapture* capture);
   void RemoveCapture(CRenderCapture* capture);
@@ -253,9 +270,6 @@ protected:
   //set to true when adding something to m_captures, set to false when m_captures is made empty
   //std::list::empty() isn't thread safe, using an extra bool will save a lock per render when no captures are requested
   bool                       m_hasCaptures; 
-
-  // temporary fix for RendererHandlesPresent after #2811
-  bool m_firstFlipPage;
 };
 
 extern CXBMCRenderManager g_renderManager;

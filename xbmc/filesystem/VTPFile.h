@@ -41,8 +41,8 @@ public:
   virtual int64_t       GetLength()                                    { return -1; }
   virtual int           Stat(const CURL& url, struct __stat64* buffer) { return -1; }
   virtual void          Close();
-  virtual unsigned int  Read(void* buffer, int64_t size);
-  virtual CStdString    GetContent()                                   { return ""; }
+  virtual ssize_t       Read(void* buffer, size_t size);
+  virtual std::string   GetContent()                                   { return ""; }
   virtual bool          SkipNext()                                     { return m_socket ? true : false; }
 
   virtual bool          Delete(const CURL& url)                        { return false; }

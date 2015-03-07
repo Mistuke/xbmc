@@ -26,7 +26,8 @@
 #include "GUIWindowManager.h"
 #include "GUIControlProfiler.h"
 #include "input/MouseStat.h"
-#include "Key.h"
+#include "input/InputManager.h"
+#include "input/Key.h"
 
 using namespace std;
 
@@ -40,8 +41,6 @@ CGUIControl::CGUIControl() :
   m_visible = VISIBLE;
   m_visibleFromSkinCondition = true;
   m_forceHidden = false;
-  m_visibleCondition = 0;
-  m_enableCondition = 0;
   m_enabled = true;
   m_posX = 0;
   m_posY = 0;
@@ -71,8 +70,6 @@ CGUIControl::CGUIControl(int parentID, int controlID, float posX, float posY, fl
   m_visible = VISIBLE;
   m_visibleFromSkinCondition = true;
   m_forceHidden = false;
-  m_visibleCondition = 0;
-  m_enableCondition = 0;
   m_enabled = true;
   ControlType = GUICONTROL_UNKNOWN;
   m_bInvalidated = true;
@@ -397,7 +394,7 @@ void CGUIControl::SetEnabled(bool bEnable)
   }
 }
 
-void CGUIControl::SetEnableCondition(const CStdString &expression)
+void CGUIControl::SetEnableCondition(const std::string &expression)
 {
   if (expression == "true")
     m_enabled = true;
@@ -461,57 +458,16 @@ CRect CGUIControl::CalcRenderRegion() const
   return CRect(tl.x, tl.y, br.x, br.y);
 }
 
-void CGUIControl::SetNavigation(int up, int down, int left, int right, int back)
+void CGUIControl::SetNavigationActions(const ActionMap &actions)
 {
-  m_actionUp.SetNavigation(up);
-  m_actionDown.SetNavigation(down);
-  m_actionLeft.SetNavigation(left);
-  m_actionRight.SetNavigation(right);
-  m_actionBack.SetNavigation(back);
+  m_actions = actions;
 }
 
-void CGUIControl::SetTabNavigation(int next, int prev)
+void CGUIControl::SetNavigationAction(int actionID, const CGUIAction &action, bool replace /*= true*/)
 {
-  m_actionNext.SetNavigation(next);
-  m_actionPrev.SetNavigation(prev);
-}
-
-void CGUIControl::SetNavigationActions(const CGUIAction &up, const CGUIAction &down,
-                                       const CGUIAction &left, const CGUIAction &right,
-                                       const CGUIAction &back, bool replace)
-{
-  if (!m_actionLeft.HasAnyActions()  || replace) m_actionLeft  = left;
-  if (!m_actionRight.HasAnyActions() || replace) m_actionRight = right;
-  if (!m_actionUp.HasAnyActions()    || replace) m_actionUp    = up;
-  if (!m_actionDown.HasAnyActions()  || replace) m_actionDown  = down;
-  if (!m_actionBack.HasAnyActions()  || replace) m_actionBack  = back;
-}
-
-void CGUIControl::SetNavigationAction(int direction, const CGUIAction &action, bool replace /*= true*/)
-{
-  switch (direction)
-  {
-  case ACTION_MOVE_UP:
-    if (!m_actionUp.HasAnyActions() || replace)
-      m_actionUp = action;
-    break;
-  case ACTION_MOVE_DOWN:
-    if (!m_actionDown.HasAnyActions() || replace)
-      m_actionDown = action;
-    break;
-  case ACTION_MOVE_LEFT:
-    if (!m_actionLeft.HasAnyActions() || replace)
-      m_actionLeft = action;
-    break;
-  case ACTION_MOVE_RIGHT:
-    if (!m_actionRight.HasAnyActions() || replace)
-      m_actionRight = action;
-    break;
-  case ACTION_NAV_BACK:
-    if (!m_actionBack.HasAnyActions() || replace)
-      m_actionBack = action;
-    break;
-  }
+  ActionMap::iterator i = m_actions.find(actionID);
+  if (i == m_actions.end() || !i->second.HasAnyActions() || replace)
+    m_actions[actionID] = action;
 }
 
 void CGUIControl::SetWidth(float width)
@@ -543,7 +499,7 @@ void CGUIControl::SetVisible(bool bVisible, bool setVisState)
      //       otherwise we just set m_forceHidden
     GUIVISIBLE visible;
     if (m_visibleCondition)
-      visible = g_infoManager.GetBoolValue(m_visibleCondition) ? VISIBLE : HIDDEN;
+      visible = m_visibleCondition->Get() ? VISIBLE : HIDDEN;
     else
       visible = VISIBLE;
     if (visible != m_visible)
@@ -556,6 +512,8 @@ void CGUIControl::SetVisible(bool bVisible, bool setVisState)
   {
     m_forceHidden = !bVisible;
     SetInvalid();
+    if (m_forceHidden)
+      MarkDirtyRegion();
   }
   if (m_forceHidden)
   { // reset any visible animations that are in process
@@ -590,8 +548,8 @@ EVENT_RESULT CGUIControl::SendMouseEvent(const CPoint &point, const CMouseEvent 
 // override this function to implement custom mouse behaviour
 bool CGUIControl::OnMouseOver(const CPoint &point)
 {
-  if (g_Mouse.GetState() != MOUSE_STATE_DRAG)
-    g_Mouse.SetState(MOUSE_STATE_FOCUS);
+  if (CInputManager::Get().GetMouseState() != MOUSE_STATE_DRAG)
+    CInputManager::Get().SetMouseState(MOUSE_STATE_FOCUS);
   if (!CanFocus()) return false;
   if (!HasFocus())
   {
@@ -606,7 +564,7 @@ void CGUIControl::UpdateVisibility(const CGUIListItem *item)
   if (m_visibleCondition)
   {
     bool bWasVisible = m_visibleFromSkinCondition;
-    m_visibleFromSkinCondition = g_infoManager.GetBoolValue(m_visibleCondition, item);
+    m_visibleFromSkinCondition = m_visibleCondition->Get(item);
     if (!bWasVisible && m_visibleFromSkinCondition)
     { // automatic change of visibility - queue the in effect
   //    CLog::Log(LOGDEBUG, "Visibility changed to visible for control id %i", m_controlID);
@@ -629,7 +587,7 @@ void CGUIControl::UpdateVisibility(const CGUIListItem *item)
   // this may need to be reviewed at a later date
   bool enabled = m_enabled;
   if (m_enableCondition)
-    m_enabled = g_infoManager.GetBoolValue(m_enableCondition, item);
+    m_enabled = m_enableCondition->Get(item);
 
   if (m_enabled != enabled)
     MarkDirtyRegion();
@@ -651,7 +609,7 @@ void CGUIControl::SetInitialVisibility()
 {
   if (m_visibleCondition)
   {
-    m_visibleFromSkinCondition = g_infoManager.GetBoolValue(m_visibleCondition);
+    m_visibleFromSkinCondition = m_visibleCondition->Get();
     m_visible = m_visibleFromSkinCondition ? VISIBLE : HIDDEN;
   //  CLog::Log(LOGDEBUG, "Set initial visibility for control %i: %s", m_controlID, m_visible == VISIBLE ? "visible" : "hidden");
   }
@@ -667,14 +625,14 @@ void CGUIControl::SetInitialVisibility()
   // and check for conditional enabling - note this overrides SetEnabled() from the code currently
   // this may need to be reviewed at a later date
   if (m_enableCondition)
-    m_enabled = g_infoManager.GetBoolValue(m_enableCondition);
+    m_enabled = m_enableCondition->Get();
   m_allowHiddenFocus.Update();
   UpdateColors();
 
   MarkDirtyRegion();
 }
 
-void CGUIControl::SetVisibleCondition(const CStdString &expression, const CStdString &allowHiddenFocus)
+void CGUIControl::SetVisibleCondition(const std::string &expression, const std::string &allowHiddenFocus)
 {
   if (expression == "true")
     m_visible = VISIBLE;
@@ -904,28 +862,12 @@ bool CGUIControl::IsAnimating(ANIMATION_TYPE animType)
   return false;
 }
 
-bool CGUIControl::GetNavigationAction(int direction, CGUIAction& action) const
+CGUIAction CGUIControl::GetNavigateAction(int actionID) const
 {
-  switch (direction)
-  {
-  case ACTION_MOVE_UP:
-    action = m_actionUp;
-    return true;
-  case ACTION_MOVE_DOWN:
-    action = m_actionDown;
-    return true;
-  case ACTION_MOVE_LEFT:
-    action = m_actionLeft;
-    return true;
-  case ACTION_MOVE_RIGHT:
-    action = m_actionRight;
-    return true;
-  case ACTION_NAV_BACK:
-    action = m_actionBack;
-    return true;
-  default:
-    return false;
-  }
+  ActionMap::const_iterator i = m_actions.find(actionID);
+  if (i != m_actions.end())
+    return i->second;
+  return CGUIAction();
 }
 
 bool CGUIControl::CanFocusFromPoint(const CPoint &point) const

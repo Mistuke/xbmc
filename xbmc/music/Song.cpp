@@ -36,27 +36,46 @@ CSong::CSong(CFileItem& item)
   strTitle = tag.GetTitle();
   genre = tag.GetGenre();
   artist = tag.GetArtist();
-  bool hasMusicBrainzArtist = !tag.GetMusicBrainzArtistID().empty();
-  const vector<string>& artists = hasMusicBrainzArtist ? tag.GetMusicBrainzArtistID() : tag.GetArtist();
-  for (vector<string>::const_iterator it = artists.begin(); it != artists.end(); ++it)
-  {
-    CStdString artistName = hasMusicBrainzArtist && !artist.empty() ? artist[0] : *it;
-    CStdString artistId = hasMusicBrainzArtist ? *it : StringUtils::EmptyString;
-    CStdString strJoinPhrase = (it == --artists.end() ? "" : g_advancedSettings.m_musicItemSeparator);
-    CArtistCredit artistCredit(artistName, artistId, strJoinPhrase);
-    artistCredits.push_back(artistCredit);
+  if (!tag.GetMusicBrainzArtistID().empty())
+  { // have musicbrainz artist info, so use it
+    for (size_t i = 0; i < tag.GetMusicBrainzArtistID().size(); i++)
+    {
+      std::string artistId = tag.GetMusicBrainzArtistID()[i];
+      std::string artistName;
+      /*
+       We try and get the corresponding artist name from the album artist tag.
+       We match on the same index, and if that fails just use the first name we have.
+       */
+      if (!artist.empty())
+        artistName = (i < artist.size()) ? artist[i] : artist[0];
+      if (artistName.empty())
+        artistName = artistId;
+      std::string strJoinPhrase = (i == tag.GetMusicBrainzArtistID().size()-1) ? "" : g_advancedSettings.m_musicItemSeparator;
+      CArtistCredit artistCredit(artistName, artistId, strJoinPhrase);
+      artistCredits.push_back(artistCredit);
+    }
+  }
+  else
+  { // no musicbrainz info, so fill in directly
+    for (vector<string>::const_iterator it = tag.GetArtist().begin(); it != tag.GetArtist().end(); ++it)
+    {
+      std::string strJoinPhrase = (it == --tag.GetArtist().end() ? "" : g_advancedSettings.m_musicItemSeparator);
+      CArtistCredit artistCredit(*it, "", strJoinPhrase);
+      artistCredits.push_back(artistCredit);
+    }
   }
   strAlbum = tag.GetAlbum();
   albumArtist = tag.GetAlbumArtist();
   strMusicBrainzTrackID = tag.GetMusicBrainzTrackID();
   strComment = tag.GetComment();
+  strCueSheet = tag.GetCueSheet();
   rating = tag.GetRating();
   iYear = stTime.wYear;
-  iTrack = tag.GetTrackAndDiskNumber();
+  iTrack = tag.GetTrackAndDiscNumber();
   iDuration = tag.GetDuration();
   bCompilation = tag.GetCompilation();
   embeddedArt = tag.GetCoverArtInfo();
-  strFileName = tag.GetURL().IsEmpty() ? item.GetPath() : tag.GetURL();
+  strFileName = tag.GetURL().empty() ? item.GetPath() : tag.GetURL();
   strThumb = item.GetUserMusicThumb(true);
   iStartOffset = item.m_lStartOffset;
   iEndOffset = item.m_lEndOffset;
@@ -70,6 +89,19 @@ CSong::CSong(CFileItem& item)
 CSong::CSong()
 {
   Clear();
+}
+
+void CSong::MergeScrapedSong(const CSong& source, bool override)
+{
+  if ((override && !source.strTitle.empty()) || strTitle.empty())
+    strTitle = source.strTitle;
+  if ((override && source.iTrack != 0) || iTrack == 0)
+    iTrack = source.iTrack;
+  // artist = source.artist; // artist is read-only from the database
+  if (override)
+    artistCredits = source.artistCredits;
+  else if (source.artistCredits.size() > artistCredits.size())
+    artistCredits.insert(artistCredits.end(), source.artistCredits.begin()+artistCredits.size(), source.artistCredits.end());
 }
 
 void CSong::Serialize(CVariant& value) const
@@ -94,15 +126,15 @@ void CSong::Serialize(CVariant& value) const
 
 void CSong::Clear()
 {
-  strFileName.Empty();
-  strTitle.Empty();
+  strFileName.clear();
+  strTitle.clear();
   artist.clear();
-  strAlbum.Empty();
+  strAlbum.clear();
   albumArtist.clear();
   genre.clear();
-  strThumb.Empty();
-  strMusicBrainzTrackID.Empty();
-  strComment.Empty();
+  strThumb.clear();
+  strMusicBrainzTrackID.clear();
+  strComment.clear();
   rating = '0';
   iTrack = 0;
   iDuration = 0;
@@ -113,7 +145,7 @@ void CSong::Clear()
   iTimesPlayed = 0;
   lastPlayed.Reset();
   iKaraokeNumber = 0;
-  strKaraokeLyrEncoding.Empty();
+  strKaraokeLyrEncoding.clear();
   iKaraokeDelay = 0;
   idAlbum = -1;
   bCompilation = false;

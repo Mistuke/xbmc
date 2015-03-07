@@ -33,7 +33,7 @@
 #include "input/MouseStat.h"
 #include "input/touch/generic/GenericTouchActionHandler.h"
 #include "input/touch/generic/GenericTouchSwipeDetector.h"
-#include "input/windows/WINJoystick.h"
+#include "input/InputManager.h"
 #include "storage/MediaManager.h"
 #include "windowing/WindowingFactory.h"
 #include <dbt.h>
@@ -51,6 +51,8 @@
 #include "network/ZeroconfBrowser.h"
 #include "GUIUserMessages.h"
 #include "utils/CharsetConverter.h"
+#include "utils/StringUtils.h"
+#include "Util.h"
 
 #ifdef TARGET_WINDOWS
 
@@ -63,8 +65,6 @@ HWND g_hWnd = NULL;
 #endif
 
 #define ROTATE_ANGLE_DEGREE(arg) GID_ROTATE_ANGLE_FROM_ARGUMENT(LODWORD(arg)) * 180 / M_PI
-
-#define XBMC_arraysize(array)	(sizeof(array)/sizeof(array[0]))
 
 /* Masks for processing the windows KEYDOWN and KEYUP messages */
 #define REPEATED_KEYMASK  (1<<30)
@@ -98,7 +98,7 @@ void DIB_InitOSKeymap()
   LoadKeyboardLayout(current_layout, KLF_ACTIVATE);
 
   /* Map the VK keysyms */
-  for (int i = 0; i < XBMC_arraysize(VK_keymap); ++i)
+  for (int i = 0; i < ARRAY_SIZE(VK_keymap); ++i)
     VK_keymap[i] = XBMCK_UNKNOWN;
 
   VK_keymap[VK_BACK] = XBMCK_BACKSPACE;
@@ -336,7 +336,7 @@ static XBMC_keysym *TranslateKey(WPARAM vkey, UINT scancode, XBMC_keysym *keysym
     {
       keysym->unicode = vkey - VK_NUMPAD0 + '0';
     }
-    else if (ToUnicode((UINT)vkey, scancode, keystate, (LPWSTR)wchars, sizeof(wchars)/sizeof(wchars[0]), 0) > 0)
+    else if (ToUnicode((UINT)vkey, scancode, keystate, (LPWSTR)wchars, ARRAY_SIZE(wchars), 0) > 0)
     {
       keysym->unicode = wchars[0];
     }
@@ -434,7 +434,12 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
     case WM_QUIT:
     case WM_DESTROY:
       if (hDeviceNotify)
-        UnregisterDeviceNotification(hDeviceNotify);
+      {
+        if (UnregisterDeviceNotification(hDeviceNotify))
+          hDeviceNotify = 0;
+        else
+          CLog::Log(LOGNOTICE, "%s: UnregisterDeviceNotification failed (%d)", __FUNCTION__, GetLastError());
+      }
       newEvent.type = XBMC_QUIT;
       m_pEventFunc(newEvent);
       break;
@@ -450,7 +455,7 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
     case WM_ACTIVATE:
       {
         if( WA_INACTIVE != wParam )
-          g_Joystick.Reinitialize();
+          CInputManager::Get().ReInitializeJoystick();
 
         bool active = g_application.GetRenderGUI();
         if (HIWORD(wParam))
@@ -482,7 +487,7 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
       g_Windowing.NotifyAppFocusChange(g_application.m_AppFocused);
       if (uMsg == WM_KILLFOCUS)
       {
-        CStdString procfile;
+        std::string procfile;
         if (CWIN32Util::GetFocussedProcess(procfile))
           CLog::Log(LOGDEBUG, __FUNCTION__": Focus switched to process %s", procfile.c_str());
       }
@@ -756,7 +761,7 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
             if (((_DEV_BROADCAST_HEADER*) lParam)->dbcd_devicetype == DBT_DEVTYP_DEVICEINTERFACE)
             {
               g_peripherals.TriggerDeviceScan(PERIPHERAL_BUS_USB);
-              g_Joystick.Reinitialize();
+              CInputManager::Get().ReInitializeJoystick();
             }
             // check if an usb or optical media was inserted or removed
             if (((_DEV_BROADCAST_HEADER*) lParam)->dbcd_devicetype == DBT_DEVTYP_VOLUME)
@@ -765,8 +770,7 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
               // optical medium
               if (lpdbv -> dbcv_flags & DBTF_MEDIA)
               {
-                CStdString strdrive;
-                strdrive.Format("%c:\\", CWIN32Util::FirstDriveFromMask(lpdbv ->dbcv_unitmask));
+                std::string strdrive = StringUtils::Format("%c:", CWIN32Util::FirstDriveFromMask(lpdbv ->dbcv_unitmask));
                 if(wParam == DBT_DEVICEARRIVAL)
                 {
                   CLog::Log(LOGDEBUG, __FUNCTION__": Drive %s Media has arrived.", strdrive.c_str());

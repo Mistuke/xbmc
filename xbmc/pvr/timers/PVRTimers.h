@@ -55,7 +55,7 @@ namespace PVR
     /**
      * Add a timer entry to this container, called by the client callback.
      */
-    bool UpdateFromClient(const CPVRTimerInfoTag &timer);
+    bool UpdateFromClient(const CPVRTimerInfoTagPtr &timer);
 
     /*!
      * @return The timer that will be active next (state scheduled), or an empty fileitemptr if none.
@@ -66,6 +66,12 @@ namespace PVR
      * @return All timers that are active (states scheduled or recording)
      */
     std::vector<CFileItemPtr> GetActiveTimers(void) const;
+
+    /*!
+     * Get all timers
+     * @param items The list to add the timers to
+     */
+    void GetAll(CFileItemList& items) const;
 
     /*!
      * @return True when there is at least one timer that is active (states scheduled or recording), false otherwise.
@@ -105,7 +111,7 @@ namespace PVR
      * @param items The results.
      * @return True when the path was valid, false otherwise.
      */
-    bool GetDirectory(const CStdString& strPath, CFileItemList &items) const;
+    bool GetDirectory(const std::string& strPath, CFileItemList &items) const;
 
     /*!
      * @brief Delete all timers on a channel.
@@ -114,14 +120,14 @@ namespace PVR
      * @param bCurrentlyActiveOnly True to delete timers that are currently running only.
      * @return True if timers any were deleted, false otherwise.
      */
-    bool DeleteTimersOnChannel(const CPVRChannel &channel, bool bDeleteRepeating = true, bool bCurrentlyActiveOnly = false);
+    bool DeleteTimersOnChannel(const CPVRChannelPtr &channel, bool bDeleteRepeating = true, bool bCurrentlyActiveOnly = false);
 
     /*!
      * @brief Create a new instant timer on a channel.
      * @param channel The channel to create the timer on.
      * @return True if the timer was created, false otherwise.
      */
-    bool InstantTimer(const CPVRChannel &channel);
+    bool InstantTimer(const CPVRChannelPtr &channel);
 
     /*!
      * @return Next event time (timer or daily wake up)
@@ -132,7 +138,7 @@ namespace PVR
      * @brief Add a timer to the client. Doesn't add the timer to the container. The backend will do this.
      * @return True if it was sent correctly, false if not.
      */
-    static bool AddTimer(const CPVRTimerInfoTag &item);
+    static bool AddTimer(const CPVRTimerInfoTagPtr &item);
 
     /*!
      * @brief Delete a timer on the client. Doesn't delete the timer from the container. The backend will do this.
@@ -144,7 +150,7 @@ namespace PVR
      * @brief Rename a timer on the client. Doesn't update the timer in the container. The backend will do this.
      * @return True if it was sent correctly, false if not.
      */
-    static bool RenameTimer(CFileItem &item, const CStdString &strNewName);
+    static bool RenameTimer(CFileItem &item, const std::string &strNewName);
 
     /**
      * @brief Update the timer on the client. Doesn't update the timer in the container. The backend will do this.
@@ -166,14 +172,25 @@ namespace PVR
 
     void Notify(const Observable &obs, const ObservableMessage msg);
 
+    /*!
+     * Get a timer tag given it's unique ID
+     * @param iTimerId The ID to find
+     * @return The tag, or an empty one when not found
+     */
+    CPVRTimerInfoTagPtr GetById(unsigned int iTimerId) const;
+
   private:
+    typedef std::map<CDateTime, std::vector<CPVRTimerInfoTagPtr>* > MapTags;
+    typedef std::vector<CPVRTimerInfoTagPtr> VecTimerInfoTag;
+
     void Unload(void);
     void UpdateEpgEvent(CPVRTimerInfoTagPtr timer);
     bool UpdateEntries(const CPVRTimers &timers);
     CPVRTimerInfoTagPtr GetByClient(int iClientId, int iClientTimerId) const;
 
-    CCriticalSection                                        m_critSection;
-    bool                                                    m_bIsUpdating;
-    std::map<CDateTime, std::vector<CPVRTimerInfoTagPtr>* > m_tags;
+    CCriticalSection  m_critSection;
+    bool              m_bIsUpdating;
+    MapTags           m_tags;
+    unsigned int      m_iLastId;
   };
 }

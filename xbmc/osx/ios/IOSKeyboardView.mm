@@ -22,6 +22,7 @@
 #include "guilib/GUIKeyboardFactory.h"
 #include "threads/Event.h"
 #include "Application.h"
+#include "osx/DarwinUtils.h"
 #undef BOOL
 
 #import "IOSKeyboardView.h"
@@ -47,7 +48,6 @@ static CEvent keyboardFinishedEvent;
   {
     _iosKeyboard = nil;
     _keyboardIsShowing = 0;
-    _kbHeight = 0;
     _confirmed = NO;
     _canceled = NULL;
     _deactivated = NO;
@@ -61,15 +61,22 @@ static CEvent keyboardFinishedEvent;
                                        INPUT_BOX_HEIGHT);
     _textField = [[UITextField alloc] initWithFrame:textFieldFrame];
     _textField.clearButtonMode = UITextFieldViewModeAlways;
-    _textField.borderStyle = UITextBorderStyleRoundedRect;
+    // UITextBorderStyleRoundedRect; - with round rect we can't control backgroundcolor
+    _textField.borderStyle = UITextBorderStyleNone;    
     _textField.returnKeyType = UIReturnKeyDone;
     _textField.autocapitalizationType = UITextAutocapitalizationTypeNone;
+    _textField.backgroundColor = [UIColor whiteColor];
+    _textField.contentVerticalAlignment = UIControlContentVerticalAlignmentCenter;
     _textField.delegate = self;
     
     CGRect labelFrame = textFieldFrame;
     labelFrame.origin.x = 0;
-    _heading = [[UILabel alloc] initWithFrame:labelFrame];
+    _heading = [[UITextField alloc] initWithFrame:labelFrame];
+    _heading.borderStyle = UITextBorderStyleNone;
+    _heading.backgroundColor = [UIColor whiteColor];
     _heading.adjustsFontSizeToFitWidth = YES;
+    _heading.contentVerticalAlignment = UIControlContentVerticalAlignmentCenter;
+    _heading.enabled = NO;
 
     [self addSubview:_heading];
     [self addSubview:_textField];
@@ -105,9 +112,19 @@ static CEvent keyboardFinishedEvent;
     CGSize headingSize = [_heading.text sizeWithFont:[UIFont systemFontOfSize:[UIFont systemFontSize]]];
     headingW = MIN(self.bounds.size.width/2, headingSize.width+30);
   }
-  CGFloat y = _kbHeight <= 0 ? 
+  CGFloat kbHeight = _kbRect.size.width;
+#if __IPHONE_8_0
+  if (CDarwinUtils::GetIOSVersion() >= 8.0)
+    kbHeight =_kbRect.size.height;
+#endif
+
+  CGFloat y = kbHeight <= 0 ?
     _textField.frame.origin.y : 
-    MIN(self.bounds.size.height-_kbHeight, self.bounds.size.height/5*3) - INPUT_BOX_HEIGHT - SPACE_BETWEEN_INPUT_AND_KEYBOARD;
+    MIN(self.bounds.size.height - kbHeight, self.bounds.size.height/5*3) - INPUT_BOX_HEIGHT - SPACE_BETWEEN_INPUT_AND_KEYBOARD;
+
+  if (CDarwinUtils::GetIOSVersion() >= 8.0)
+    y = _kbRect.origin.y - INPUT_BOX_HEIGHT - SPACE_BETWEEN_INPUT_AND_KEYBOARD;
+
   _heading.frame = CGRectMake(0, y, headingW, INPUT_BOX_HEIGHT);
   _textField.frame = CGRectMake(headingW, y, self.bounds.size.width-headingW, INPUT_BOX_HEIGHT);
 }
@@ -115,8 +132,12 @@ static CEvent keyboardFinishedEvent;
 -(void)keyboardWillShow:(NSNotification *) notification{
   NSDictionary* info = [notification userInfo];
   CGRect kbRect = [[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue];
+#if !__IPHONE_8_0
+  if (CDarwinUtils::GetIOSVersion() >= 8.0)
+    kbRect = [self convertRect:kbRect fromView:nil];
+#endif
   LOG(@"keyboardWillShow: keyboard frame: %@", NSStringFromCGRect(kbRect));
-  _kbHeight = kbRect.size.width;
+  _kbRect = kbRect;
   [self setNeedsLayout];
   _keyboardIsShowing = 1;
 }
@@ -251,6 +272,24 @@ static CEvent keyboardFinishedEvent;
   else
   {
     [self doDeactivate:nil];
+  }
+}
+
+- (void) setKeyboardText:(NSString*)aText closeKeyboard:(BOOL)closeKeyboard
+{
+  LOG(@"%s: %@, %d", __PRETTY_FUNCTION__, aText, closeKeyboard);
+  if([NSThread currentThread] != [NSThread mainThread])
+  {
+    [self performSelectorOnMainThread:@selector(setDefault:) withObject:aText  waitUntilDone:YES];
+  }
+  else
+  {
+    [self setDefault:aText];
+  }
+  if (closeKeyboard)
+  {
+    _confirmed = YES;
+    [self deactivate];
   }
 }
 

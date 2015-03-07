@@ -38,6 +38,7 @@
 #include "guilib/GUIWindowManager.h"
 #include "guilib/GUIEditControl.h"
 #include "guilib/GUIControlFactory.h"
+#include "listproviders/StaticProvider.h"
 
 #include "utils/XBMCTinyXML.h"
 #include "utils/StringUtils.h"
@@ -140,6 +141,14 @@ namespace XBMCAddon
       g_windowManager.SendThreadMessage(msg, iParentId);
     }
 
+    String ControlTextBox::getText() throw (UnimplementedException)
+    {
+      if (!pGUIControl) return NULL;
+
+      LOCKGUI;
+      return ((CGUITextBox*) pGUIControl)->GetDescription();
+    }
+
     void ControlTextBox::reset() throw(UnimplementedException)
     {
       // create message
@@ -150,6 +159,11 @@ namespace XBMCAddon
     void ControlTextBox::scroll(long position) throw(UnimplementedException)
     {
       static_cast<CGUITextBox*>(pGUIControl)->Scroll((int)position);
+    }
+
+    void ControlTextBox::autoScroll(int delay, int time, int repeat) throw(UnimplementedException)
+    {
+      static_cast<CGUITextBox*>(pGUIControl)->SetAutoScrolling(delay, time, repeat);
     }
 
     CGUIControl* ControlTextBox::Create() throw (WindowException)
@@ -275,8 +289,8 @@ namespace XBMCAddon
         (float)dwPosY,
         (float)dwWidth,
         (float)dwHeight,
-        (CStdString)strTextureFocus,
-        (CStdString)strTextureNoFocus,
+        CTextureInfo(strTextureFocus),
+        CTextureInfo(strTextureNoFocus),
         label);
 
       CGUIButtonControl* pGuiButtonControl =
@@ -402,9 +416,9 @@ namespace XBMCAddon
     // ============================================================
     // ============================================================
     ControlImage::ControlImage(long x, long y, long width, long height, 
-                               const char* filename, long aspectRatio,
+                               const char* filename, long aRatio,
                                const char* _colorDiffuse):
-      colorDiffuse(0)
+      aspectRatio(aRatio), colorDiffuse(0)
     {
       dwPosX = x;
       dwPosY = y;
@@ -417,13 +431,13 @@ namespace XBMCAddon
         sscanf(_colorDiffuse, "%x", &colorDiffuse);
     }
 
-    void ControlImage::setImage(const char* imageFilename) throw (UnimplementedException)
+    void ControlImage::setImage(const char* imageFilename, const bool useCache) throw (UnimplementedException)
     {
       strFileName = imageFilename;
 
       LOCKGUI;
       if (pGUIControl)
-        ((CGUIImage*)pGUIControl)->SetFileName(strFileName);
+        ((CGUIImage*)pGUIControl)->SetFileName(strFileName, false, useCache);
     }
 
     void ControlImage::setColorDiffuse(const char* cColorDiffuse) throw (UnimplementedException)
@@ -440,7 +454,7 @@ namespace XBMCAddon
     {
       pGUIControl = new CGUIImage(iParentId, iControlId,
             (float)dwPosX, (float)dwPosY, (float)dwWidth, (float)dwHeight,
-            (CStdString)strFileName);
+            CTextureInfo(strFileName));
 
       if (pGUIControl && aspectRatio <= CAspectRatio::AR_KEEP)
         ((CGUIImage *)pGUIControl)->SetAspectRatio((CAspectRatio::ASPECT_RATIO)aspectRatio);
@@ -496,9 +510,9 @@ namespace XBMCAddon
       pGUIControl = new CGUIProgressControl(iParentId, iControlId,
          (float)dwPosX, (float)dwPosY,
          (float)dwWidth,(float)dwHeight,
-         (CStdString)strTextureBg,(CStdString)strTextureLeft,
-         (CStdString)strTextureMid,(CStdString)strTextureRight,
-         (CStdString)strTextureOverlay);
+         CTextureInfo(strTextureBg), CTextureInfo(strTextureLeft),
+         CTextureInfo(strTextureMid), CTextureInfo(strTextureRight),
+         CTextureInfo(strTextureOverlay));
 
       if (pGUIControl && colorDiffuse)
         ((CGUIProgressControl *)pGUIControl)->SetColorDiffuse(colorDiffuse);
@@ -544,8 +558,8 @@ namespace XBMCAddon
     {
       pGUIControl = new CGUISliderControl(iParentId, iControlId,(float)dwPosX, (float)dwPosY,
                                           (float)dwWidth,(float)dwHeight,
-                                          (CStdString)strTextureBack,(CStdString)strTexture,
-                                          (CStdString)strTextureFoc,0);   
+                                          CTextureInfo(strTextureBack),CTextureInfo(strTexture),
+                                          CTextureInfo(strTextureFoc),0);
     
       return pGUIControl;
     }  
@@ -584,8 +598,7 @@ namespace XBMCAddon
                                            long _textOffsetX, long _textOffsetY, 
                                            long alignment, const char* font, const char* _textColor,
                                            const char* _disabledColor, long angle,
-                                           const char* _shadowColor, const char* _focusedColor,
-                                           const char* TextureRadioFocus, const char* TextureRadioNoFocus) :
+                                           const char* _shadowColor, const char* _focusedColor) :
       strFont("font13"), textColor(0xffffffff), disabledColor(0x60ffffff), 
       textOffsetX(_textOffsetX), textOffsetY(_textOffsetY), align(alignment), iAngle(angle), 
       shadowColor(0), focusedColor(0xffffffff)
@@ -709,13 +722,13 @@ namespace XBMCAddon
         (float)dwPosY,
         (float)dwWidth,
         (float)dwHeight,
-        (CStdString)strTextureFocus,
-        (CStdString)strTextureNoFocus,
+        CTextureInfo(strTextureFocus),
+        CTextureInfo(strTextureNoFocus),
         label,
-        (CStdString)strTextureRadioOnFocus,
-        (CStdString)strTextureRadioOnNoFocus,
-        (CStdString)strTextureRadioOffFocus,
-        (CStdString)strTextureRadioOffNoFocus);
+        CTextureInfo(strTextureRadioOnFocus),
+        CTextureInfo(strTextureRadioOnNoFocus),
+        CTextureInfo(strTextureRadioOffFocus),
+        CTextureInfo(strTextureRadioOffNoFocus));
 
       CGUIRadioButtonControl* pGuiButtonControl =
         (CGUIRadioButtonControl*)pGUIControl;
@@ -799,12 +812,10 @@ namespace XBMCAddon
         const String& cAttr = pTuple.second();
 
         TiXmlElement pNode("animation");
-        CStdStringArray attrs;
-        StringUtils::SplitString(cAttr.c_str(), " ", attrs);
-        for (unsigned int i = 0; i < attrs.size(); i++)
+        std::vector<std::string> attrs = StringUtils::Split(cAttr, " ");
+        for (std::vector<std::string>::const_iterator i = attrs.begin(); i != attrs.end(); ++i)
         {
-          CStdStringArray attrs2;
-          StringUtils::SplitString(attrs[i], "=", attrs2);
+          std::vector<std::string> attrs2 = StringUtils::Split(*i, "=");
           if (attrs2.size() == 2)
             pNode.SetAttribute(attrs2[0], attrs2[1]);
         }
@@ -857,15 +868,15 @@ namespace XBMCAddon
       if(iControlId == 0)
         throw WindowException("Control has to be added to a window first");
 
-      iControlUp = up->iControlId;
-      iControlDown = down->iControlId;
-      iControlLeft = left->iControlId;
-      iControlRight = right->iControlId;
-
       {
         LOCKGUI;
         if (pGUIControl)
-          pGUIControl->SetNavigation(iControlUp,iControlDown,iControlLeft,iControlRight);
+        {
+          pGUIControl->SetNavigationAction(ACTION_MOVE_UP,    up->iControlId);
+          pGUIControl->SetNavigationAction(ACTION_MOVE_DOWN,  down->iControlId);
+          pGUIControl->SetNavigationAction(ACTION_MOVE_LEFT,  left->iControlId);
+          pGUIControl->SetNavigationAction(ACTION_MOVE_RIGHT, right->iControlId);
+        }
       }
     }
 
@@ -874,11 +885,10 @@ namespace XBMCAddon
       if(iControlId == 0)
         throw WindowException("Control has to be added to a window first");
 
-      iControlUp = control->iControlId;
       {
         LOCKGUI;
         if (pGUIControl) 
-          pGUIControl->SetNavigation(iControlUp,iControlDown,iControlLeft,iControlRight);
+          pGUIControl->SetNavigationAction(ACTION_MOVE_UP, control->iControlId);
       }
     }
 
@@ -887,11 +897,10 @@ namespace XBMCAddon
       if(iControlId == 0)
         throw WindowException("Control has to be added to a window first");
 
-      iControlDown = control->iControlId;
       {
         LOCKGUI;
-        if (pGUIControl) 
-          pGUIControl->SetNavigation(iControlUp,iControlDown,iControlLeft,iControlRight);
+        if (pGUIControl)
+          pGUIControl->SetNavigationAction(ACTION_MOVE_DOWN, control->iControlId);
       }
     }
 
@@ -900,11 +909,10 @@ namespace XBMCAddon
       if(iControlId == 0)
         throw WindowException("Control has to be added to a window first");
 
-      iControlLeft = control->iControlId;
       {
         LOCKGUI;
-        if (pGUIControl) 
-          pGUIControl->SetNavigation(iControlUp,iControlDown,iControlLeft,iControlRight);
+        if (pGUIControl)
+          pGUIControl->SetNavigationAction(ACTION_MOVE_LEFT, control->iControlId);
       }
     }
 
@@ -913,11 +921,10 @@ namespace XBMCAddon
       if(iControlId == 0)
         throw WindowException("Control has to be added to a window first");
 
-      iControlRight = control->iControlId;
       {
         LOCKGUI;
-        if (pGUIControl) 
-          pGUIControl->SetNavigation(iControlUp,iControlDown,iControlLeft,iControlRight);
+        if (pGUIControl)
+          pGUIControl->SetNavigationAction(ACTION_MOVE_RIGHT, control->iControlId);
       }
     }
 
@@ -1070,8 +1077,8 @@ namespace XBMCAddon
         (float)dwPosY,
         (float)dwWidth,
         (float)dwHeight,
-        (CStdString)strTextureFocus,
-        (CStdString)strTextureNoFocus,
+        CTextureInfo(strTextureFocus),
+        CTextureInfo(strTextureNoFocus),
         label,
         strText);
 
@@ -1187,8 +1194,8 @@ namespace XBMCAddon
         (float)dwWidth,
         (float)dwHeight - pControlSpin->dwHeight - 5,
         label, label2,
-        (CStdString)strTextureButton,
-        (CStdString)strTextureButtonFocus,
+        CTextureInfo(strTextureButton),
+        CTextureInfo(strTextureButtonFocus),
         (float)itemHeight,
         (float)imageWidth, (float)imageHeight,
         (float)space);
@@ -1400,22 +1407,21 @@ namespace XBMCAddon
     {
       const ListItemList& vecItems = *pitems;
 
-      std::vector<CGUIListItemPtr> items;
+      std::vector<CGUIStaticItemPtr> items;
 
       for (unsigned int item = 0; item < vecItems.size(); item++)
       {
         ListItem* pItem = vecItems[item];
 
-        // object is a listitem, and we set m_idpeth to 0 as this
-        // is used as the visibility condition for the item in the list
-        ListItem *listItem = (ListItem*)pItem;
-        listItem->item->m_idepth = 0;
-
-        items.push_back((CFileItemPtr &)listItem->item);
+        // NOTE: This code has likely not worked fully correctly for some time
+        //       In particular, the click behaviour won't be working.
+        CGUIStaticItemPtr newItem(new CGUIStaticItem(*pItem->item));
+        items.push_back(newItem);
       }
 
       // set static list
-      ((CGUIBaseContainer *)pGUIControl)->SetStaticContent(items);
+      IListProvider *provider = new CStaticListProvider(items);
+      ((CGUIBaseContainer *)pGUIControl)->SetListProvider(provider);
     }
 
     // ============================================================

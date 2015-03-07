@@ -20,10 +20,12 @@
 
 #include "filesystem/Directory.h"
 #include "filesystem/File.h"
+#include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "FileItem.h"
 #include "settings/Settings.h"
 #include "test/TestUtils.h"
+#include "URL.h"
 
 #include <errno.h>
 
@@ -60,13 +62,15 @@ TEST_F(TestZipFile, Read)
   XFILE::CFile file;
   char buf[20];
   memset(&buf, 0, sizeof(buf));
-  CStdString reffile, strzippath, strpathinzip;
+  std::string reffile, strpathinzip;
   CFileItemList itemlist;
 
   reffile = XBMC_REF_FILE_PATH("xbmc/filesystem/test/reffile.txt.zip");
-  URIUtils::CreateArchivePath(strzippath, "zip", reffile, "");
-  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(strzippath, itemlist, "",
+  CURL zipUrl = URIUtils::CreateArchivePath("zip", CURL(reffile), "");
+  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(zipUrl, itemlist, "",
     XFILE::DIR_FLAG_NO_FILE_DIRS));
+  EXPECT_GT(itemlist.Size(), 0);
+  EXPECT_FALSE(itemlist[0]->GetPath().empty());
   strpathinzip = itemlist[0]->GetPath();
   ASSERT_TRUE(file.Open(strpathinzip));
   EXPECT_EQ(0, file.GetPosition());
@@ -110,12 +114,12 @@ TEST_F(TestZipFile, Read)
 
 TEST_F(TestZipFile, Exists)
 {
-  CStdString reffile, strzippath, strpathinzip;
+  std::string reffile, strpathinzip;
   CFileItemList itemlist;
 
   reffile = XBMC_REF_FILE_PATH("xbmc/filesystem/test/reffile.txt.zip");
-  URIUtils::CreateArchivePath(strzippath, "zip", reffile, "");
-  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(strzippath, itemlist, "",
+  CURL zipUrl = URIUtils::CreateArchivePath("zip", CURL(reffile), "");
+  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(zipUrl, itemlist, "",
     XFILE::DIR_FLAG_NO_FILE_DIRS));
   strpathinzip = itemlist[0]->GetPath();
 
@@ -125,12 +129,12 @@ TEST_F(TestZipFile, Exists)
 TEST_F(TestZipFile, Stat)
 {
   struct __stat64 buffer;
-  CStdString reffile, strzippath, strpathinzip;
+  std::string reffile, strpathinzip;
   CFileItemList itemlist;
 
   reffile = XBMC_REF_FILE_PATH("xbmc/filesystem/test/reffile.txt.zip");
-  URIUtils::CreateArchivePath(strzippath, "zip", reffile, "");
-  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(strzippath, itemlist, "",
+  CURL zipUrl = URIUtils::CreateArchivePath("zip", CURL(reffile), "");
+  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(zipUrl, itemlist, "",
     XFILE::DIR_FLAG_NO_FILE_DIRS));
   strpathinzip = itemlist[0]->GetPath();
 
@@ -147,7 +151,7 @@ TEST_F(TestZipFile, CorruptedFile)
   XFILE::CFile *file;
   char buf[16];
   memset(&buf, 0, sizeof(buf));
-  CStdString reffilepath, strzippath, strpathinzip, str;
+  std::string reffilepath, strpathinzip, str;
   CFileItemList itemlist;
   unsigned int size, i;
   int64_t count = 0;
@@ -156,8 +160,8 @@ TEST_F(TestZipFile, CorruptedFile)
   ASSERT_TRUE((file = XBMC_CREATECORRUPTEDFILE(reffilepath, ".zip")) != NULL);
   std::cout << "Reference file generated at '" << XBMC_TEMPFILEPATH(file) << "'" << std::endl;
 
-  URIUtils::CreateArchivePath(strzippath, "zip", XBMC_TEMPFILEPATH(file), "");
-  if (!XFILE::CDirectory::GetDirectory(strzippath, itemlist, "",
+  CURL zipUrl = URIUtils::CreateArchivePath("zip", CURL(reffilepath), "");
+  if (!XFILE::CDirectory::GetDirectory(zipUrl, itemlist, "",
                                        XFILE::DIR_FLAG_NO_FILE_DIRS))
   {
     XBMC_DELETETEMPFILE(file);
@@ -189,12 +193,12 @@ TEST_F(TestZipFile, CorruptedFile)
   std::cout << "File contents:" << std::endl;
   while ((size = file->Read(buf, sizeof(buf))) > 0)
   {
-    str.Format("  %08X", count);
+    str = StringUtils::Format("  %08X", count);
     std::cout << str << "  ";
     count += size;
     for (i = 0; i < size; i++)
     {
-      str.Format("%02X ", buf[i]);
+      str = StringUtils::Format("%02X ", buf[i]);
       std::cout << str;
     }
     while (i++ < sizeof(buf))

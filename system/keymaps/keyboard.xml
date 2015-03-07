@@ -19,7 +19,7 @@
 <!--    </universalremote>            -->
 
 <!-- Note that the action can be a built-in function.                 -->
-<!--  eg <B>XBMC.ActivateWindow(MyMusic)</B>                         -->
+<!--  eg <B>ActivateWindow(MyMusic)</B>                         -->
 <!-- would automatically go to My Music on the press of the B button. -->
 
 <!-- Joysticks / Gamepads:                                                                    -->
@@ -99,11 +99,11 @@
       <power>ActivateWindow(shutdownmenu)</power>
       <sleep>ActivateWindow(shutdownmenu)</sleep>
       <!-- PVR windows -->
-      <e>XBMC.ActivateWindowAndFocus(MyPVR, 31,0, 10,0)</e>
-      <h>XBMC.ActivateWindowAndFocus(MyPVR, 32,0, 11,0)</h>
-      <j>XBMC.ActivateWindowAndFocus(MyPVR, 33,0, 12,0)</j>
-      <k>XBMC.ActivateWindowAndFocus(MyPVR, 34,0, 13,0)</k>
-      <b>XBMC.ActivateWindowAndFocus(MyPVR, 35,0, 14,0)</b>
+      <e>ActivateWindow(TVGuide)</e>
+      <h>ActivateWindow(TVChannels)</h>
+      <j>ActivateWindow(RadioChannels)</j>
+      <k>ActivateWindow(TVRecordings)</k>
+      <b>ActivateWindow(TVTimers)</b>
       <!-- Multimedia keyboard keys -->
       <browser_back>Back</browser_back>
       <browser_forward/>
@@ -111,16 +111,19 @@
       <browser_stop/>
       <browser_search/>
       <browser_favorites>ActivateWindow(Favourites)</browser_favorites>
-      <browser_home>XBMC.ActivateWindow(Home)</browser_home>
+      <browser_home>ActivateWindow(Home)</browser_home>
       <volume_mute>Mute</volume_mute>
       <volume_down>VolumeDown</volume_down>
       <volume_up>VolumeUp</volume_up>
       <next_track>SkipNext</next_track>
       <prev_track>SkipPrevious</prev_track>
       <stop>Stop</stop>
-      <play_pause>Pause</play_pause>
+      <play_pause>PlayPause</play_pause>
+      <fastforward>FastForward</fastforward>
+      <rewind>Rewind</rewind>
+      <record/>
       <launch_mail></launch_mail>
-      <launch_media_select>XBMC.ActivateWindow(MyMusic)</launch_media_select>
+      <launch_media_select>ActivateWindow(MyMusic)</launch_media_select>
       <launch_app1_pc_icon>ActivateWindow(MyPrograms)</launch_app1_pc_icon>
       <launch_app2_pc_icon>ActivateWindow(MyPrograms)</launch_app2_pc_icon>
       <launch_file_browser/>
@@ -139,15 +142,15 @@
       <f10>VolumeUp</f10>                 <!-- MCE Vol up -->
       <f9>VolumeDown</f9>                 <!-- MCE Vol down -->
       <f8>Mute</f8>                       <!-- MCE mute -->
-      <g mod="ctrl">ActivateWindowAndFocus(MyPVR, 31,0, 10,0)</g>  <!-- MCE Guide -->
+      <g mod="ctrl">ActivateWindow(TVGuide)</g>  <!-- MCE Guide -->
       <m mod="ctrl">ActivateWindow(music)</m>    <!-- MCE My music -->
       <i mod="ctrl">ActivateWindow(pictures)</i> <!-- MCE My pictures -->
       <e mod="ctrl">ActivateWindow(video)</e>    <!-- MCE videos -->
       <m mod="ctrl,shift">PlayerControl(ShowVideoMenu)</m>         <!-- MCE DVD menu -->
-      <o mod="ctrl">ActivateWindowAndFocus(MyPVR, 34,0, 13,0)</o>  <!-- MCE Recorded TV -->
-      <t mod="ctrl">ActivateWindowAndFocus(MyPVR, 32,0, 11,0)</t>  <!-- MCE Live TV  -->
-      <t mod="ctrl,shift">ActivateWindow(MyPVR)</t>                <!-- MCE My TV -->
-      <a mod="ctrl">ActivateWindowAndFocus(MyPVR, 33,0, 12,0)</a>  <!-- MCE My Radio -->
+      <o mod="ctrl">ActivateWindow(TVRecordings)</o>  <!-- MCE Recorded TV -->
+      <t mod="ctrl">ActivateWindow(TVChannels)</t>  <!-- MCE Live TV  -->
+      <t mod="ctrl,shift">ActivateWindow(TVChannels)</t>  <!-- MCE My TV -->
+      <a mod="ctrl">ActivateWindow(RadioChannels)</a>  <!-- MCE My Radio -->
       <!-- MCE keypresses without an obvious use in XBMC -->
       <u mod="ctrl">Notification(MCEKeypress, DVD subtitle, 3)</u>
       <a mod="ctrl,shift">Notification(MCEKeypress, DVD audio, 3)</a>
@@ -155,13 +158,13 @@
   </global>
   <LoginScreen>
     <keyboard>
-      <end mod="ctrl">XBMC.ShutDown()</end>
+      <end mod="ctrl">ShutDown()</end>
     </keyboard>
   </LoginScreen>
   <Home>
     <keyboard>
       <i>info</i>
-      <end mod="ctrl">XBMC.ShutDown()</end>
+      <end mod="ctrl">ShutDown()</end>
     </keyboard>
   </Home>
   <VirtualKeyboard>
@@ -169,13 +172,40 @@
       <backspace>Backspace</backspace>
     </keyboard>
   </VirtualKeyboard>
-  <MyTV>
+  <MyTVChannels>
+    <keyboard>
+      <m>Move</m>
+    </keyboard>
+  </MyTVChannels>
+  <MyTVRecordings>
     <keyboard>
       <delete>Delete</delete>
-      <m>Move</m>
       <r>Rename</r>
     </keyboard>
-  </MyTV>
+  </MyTVRecordings>
+  <MyTVTimers>
+    <keyboard>
+      <delete>Delete</delete>
+      <r>Rename</r>
+    </keyboard>
+  </MyTVTimers>
+  <MyRadioChannels>
+    <keyboard>
+      <m>Move</m>
+    </keyboard>
+  </MyRadioChannels>
+  <MyRadioRecordings>
+    <keyboard>
+      <delete>Delete</delete>
+      <r>Rename</r>
+    </keyboard>
+  </MyRadioRecordings>
+  <MyRadioTimers>
+    <keyboard>
+      <delete>Delete</delete>
+      <r>Rename</r>
+    </keyboard>
+  </MyRadioTimers>
   <MyFiles>
     <keyboard>
       <space>Highlight</space>
@@ -186,7 +216,7 @@
   </MyFiles>
   <MyMusicPlaylist>
     <keyboard>
-      <space>Back</space>
+      <n>Back</n>
       <delete>Delete</delete>
       <u>MoveItemUp</u>
       <d>MoveItemDown</d>
@@ -201,14 +231,14 @@
   </MyMusicPlaylistEditor>
   <MyMusicFiles>
     <keyboard>
-      <space>Playlist</space>
+      <n>Playlist</n>
       <q>Queue</q>
       <delete>Delete</delete>
     </keyboard>
   </MyMusicFiles>
   <MyMusicLibrary>
     <keyboard>
-      <space>Playlist</space>
+      <n>Playlist</n>
       <q>Queue</q>
     </keyboard>
   </MyMusicLibrary>
@@ -233,12 +263,12 @@
       <l>NextSubtitle</l>
       <left>StepBack</left>
       <right>StepForward</right>
-      <up>BigStepForward</up>
-      <down>BigStepBack</down>
+      <up>ChapterOrBigStepForward</up>
+      <down>ChapterOrBigStepBack</down>
       <a>AudioDelay</a>
       <escape>Fullscreen</escape>
       <c>Playlist</c>
-      <v>XBMC.ActivateWindow(Teletext)</v>
+      <v>ActivateWindow(Teletext)</v>
       <up mod="ctrl">SubtitleShiftUp</up>
       <down mod="ctrl">SubtitleShiftDown</down>
       <pageup>SkipNext</pageup>
@@ -281,15 +311,15 @@
       <p>ActivateWindow(VisualisationPresetList)</p>
       <v>ActivateWindow(VisualisationSettings)</v>
       <n>ActivateWindow(MusicPlaylist)</n>
-      <left>SkipPrevious</left>
-      <right>SkipNext</right>
-      <up>IncreaseRating</up>
-      <down>DecreaseRating</down>      <!--<back>NextPreset</back>!-->
+      <left>StepBack</left>
+      <right>StepForward</right>
+      <up>SkipNext</up>
+      <down>SkipPrevious</down>
       <o>CodecInfo</o>
       <l>LockPreset</l>
       <escape>FullScreen</escape>
-      <g>XBMC.ActivateWindow(PVROSDGuide)</g>
-      <c>XBMC.ActivateWindow(PVROSDChannels)</c>
+      <g>ActivateWindow(PVROSDGuide)</g>
+      <c>ActivateWindow(PVROSDChannels)</c>
     </keyboard>
   </Visualisation>
   <MusicOSD>
@@ -418,20 +448,20 @@
   <MyVideoLibrary>
     <keyboard>
       <delete>Delete</delete>
-      <space>Playlist</space>
+      <n>Playlist</n>
       <w>ToggleWatched</w>
     </keyboard>
   </MyVideoLibrary>
   <MyVideoFiles>
     <keyboard>
-      <space>Playlist</space>
+      <n>Playlist</n>
       <q>Queue</q>
       <w>ToggleWatched</w>
     </keyboard>
   </MyVideoFiles>
   <MyVideoPlaylist>
     <keyboard>
-      <space>Back</space>
+      <n>Back</n>
       <delete>Delete</delete>
       <u>MoveItemUp</u>
       <d>MoveItemDown</d>
@@ -482,6 +512,8 @@
   <Favourites>
     <keyboard>
       <backspace>Close</backspace>
+      <u>MoveItemUp</u>
+      <d>MoveItemDown</d>
     </keyboard>
   </Favourites>
   <NumericInput>
@@ -491,12 +523,20 @@
   </NumericInput>
   <FullscreenLiveTV>
     <keyboard>
-      <left>PreviousChannelGroup</left>
-      <right>NextChannelGroup</right>
+      <left>StepBack</left>
+      <right>StepForward</right>
       <up>ChannelUp</up>
       <down>ChannelDown</down>
     </keyboard>
   </FullscreenLiveTV>
+  <FullscreenRadio>
+    <keyboard>
+      <left>StepBack</left>
+      <right>StepForward</right>
+      <up>ChannelUp</up>
+      <down>ChannelDown</down>
+    </keyboard>
+  </FullscreenRadio>
   <PVROSDChannels>
     <keyboard>
       <backspace>Close</backspace>
@@ -510,18 +550,6 @@
       <escape>Close</escape>
     </keyboard>
   </PVROSDGuide>
-  <PVROSDDirector>
-    <keyboard>
-      <backspace>Close</backspace>
-      <escape>Close</escape>
-    </keyboard>
-  </PVROSDDirector>
-  <PVROSDCutter>
-    <keyboard>
-      <backspace>Close</backspace>
-      <escape>Close</escape>
-    </keyboard>
-  </PVROSDCutter>
   <MyTVSettings>
     <keyboard>
       <backspace>PreviousMenu</backspace>
@@ -547,4 +575,12 @@
       <delete>Delete</delete>
     </keyboard>
   </AddonSettings>
+  <Addon>
+    <keyboard>
+      <f1>Red</f1>
+      <f2>Green</f2>
+      <f3>Yellow</f3>
+      <f4>Blue</f4>
+    </keyboard>
+  </Addon>
 </keymap>

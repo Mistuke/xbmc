@@ -29,9 +29,9 @@
   bool *_canceled;
   BOOL _deactivated;
   UITextField *_textField;
-  UILabel *_heading;
+  UITextField *_heading;
   int _keyboardIsShowing; // 0: not, 1: will show, 2: showing
-  CGFloat _kbHeight;
+  CGRect _kbRect;
 }
 
 @property (nonatomic, retain) NSMutableString *text;
@@ -43,6 +43,7 @@
 - (void) setHidden:(BOOL)hidden;
 - (void) activate;
 - (void) deactivate;
+- (void) setKeyboardText:(NSString*)aText closeKeyboard:(BOOL)closeKeyboard;
 - (void) textChanged:(NSNotification*)aNotification;
 - (void) setCancelFlag:(bool *)cancelFlag;
 - (void) doDeactivate:(NSDictionary *)dict;

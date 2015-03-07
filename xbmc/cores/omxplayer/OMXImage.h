@@ -34,21 +34,59 @@
 #include "guilib/XBTF.h"
 #endif
 
-using namespace XFILE;
-using namespace std;
+#include "system_gl.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include "threads/Thread.h"
 
 class COMXImageFile;
 
-class COMXImage
+class COMXImage : public CThread
 {
+  struct callbackinfo {
+    CEvent sync;
+    bool (*callback)(EGLDisplay egl_display, EGLContext egl_context, void *cookie);
+    void *cookie;
+    bool result;
+  };
+protected:
+  virtual void OnStartup();
+  virtual void OnExit();
+  virtual void Process();
 public:
-  static COMXImageFile *LoadJpeg(const CStdString& texturePath);
+  struct textureinfo {
+    int width, height;
+    GLuint texture;
+    EGLImageKHR egl_image;
+    void *parent;
+    const char *filename;
+  };
+  COMXImage();
+  virtual ~COMXImage();
+  void Initialize();
+  void Deinitialize();
+  static COMXImageFile *LoadJpeg(const std::string& texturePath);
   static void CloseJpeg(COMXImageFile *file);
 
   static bool DecodeJpeg(COMXImageFile *file, unsigned int maxWidth, unsigned int maxHeight, unsigned int stride, void *pixels);
   static bool CreateThumbnailFromSurface(unsigned char* buffer, unsigned int width, unsigned int height,
-      unsigned int format, unsigned int pitch, const CStdString& destFile);
+      unsigned int format, unsigned int pitch, const std::string& destFile);
   static bool ClampLimits(unsigned int &width, unsigned int &height, unsigned int m_width, unsigned int m_height, bool transposed = false);
+  static bool CreateThumb(const std::string& srcFile, unsigned int width, unsigned int height, std::string &additional_info, const std::string& destFile);
+  bool SendMessage(bool (*callback)(EGLDisplay egl_display, EGLContext egl_context, void *cookie), void *cookie);
+  bool DecodeJpegToTexture(COMXImageFile *file, unsigned int width, unsigned int height, void **userdata);
+  void DestroyTexture(void *userdata);
+  void GetTexture(void *userdata, GLuint *texture);
+  bool AllocTextureInternal(EGLDisplay egl_display, EGLContext egl_context, struct textureinfo *tex);
+  bool DestroyTextureInternal(EGLDisplay egl_display, EGLContext egl_context, struct textureinfo *tex);
+private:
+  EGLContext m_egl_context;
+
+  void CreateContext();
+  EGLContext GetEGLContext();
+  CCriticalSection               m_texqueue_lock;
+  XbmcThreads::ConditionVariable m_texqueue_cond;
+  std::queue <struct callbackinfo *> m_texqueue;
 };
 
 class COMXImageFile
@@ -56,7 +94,7 @@ class COMXImageFile
 public:
   COMXImageFile();
   virtual ~COMXImageFile();
-  bool ReadFile(const CStdString& inputFile);
+  bool ReadFile(const std::string& inputFile, int orientation = 0);
   int  GetOrientation() { return m_orientation; };
   unsigned int GetWidth()  { return m_width; };
   unsigned int GetHeight() { return m_height; };
@@ -64,7 +102,7 @@ public:
   const uint8_t *GetImageBuffer() { return (const uint8_t *)m_image_buffer; };
   const char *GetFilename() { return m_filename; };
 protected:
-  OMX_IMAGE_CODINGTYPE GetCodingType(unsigned int &width, unsigned int &height);
+  OMX_IMAGE_CODINGTYPE GetCodingType(unsigned int &width, unsigned int &height, int orientation);
   uint8_t           *m_image_buffer;
   unsigned long     m_image_size;
   unsigned int      m_width;
@@ -86,7 +124,7 @@ public:
   unsigned int GetDecodedHeight() { return (unsigned int)m_decoded_format.format.image.nFrameHeight; };
   unsigned int GetDecodedStride() { return (unsigned int)m_decoded_format.format.image.nStride; };
 protected:
-  bool HandlePortSettingChange(unsigned int resize_width, unsigned int resize_height);
+  bool HandlePortSettingChange(unsigned int resize_width, unsigned int resize_height, unsigned int resize_stride);
   // Components
   COMXCoreComponent             m_omx_decoder;
   COMXCoreComponent             m_omx_resize;
@@ -94,6 +132,7 @@ protected:
   OMX_BUFFERHEADERTYPE          *m_decoded_buffer;
   OMX_PARAM_PORTDEFINITIONTYPE  m_decoded_format;
   CCriticalSection              m_OMXSection;
+  bool                          m_success;
 };
 
 class COMXImageEnc
@@ -104,7 +143,7 @@ public:
 
   // Required overrides
   bool CreateThumbnailFromSurface(unsigned char* buffer, unsigned int width, unsigned int height,
-      unsigned int format, unsigned int pitch, const CStdString& destFile);
+      unsigned int format, unsigned int pitch, const std::string& destFile);
 protected:
   bool Encode(unsigned char *buffer, int size, unsigned int width, unsigned int height, unsigned int pitch);
   // Components
@@ -112,6 +151,57 @@ protected:
   OMX_BUFFERHEADERTYPE          *m_encoded_buffer;
   OMX_PARAM_PORTDEFINITIONTYPE  m_encoded_format;
   CCriticalSection              m_OMXSection;
+  bool                          m_success;
 };
 
+class COMXImageReEnc
+{
+public:
+  COMXImageReEnc();
+  virtual ~COMXImageReEnc();
+
+  // Required overrides
+  void Close();
+  bool ReEncode(COMXImageFile &srcFile, unsigned int width, unsigned int height, void * &pDestBuffer, unsigned int &nDestSize);
+protected:
+  bool HandlePortSettingChange(unsigned int resize_width, unsigned int resize_height, int orientation, bool port_settings_changed);
+  // Components
+  COMXCoreComponent             m_omx_decoder;
+  COMXCoreComponent             m_omx_resize;
+  COMXCoreComponent             m_omx_encoder;
+  COMXCoreTunel                 m_omx_tunnel_decode;
+  COMXCoreTunel                 m_omx_tunnel_resize;
+  OMX_BUFFERHEADERTYPE          *m_encoded_buffer;
+  CCriticalSection              m_OMXSection;
+  void                          *m_pDestBuffer;
+  unsigned int                  m_nDestAllocSize;
+  bool                          m_success;
+};
+
+class COMXTexture
+{
+public:
+  COMXTexture();
+  virtual ~COMXTexture();
+
+  // Required overrides
+  void Close(void);
+  bool Decode(const uint8_t *data, unsigned size, unsigned int width, unsigned int height, void *egl_image);
+protected:
+  bool HandlePortSettingChange(unsigned int resize_width, unsigned int resize_height, void *egl_image, bool port_settings_changed);
+
+  // Components
+  COMXCoreComponent m_omx_decoder;
+  COMXCoreComponent m_omx_resize;
+  COMXCoreComponent m_omx_egl_render;
+
+  COMXCoreTunel     m_omx_tunnel_decode;
+  COMXCoreTunel     m_omx_tunnel_egl;
+
+  OMX_BUFFERHEADERTYPE *m_egl_buffer;
+  CCriticalSection              m_OMXSection;
+  bool              m_success;
+};
+
+extern COMXImage g_OMXImage;
 #endif

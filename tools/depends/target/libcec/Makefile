@@ -3,14 +3,14 @@ DEPS= ../../Makefile.include Makefile
 
 # lib name, version
 LIBNAME=libcec
-VERSION=2.1.1
+VERSION=2.2.0
 SOURCE=$(LIBNAME)-$(VERSION)
-ARCHIVE=$(SOURCE).tar.gz
+ARCHIVE=$(SOURCE)-3.tar.gz
 
 # configuration settings
 CONFIGURE=./configure --prefix=$(PREFIX) --disable-rpi \
 
-LIBDYLIB=$(PLATFORM)/src/lib/.libs/libcec.so.2.0.1
+LIBDYLIB=$(PLATFORM)/src/lib/.libs/libcec.la
 
 all: .installed-$(PLATFORM)
 

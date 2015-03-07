@@ -45,26 +45,25 @@ CZipManager::~CZipManager()
 
 }
 
-bool CZipManager::GetZipList(const CStdString& strPath, vector<SZipEntry>& items)
+bool CZipManager::GetZipList(const CURL& url, vector<SZipEntry>& items)
 {
-  CLog::Log(LOGDEBUG, "%s - Processing %s", __FUNCTION__, strPath.c_str());
+  CLog::Log(LOGDEBUG, "%s - Processing %s", __FUNCTION__, url.GetRedacted().c_str());
 
-  CURL url(strPath);
   struct __stat64 m_StatData = {};
 
-  CStdString strFile = url.GetHostName();
+  std::string strFile = url.GetHostName();
 
   if (CFile::Stat(strFile,&m_StatData))
   {
-    CLog::Log(LOGDEBUG,"CZipManager::GetZipList: failed to stat file %s", strPath.c_str());
+    CLog::Log(LOGDEBUG,"CZipManager::GetZipList: failed to stat file %s", url.GetRedacted().c_str());
     return false;
   }
 
-  map<CStdString,vector<SZipEntry> >::iterator it = mZipMap.find(strFile);
+  map<std::string,vector<SZipEntry> >::iterator it = mZipMap.find(strFile);
   if (it != mZipMap.end()) // already listed, just return it if not changed, else release and reread
   {
-    map<CStdString,int64_t>::iterator it2=mZipDate.find(strFile);
-    CLog::Log(LOGDEBUG,"statdata: %"PRId64" new: %"PRIu64, it2->second, (uint64_t)m_StatData.st_mtime);
+    map<std::string,int64_t>::iterator it2=mZipDate.find(strFile);
+    CLog::Log(LOGDEBUG,"statdata: %" PRId64" new: %" PRIu64, it2->second, (uint64_t)m_StatData.st_mtime);
 
       if (m_StatData.st_mtime == it2->second)
       {
@@ -83,13 +82,18 @@ bool CZipManager::GetZipList(const CStdString& strPath, vector<SZipEntry>& items
   }
 
   unsigned int hdr;
-  mFile.Read(&hdr, 4);
-  if( Endian_SwapLE32(hdr) != ZIP_LOCAL_HEADER )
+  if (mFile.Read(&hdr, 4)!=4 || (Endian_SwapLE32(hdr) != ZIP_LOCAL_HEADER &&
+                                 Endian_SwapLE32(hdr) != ZIP_DATA_RECORD_HEADER &&
+                                 Endian_SwapLE32(hdr) != ZIP_SPLIT_ARCHIVE_HEADER))
   {
     CLog::Log(LOGDEBUG,"ZipManager: not a zip file!");
     mFile.Close();
     return false;
   }
+
+  if (Endian_SwapLE32(hdr) == ZIP_SPLIT_ARCHIVE_HEADER)
+    CLog::LogF(LOGWARNING, "ZIP split archive header found. Trying to process as a single archive..");
+
   // push date for update detection
   mZipDate.insert(make_pair(strFile,m_StatData.st_mtime));
 
@@ -108,17 +112,18 @@ bool CZipManager::GetZipList(const CStdString& strPath, vector<SZipEntry>& items
   int extraBlockSize = searchSize % blockSize;
   // Signature is on 4 bytes
   // It could be between 2 blocks, so we need to read 3 extra bytes
-  char *buffer = new char[blockSize+3];
+  auto_buffer buffer(blockSize + 3);
   bool found = false;
 
   // Loop through blocks starting at the end of the file (minus ECDREC_SIZE-1)
   for (int nb=1; !found && (nb <= nbBlock); nb++)
   {
     mFile.Seek(fileSize-ECDREC_SIZE+1-(blockSize*nb),SEEK_SET);
-    mFile.Read(buffer,blockSize+3);
+    if (mFile.Read(buffer.get(), blockSize + 3) != blockSize + 3)
+      return false;
     for (int i=blockSize-1; !found && (i >= 0); i--)
     {
-      if ( Endian_SwapLE32(*((unsigned int*)(buffer+i))) == ZIP_END_CENTRAL_HEADER )
+      if ( Endian_SwapLE32(*((unsigned int*)(buffer.get()+i))) == ZIP_END_CENTRAL_HEADER )
       {
         // Set current position to start of end of central directory
         mFile.Seek(fileSize-ECDREC_SIZE+1-(blockSize*nb)+i,SEEK_SET);
@@ -131,10 +136,11 @@ bool CZipManager::GetZipList(const CStdString& strPath, vector<SZipEntry>& items
   if ( !found && (extraBlockSize > 0) )
   {
     mFile.Seek(fileSize-ECDREC_SIZE+1-searchSize,SEEK_SET);
-    mFile.Read(buffer,extraBlockSize+3);
+    if (mFile.Read(buffer.get(), extraBlockSize + 3) != extraBlockSize + 3)
+      return false;
     for (int i=extraBlockSize-1; !found && (i >= 0); i--)
     {
-      if ( Endian_SwapLE32(*((unsigned int*)(buffer+i))) == ZIP_END_CENTRAL_HEADER )
+      if ( Endian_SwapLE32(*((unsigned int*)(buffer.get()+i))) == ZIP_END_CENTRAL_HEADER )
       {
         // Set current position to start of end of central directory
         mFile.Seek(fileSize-ECDREC_SIZE+1-searchSize+i,SEEK_SET);
@@ -143,7 +149,7 @@ bool CZipManager::GetZipList(const CStdString& strPath, vector<SZipEntry>& items
     }
   }
 
-  delete [] buffer;
+  buffer.clear();
 
   if ( !found )
   {
@@ -155,10 +161,12 @@ bool CZipManager::GetZipList(const CStdString& strPath, vector<SZipEntry>& items
   unsigned int cdirOffset, cdirSize;
   // Get size of the central directory
   mFile.Seek(12,SEEK_CUR);
-  mFile.Read(&cdirSize,4);
+  if (mFile.Read(&cdirSize, 4) != 4)
+    return false;
   cdirSize = Endian_SwapLE32(cdirSize);
   // Get Offset of start of central directory with respect to the starting disk number
-  mFile.Read(&cdirOffset,4);
+  if (mFile.Read(&cdirOffset, 4) != 4)
+    return false;
   cdirOffset = Endian_SwapLE32(cdirOffset);
 
   // Go to the start of central directory
@@ -168,7 +176,8 @@ bool CZipManager::GetZipList(const CStdString& strPath, vector<SZipEntry>& items
   while (mFile.GetPosition() < cdirOffset + cdirSize)
   {
     SZipEntry ze;
-    mFile.Read(temp,CHDR_SIZE);
+    if (mFile.Read(temp, CHDR_SIZE) != CHDR_SIZE)
+      return false;
     readCHeader(temp, ze);
     if (ze.header != ZIP_CENTRAL_HEADER)
     {
@@ -178,9 +187,11 @@ bool CZipManager::GetZipList(const CStdString& strPath, vector<SZipEntry>& items
     }
 
     // Get the filename just after the central file header
-    CStdString strName;
-    mFile.Read(strName.GetBuffer(ze.flength), ze.flength);
-    strName.ReleaseBuffer();
+    auto_buffer bufName(ze.flength);
+    if (mFile.Read(bufName.get(), ze.flength) != ze.flength)
+      return false;
+    std::string strName(bufName.get(), bufName.size());
+    bufName.clear();
     g_charsetConverter.unknownToUTF8(strName);
     ZeroMemory(ze.name, 255);
     strncpy(ze.name, strName.c_str(), strName.size()>254 ? 254 : strName.size());
@@ -198,7 +209,8 @@ bool CZipManager::GetZipList(const CStdString& strPath, vector<SZipEntry>& items
     // Go to the local file header to get the extra field length
     // !! local header extra field length != central file header extra field length !!
     mFile.Seek(ze.lhdrOffset+28,SEEK_SET);
-    mFile.Read(&(ze.elength),2);
+    if (mFile.Read(&(ze.elength), 2) != 2)
+      return false;
     ze.elength = Endian_SwapLE16(ze.elength);
 
     // Compressed data offset = local header offset + size of local header + filename length + local file header extra field length
@@ -211,27 +223,25 @@ bool CZipManager::GetZipList(const CStdString& strPath, vector<SZipEntry>& items
   return true;
 }
 
-bool CZipManager::GetZipEntry(const CStdString& strPath, SZipEntry& item)
+bool CZipManager::GetZipEntry(const CURL& url, SZipEntry& item)
 {
-  CURL url(strPath);
+  std::string strFile = url.GetHostName();
 
-  CStdString strFile = url.GetHostName();
-
-  map<CStdString,vector<SZipEntry> >::iterator it = mZipMap.find(strFile);
+  map<std::string,vector<SZipEntry> >::iterator it = mZipMap.find(strFile);
   vector<SZipEntry> items;
   if (it == mZipMap.end()) // we need to list the zip
   {
-    GetZipList(strPath,items);
+    GetZipList(url,items);
   }
   else
   {
     items = it->second;
   }
 
-  CStdString strFileName = url.GetFileName();
+  std::string strFileName = url.GetFileName();
   for (vector<SZipEntry>::iterator it2=items.begin();it2 != items.end();++it2)
   {
-    if (CStdString(it2->name) == strFileName)
+    if (std::string(it2->name) == strFileName)
     {
       memcpy(&item,&(*it2),sizeof(SZipEntry));
       return true;
@@ -240,41 +250,29 @@ bool CZipManager::GetZipEntry(const CStdString& strPath, SZipEntry& item)
   return false;
 }
 
-bool CZipManager::ExtractArchive(const CStdString& strArchive, const CStdString& strPath)
+bool CZipManager::ExtractArchive(const std::string& strArchive, const std::string& strPath)
+{
+  const CURL pathToUrl(strArchive);
+  return ExtractArchive(pathToUrl, strPath);
+}
+
+bool CZipManager::ExtractArchive(const CURL& archive, const std::string& strPath)
 {
   vector<SZipEntry> entry;
-  CStdString strZipPath;
-  URIUtils::CreateArchivePath(strZipPath, "zip", strArchive, "");
-  GetZipList(strZipPath,entry);
+  CURL url = URIUtils::CreateArchivePath("zip", archive);
+  GetZipList(url, entry);
   for (vector<SZipEntry>::iterator it=entry.begin();it != entry.end();++it)
   {
     if (it->name[strlen(it->name)-1] == '/') // skip dirs
       continue;
-    CStdString strFilePath(it->name);
+    std::string strFilePath(it->name);
 
-
-    URIUtils::CreateArchivePath(strZipPath, "zip", strArchive, strFilePath);
-    if (!CFile::Cache(strZipPath.c_str(),(strPath+strFilePath).c_str()))
+    CURL zipPath = URIUtils::CreateArchivePath("zip", archive, strFilePath);
+    const CURL pathToUrl(strPath + strFilePath);
+    if (!CFile::Copy(zipPath, pathToUrl))
       return false;
   }
   return true;
-}
-
-void CZipManager::CleanUp(const CStdString& strArchive, const CStdString& strPath)
-{
-  vector<SZipEntry> entry;
-  CStdString strZipPath;
-  URIUtils::CreateArchivePath(strZipPath, "zip", strArchive, "");
-
-  GetZipList(strZipPath,entry);
-  for (vector<SZipEntry>::iterator it=entry.begin();it != entry.end();++it)
-  {
-    if (it->name[strlen(it->name)-1] == '/') // skip dirs
-      continue;
-    CStdString strFilePath(it->name);
-    CLog::Log(LOGDEBUG,"delete file: %s",(strPath+strFilePath).c_str());
-    CFile::Delete((strPath+strFilePath).c_str());
-  }
 }
 
 // Read local file header
@@ -314,13 +312,13 @@ void CZipManager::readCHeader(const char* buffer, SZipEntry& info)
 
 }
 
-void CZipManager::release(const CStdString& strPath)
+void CZipManager::release(const std::string& strPath)
 {
   CURL url(strPath);
-  map<CStdString,vector<SZipEntry> >::iterator it= mZipMap.find(url.GetHostName());
+  map<std::string,vector<SZipEntry> >::iterator it= mZipMap.find(url.GetHostName());
   if (it != mZipMap.end())
   {
-    map<CStdString,int64_t>::iterator it2=mZipDate.find(url.GetHostName());
+    map<std::string,int64_t>::iterator it2=mZipDate.find(url.GetHostName());
     mZipMap.erase(it);
     mZipDate.erase(it2);
   }

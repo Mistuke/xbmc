@@ -21,11 +21,15 @@
 #include <sstream>
 
 #include "ActiveAESink.h"
-#include "Utils/AEUtil.h"
+#include "cores/AudioEngine/Utils/AEUtil.h"
 #include "utils/EndianSwap.h"
 #include "ActiveAE.h"
+#include "cores/AudioEngine/AEResampleFactory.h"
 
 #include "settings/Settings.h"
+
+#include <new> // for std::bad_alloc
+#include <algorithm>
 
 using namespace ActiveAE;
 
@@ -37,7 +41,6 @@ CActiveAESink::CActiveAESink(CEvent *inMsgEvent) :
   m_inMsgEvent = inMsgEvent;
   m_sink = NULL;
   m_stats = NULL;
-  m_convertBuffer = NULL;
   m_volume = 0.0;
 }
 
@@ -68,26 +71,71 @@ void CActiveAESink::Dispose()
 
   delete m_sampleOfSilence.pkt;
   m_sampleOfSilence.pkt = NULL;
+}
 
-  if (m_convertBuffer)
+AEDeviceType CActiveAESink::GetDeviceType(const std::string &device)
+{
+  std::string dev = device;
+  std::string dri;
+  CAESinkFactory::ParseDevice(dev, dri);
+  for (AESinkInfoList::iterator itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
   {
-    _aligned_free(m_convertBuffer);
-    m_convertBuffer = NULL;
+    for (AEDeviceInfoList::iterator itt2 = itt->m_deviceInfoList.begin(); itt2 != itt->m_deviceInfoList.end(); ++itt2)
+    {
+      CAEDeviceInfo& info = *itt2;
+      if (info.m_deviceName == dev)
+        return info.m_deviceType;
+    }
   }
+  return AE_DEVTYPE_PCM;
 }
 
-bool CActiveAESink::IsCompatible(const AEAudioFormat format, const std::string &device)
+bool CActiveAESink::HasPassthroughDevice()
 {
-  if (!m_sink)
-    return false;
-  return m_sink->IsCompatible(format, device);
+  for (AESinkInfoList::iterator itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
+  {
+    for (AEDeviceInfoList::iterator itt2 = itt->m_deviceInfoList.begin(); itt2 != itt->m_deviceInfoList.end(); ++itt2)
+    {
+      CAEDeviceInfo& info = *itt2;
+      if (info.m_deviceType != AE_DEVTYPE_PCM)
+        return true;
+    }
+  }
+  return false;
 }
 
-bool CActiveAESink::HasVolume()
+bool CActiveAESink::SupportsFormat(const std::string &device, AEDataFormat format, int samplerate)
 {
-  if (!m_sink)
-    return false;
-  return m_sink->HasVolume();
+  std::string dev = device;
+  std::string dri;
+  CAESinkFactory::ParseDevice(dev, dri);
+  for (AESinkInfoList::iterator itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
+  {
+    if (dri == itt->m_sinkName)
+    {
+      for (AEDeviceInfoList::iterator itt2 = itt->m_deviceInfoList.begin(); itt2 != itt->m_deviceInfoList.end(); ++itt2)
+      {
+        CAEDeviceInfo& info = *itt2;
+        if (info.m_deviceName == dev)
+        {
+          AEDataFormatList::iterator itt3;
+          itt3 = find(info.m_dataFormats.begin(), info.m_dataFormats.end(), format);
+          if (itt3 != info.m_dataFormats.end())
+          {
+            AESampleRateList::iterator itt4;
+            itt4 = find(info.m_sampleRates.begin(), info.m_sampleRates.end(), samplerate);
+            if (itt4 != info.m_sampleRates.end())
+              return true;
+            else
+              return false;
+          }
+          else
+            return false;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 enum SINK_STATES
@@ -132,16 +180,22 @@ void CActiveAESink::StateMachine(int signal, Protocol *port, Message *msg)
             m_device = *(data->device);
           }
           m_extError = false;
-          m_extSilence = false;
+          m_extSilenceTimer = 0;
+          m_extStreaming = false;
           ReturnBuffers();
           OpenSink();
 
           if (!m_extError)
           {
-            m_stats->SetSinkCacheTotal(m_sink->GetCacheTotal());
+            SinkReply reply;
+            reply.format = m_sinkFormat;
+            reply.cacheTotal = m_sink->GetCacheTotal();
+            reply.latency = m_sink->GetLatency();
+            reply.hasVolume = m_sink->HasVolume();
             m_state = S_TOP_CONFIGURED_IDLE;
             m_extTimeout = 10000;
-            msg->Reply(CSinkControlProtocol::ACC, &m_sinkFormat, sizeof(AEAudioFormat));
+            m_sinkLatency = (int64_t)(reply.latency * 1000);
+            msg->Reply(CSinkControlProtocol::ACC, &reply, sizeof(SinkReply));
           }
           else
           {
@@ -168,11 +222,14 @@ void CActiveAESink::StateMachine(int signal, Protocol *port, Message *msg)
           msg->Reply(CSinkControlProtocol::ACC);
           return;
 
-        case CSinkControlProtocol::ISCOMPATIBLE:
-          data = (SinkConfig*)msg->data;
-          bool compatible;
-          compatible = IsCompatible(data->format, *(data->device));
-          msg->Reply(CSinkControlProtocol::ACC, &compatible, sizeof(bool));
+        case CSinkControlProtocol::APPFOCUSED:
+          m_extAppFocused = *(bool*)msg->data;
+          SetSilenceTimer();
+          m_extTimeout = 0;
+          return;
+
+        case CSinkControlProtocol::STREAMING:
+          m_extStreaming = *(bool*)msg->data;
           return;
 
         default:
@@ -234,15 +291,14 @@ void CActiveAESink::StateMachine(int signal, Protocol *port, Message *msg)
       {
         switch (signal)
         {
-        case CSinkControlProtocol::SILENCEMODE:
-          m_extSilence = *(bool*)msg->data;
-          if (CSettings::Get().GetBool("audiooutput.streamsilence"))
-            m_extSilence = true;
-          if (m_extSilence)
+        case CSinkControlProtocol::STREAMING:
+          m_extStreaming = *(bool*)msg->data;
+          SetSilenceTimer();
+          if (!m_extSilenceTimer.IsTimePast())
           {
             m_state = S_TOP_CONFIGURED_SILENCE;
-            m_extTimeout = 0;
           }
+          m_extTimeout = 0;
           return;
         case CSinkControlProtocol::VOLUME:
           m_volume = *(float*)msg->data;
@@ -280,6 +336,7 @@ void CActiveAESink::StateMachine(int signal, Protocol *port, Message *msg)
           {
             m_state = S_TOP_CONFIGURED_PLAY;
             m_extTimeout = delay / 2;
+            m_extSilenceTimer.Set(m_extSilenceTimeout);
           }
           return;
         default:
@@ -293,7 +350,10 @@ void CActiveAESink::StateMachine(int signal, Protocol *port, Message *msg)
       {
         switch (signal)
         {
-        case CSinkControlProtocol::SILENCEMODE:
+        case CSinkControlProtocol::STREAMING:
+          m_extStreaming = *(bool*)msg->data;
+          SetSilenceTimer();
+          m_extTimeout = 0;
           return;
         case CSinkControlProtocol::VOLUME:
           m_volume = *(float*)msg->data;
@@ -372,7 +432,7 @@ void CActiveAESink::StateMachine(int signal, Protocol *port, Message *msg)
         switch (signal)
         {
         case CSinkControlProtocol::TIMEOUT:
-          if (m_extSilence)
+          if (!m_extSilenceTimer.IsTimePast())
           {
             m_state = S_TOP_CONFIGURED_SILENCE;
             m_extTimeout = 0;
@@ -381,7 +441,10 @@ void CActiveAESink::StateMachine(int signal, Protocol *port, Message *msg)
           {
             m_sink->Drain();
             m_state = S_TOP_CONFIGURED_IDLE;
-            m_extTimeout = 10000;
+            if (m_extAppFocused)
+              m_extTimeout = 10000;
+            else
+              m_extTimeout = 0;
           }
           return;
         default:
@@ -404,6 +467,8 @@ void CActiveAESink::StateMachine(int signal, Protocol *port, Message *msg)
             m_sink = NULL;
             m_state = S_TOP_CONFIGURED_SUSPEND;
           }
+          else
+            m_state = S_TOP_CONFIGURED_PLAY;
           m_extTimeout = 0;
           return;
         default:
@@ -413,7 +478,7 @@ void CActiveAESink::StateMachine(int signal, Protocol *port, Message *msg)
       break;
 
     default: // we are in no state, should not happen
-      CLog::Log(LOGERROR, "CActiveSink::%s - no valid state: %d", __FUNCTION__, m_state);
+      CLog::Log(LOGERROR, "CActiveAESink::%s - no valid state: %d", __FUNCTION__, m_state);
       return;
     }
   } // for
@@ -424,14 +489,17 @@ void CActiveAESink::Process()
   Message *msg = NULL;
   Protocol *port = NULL;
   bool gotMsg;
+  XbmcThreads::EndTime timer;
 
   m_state = S_TOP_UNCONFIGURED;
   m_extTimeout = 1000;
   m_bStateMachineSelfTrigger = false;
+  m_extAppFocused = true;
 
   while (!m_bStop)
   {
     gotMsg = false;
+    timer.Set(m_extTimeout);
 
     if (m_bStateMachineSelfTrigger)
     {
@@ -472,6 +540,7 @@ void CActiveAESink::Process()
     // wait for message
     else if (m_outMsgEvent.WaitMSec(m_extTimeout))
     {
+      m_extTimeout = timer.MillisLeft();
       continue;
     }
     // time out
@@ -496,18 +565,18 @@ void CActiveAESink::EnumerateSinkList(bool force)
   if (!m_sinkInfoList.empty() && !force)
     return;
 
-  unsigned int c_retry = 5;
+  unsigned int c_retry = 4;
   m_sinkInfoList.clear();
   CAESinkFactory::EnumerateEx(m_sinkInfoList);
   while(m_sinkInfoList.size() == 0 && c_retry > 0)
   {
-    CLog::Log(LOGNOTICE, "No Devices found - retry: %d", c_retry);
-    Sleep(2000);
+    CLog::Log(LOGDEBUG, "No Devices found - retry: %d", c_retry);
+    Sleep(1500);
     c_retry--;
     // retry the enumeration
     CAESinkFactory::EnumerateEx(m_sinkInfoList, true);
   }
-  CLog::Log(LOGNOTICE, "Found %lu Lists of Devices", m_sinkInfoList.size());
+  CLog::Log(LOGDEBUG, "Found %lu Lists of Devices", m_sinkInfoList.size());
   PrintSinks();
 }
 
@@ -515,16 +584,16 @@ void CActiveAESink::PrintSinks()
 {
   for (AESinkInfoList::iterator itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
   {
-    CLog::Log(LOGNOTICE, "Enumerated %s devices:", itt->m_sinkName.c_str());
+    CLog::Log(LOGDEBUG, "Enumerated %s devices:", itt->m_sinkName.c_str());
     int count = 0;
     for (AEDeviceInfoList::iterator itt2 = itt->m_deviceInfoList.begin(); itt2 != itt->m_deviceInfoList.end(); ++itt2)
     {
-      CLog::Log(LOGNOTICE, "    Device %d", ++count);
+      CLog::Log(LOGDEBUG, "    Device %d", ++count);
       CAEDeviceInfo& info = *itt2;
       std::stringstream ss((std::string)info);
       std::string line;
       while(std::getline(ss, line, '\n'))
-        CLog::Log(LOGNOTICE, "        %s", line.c_str());
+        CLog::Log(LOGDEBUG, "        %s", line.c_str());
     }
   }
 }
@@ -611,79 +680,88 @@ void CActiveAESink::OpenSink()
   if (driver.empty() && m_sink)
     driver = m_sink->GetName();
 
-  std::string sinkName;
+  CLog::Log(LOGINFO, "CActiveAESink::OpenSink - initialize sink");
+
   if (m_sink)
   {
-    sinkName = m_sink->GetName();
-    std::transform(sinkName.begin(), sinkName.end(), sinkName.begin(), ::toupper);
+    m_sink->Drain();
+    m_sink->Deinitialize();
+    delete m_sink;
+    m_sink = NULL;
   }
 
-  if (!m_sink || sinkName != driver || !m_sink->IsCompatible(m_requestedFormat, device))
+  // get the display name of the device
+  GetDeviceFriendlyName(device);
+
+  // if we already have a driver, prepend it to the device string
+  if (!driver.empty())
+    device = driver + ":" + device;
+
+  // WARNING: this changes format and does not use passthrough
+  m_sinkFormat = m_requestedFormat;
+  CLog::Log(LOGDEBUG, "CActiveAESink::OpenSink - trying to open device %s", device.c_str());
+  m_sink = CAESinkFactory::Create(device, m_sinkFormat, passthrough);
+
+  // try first device in out list
+  if (!m_sink && !m_sinkInfoList.empty())
   {
-    CLog::Log(LOGINFO, "CActiveAE::OpenSink - sink incompatible, re-starting");
-
-    if (m_sink)
-    {
-      m_sink->Drain();
-      m_sink->Deinitialize();
-      delete m_sink;
-      m_sink = NULL;
-    }
-
-    // get the display name of the device
+    driver = m_sinkInfoList.front().m_sinkName;
+    device = m_sinkInfoList.front().m_deviceInfoList.front().m_deviceName;
     GetDeviceFriendlyName(device);
-
-    // if we already have a driver, prepend it to the device string
     if (!driver.empty())
       device = driver + ":" + device;
-
-    // WARNING: this changes format and does not use passthrough
     m_sinkFormat = m_requestedFormat;
-    CLog::Log(LOGDEBUG, "CActiveAE::OpenSink - trying to open device %s", device.c_str());
+    CLog::Log(LOGDEBUG, "CActiveAESink::OpenSink - trying to open device %s", device.c_str());
     m_sink = CAESinkFactory::Create(device, m_sinkFormat, passthrough);
+  }
 
-    if (!m_sink)
-    {
-      CLog::Log(LOGERROR, "CActiveAE::OpenSink - no sink was returned");
-      m_extError = true;
-      return;
-    }
+  // open NULL sink
+  // TODO: should not be required by ActiveAE
+  if (!m_sink)
+  {
+    device = "NULL:NULL";
+    m_sinkFormat = m_requestedFormat;
+    CLog::Log(LOGDEBUG, "CActiveAESink::OpenSink - open NULL sink");
+    m_sink = CAESinkFactory::Create(device, m_sinkFormat, passthrough);
+  }
 
-    m_sink->SetVolume(m_volume);
+  if (!m_sink)
+  {
+    CLog::Log(LOGERROR, "CActiveAESink::OpenSink - no sink was returned");
+    m_extError = true;
+    return;
+  }
+
+  m_sink->SetVolume(m_volume);
 
 #ifdef WORDS_BIGENDIAN
-    if (m_sinkFormat.m_dataFormat == AE_FMT_S16BE)
-      m_sinkFormat.m_dataFormat = AE_FMT_S16NE;
-    else if (m_sinkFormat.m_dataFormat == AE_FMT_S32BE)
-      m_sinkFormat.m_dataFormat = AE_FMT_S32NE;
+  if (m_sinkFormat.m_dataFormat == AE_FMT_S16BE)
+    m_sinkFormat.m_dataFormat = AE_FMT_S16NE;
+  else if (m_sinkFormat.m_dataFormat == AE_FMT_S32BE)
+    m_sinkFormat.m_dataFormat = AE_FMT_S32NE;
 #else
-    if (m_sinkFormat.m_dataFormat == AE_FMT_S16LE)
-      m_sinkFormat.m_dataFormat = AE_FMT_S16NE;
-    else if (m_sinkFormat.m_dataFormat == AE_FMT_S32LE)
-      m_sinkFormat.m_dataFormat = AE_FMT_S32NE;
+  if (m_sinkFormat.m_dataFormat == AE_FMT_S16LE)
+    m_sinkFormat.m_dataFormat = AE_FMT_S16NE;
+  else if (m_sinkFormat.m_dataFormat == AE_FMT_S32LE)
+    m_sinkFormat.m_dataFormat = AE_FMT_S32NE;
 #endif
 
-    CLog::Log(LOGDEBUG, "CActiveAE::OpenSink - %s Initialized:", m_sink->GetName());
-    CLog::Log(LOGDEBUG, "  Output Device : %s", m_deviceFriendlyName.c_str());
-    CLog::Log(LOGDEBUG, "  Sample Rate   : %d", m_sinkFormat.m_sampleRate);
-    CLog::Log(LOGDEBUG, "  Sample Format : %s", CAEUtil::DataFormatToStr(m_sinkFormat.m_dataFormat));
-    CLog::Log(LOGDEBUG, "  Channel Count : %d", m_sinkFormat.m_channelLayout.Count());
-    CLog::Log(LOGDEBUG, "  Channel Layout: %s", ((std::string)m_sinkFormat.m_channelLayout).c_str());
-    CLog::Log(LOGDEBUG, "  Frames        : %d", m_sinkFormat.m_frames);
-    CLog::Log(LOGDEBUG, "  Frame Samples : %d", m_sinkFormat.m_frameSamples);
-    CLog::Log(LOGDEBUG, "  Frame Size    : %d", m_sinkFormat.m_frameSize);
-  }
-  else
-    CLog::Log(LOGINFO, "CActiveAE::OpenSink - keeping old sink with : %s, %s, %dhz",
-                          CAEUtil::DataFormatToStr(m_sinkFormat.m_dataFormat),
-                          ((std::string)m_sinkFormat.m_channelLayout).c_str(),
-                          m_sinkFormat.m_sampleRate);
+  CLog::Log(LOGDEBUG, "CActiveAESink::OpenSink - %s Initialized:", m_sink->GetName());
+  CLog::Log(LOGDEBUG, "  Output Device : %s", m_deviceFriendlyName.c_str());
+  CLog::Log(LOGDEBUG, "  Sample Rate   : %d", m_sinkFormat.m_sampleRate);
+  CLog::Log(LOGDEBUG, "  Sample Format : %s", CAEUtil::DataFormatToStr(m_sinkFormat.m_dataFormat));
+  CLog::Log(LOGDEBUG, "  Channel Count : %d", m_sinkFormat.m_channelLayout.Count());
+  CLog::Log(LOGDEBUG, "  Channel Layout: %s", ((std::string)m_sinkFormat.m_channelLayout).c_str());
+  CLog::Log(LOGDEBUG, "  Frames        : %d", m_sinkFormat.m_frames);
+  CLog::Log(LOGDEBUG, "  Frame Samples : %d", m_sinkFormat.m_frameSamples);
+  CLog::Log(LOGDEBUG, "  Frame Size    : %d", m_sinkFormat.m_frameSize);
 
   // init sample of silence
   SampleConfig config;
-  config.fmt = CActiveAEResample::GetAVSampleFormat(m_sinkFormat.m_dataFormat);
+  config.fmt = CAEUtil::GetAVSampleFormat(m_sinkFormat.m_dataFormat);
   config.bits_per_sample = CAEUtil::DataFormatToUsedBits(m_sinkFormat.m_dataFormat);
-  config.channel_layout = CActiveAEResample::GetAVChannelLayout(m_sinkFormat.m_channelLayout);
+  config.dither_bits = CAEUtil::DataFormatToDitherBits(m_sinkFormat.m_dataFormat);
+  config.channel_layout = CAEUtil::GetAVChannelLayout(m_sinkFormat.m_channelLayout);
   config.channels = m_sinkFormat.m_channelLayout.Count();
   config.sample_rate = m_sinkFormat.m_sampleRate;
 
@@ -694,13 +772,7 @@ void CActiveAESink::OpenSink()
   if (!passthrough)
     GenerateNoise();
 
-  if (m_convertBuffer)
-  {
-    _aligned_free(m_convertBuffer);
-    m_convertBuffer = NULL;
-  }
-  m_convertFn = NULL;
-  m_convertState = CHECK_CONVERT;
+  m_swapState = CHECK_SWAP;
 }
 
 void CActiveAESink::ReturnBuffers()
@@ -719,39 +791,34 @@ void CActiveAESink::ReturnBuffers()
 
 unsigned int CActiveAESink::OutputSamples(CSampleBuffer* samples)
 {
-  uint8_t *buffer = samples->pkt->data[0];
+  uint8_t **buffer = samples->pkt->data;
   unsigned int frames = samples->pkt->nb_samples;
   unsigned int maxFrames;
   int retry = 0;
   unsigned int written = 0;
-  double sinkDelay = 0.0;
 
-  switch(m_convertState)
+  switch(m_swapState)
   {
-  case SKIP_CONVERT:
-    break;
-  case NEED_CONVERT:
-    EnsureConvertBuffer(samples);
-    buffer = Convert(samples);
+  case SKIP_SWAP:
     break;
   case NEED_BYTESWAP:
-    Endian_Swap16_buf((uint16_t *)buffer, (uint16_t *)buffer, frames * samples->pkt->config.channels);
+    Endian_Swap16_buf((uint16_t *)buffer[0], (uint16_t *)buffer[0], frames * samples->pkt->config.channels);
     break;
-  case CHECK_CONVERT:
-    ConvertInit(samples);
-    if (m_convertState == NEED_CONVERT)
-      buffer = Convert(samples);
-    else if (m_convertState == NEED_BYTESWAP)
-      Endian_Swap16_buf((uint16_t *)buffer, (uint16_t *)buffer, frames * samples->pkt->config.channels);
+  case CHECK_SWAP:
+    SwapInit(samples);
+    if (m_swapState == NEED_BYTESWAP)
+      Endian_Swap16_buf((uint16_t *)buffer[0], (uint16_t *)buffer[0], frames * samples->pkt->config.channels);
     break;
   default:
     break;
   }
 
+  AEDelayStatus status;
+
   while(frames > 0)
   {
     maxFrames = std::min(frames, m_sinkFormat.m_frames);
-    written = m_sink->AddPackets(buffer, maxFrames, true, true);
+    written = m_sink->AddPackets(buffer, maxFrames, samples->pkt->nb_samples-frames);
     if (written == 0)
     {
       Sleep(500*m_sinkFormat.m_frames/m_sinkFormat.m_sampleRate);
@@ -760,7 +827,8 @@ unsigned int CActiveAESink::OutputSamples(CSampleBuffer* samples)
       {
         m_extError = true;
         CLog::Log(LOGERROR, "CActiveAESink::OutputSamples - failed");
-        m_stats->UpdateSinkDelay(0, frames);
+        status.SetDelay(0);
+        m_stats->UpdateSinkDelay(status, frames, 0);
         return 0;
       }
       else
@@ -770,63 +838,48 @@ unsigned int CActiveAESink::OutputSamples(CSampleBuffer* samples)
     {
       m_extError = true;
       CLog::Log(LOGERROR, "CActiveAESink::OutputSamples - sink returned error");
-      m_stats->UpdateSinkDelay(0, samples->pool ? maxFrames : 0);
+      status.SetDelay(0);
+      m_stats->UpdateSinkDelay(status, samples->pool ? maxFrames : 0, 0);
       return 0;
     }
     frames -= written;
-    buffer += written*m_sinkFormat.m_frameSize;
-    sinkDelay = m_sink->GetDelay();
-    m_stats->UpdateSinkDelay(sinkDelay, samples->pool ? written : 0);
+
+    m_sink->GetDelay(status);
+
+    int64_t pts = 0;
+    if (samples->timestamp)
+    {
+      int pastSamples = samples->pkt->nb_samples - samples->pkt_start_offset;
+      pts = samples->timestamp + pastSamples/m_sinkFormat.m_sampleRate*1000;
+      pts -= m_sinkLatency;
+      if (pts < 0)
+        pts = 0;
+    }
+    m_stats->UpdateSinkDelay(status, samples->pool ? written : 0, pts, samples->clockId);
   }
-  return sinkDelay*1000;
+  return status.delay * 1000;
 }
 
-void CActiveAESink::ConvertInit(CSampleBuffer* samples)
+void CActiveAESink::SwapInit(CSampleBuffer* samples)
 {
-  if (CActiveAEResample::GetAESampleFormat(samples->pkt->config.fmt, samples->pkt->config.bits_per_sample) != m_sinkFormat.m_dataFormat)
+  if (AE_IS_RAW(m_requestedFormat.m_dataFormat) && CAEUtil::S16NeedsByteSwap(AE_FMT_S16NE, m_sinkFormat.m_dataFormat))
   {
-    m_convertFn = CAEConvert::FrFloat(m_sinkFormat.m_dataFormat);
-    if (m_convertBuffer)
-      _aligned_free(m_convertBuffer);
-    m_convertBufferSampleSize = samples->pkt->max_nb_samples;
-    m_convertBuffer = (uint8_t*)_aligned_malloc(samples->pkt->max_nb_samples * m_sinkFormat.m_channelLayout.Count() * m_sinkFormat.m_frameSize, 16);
-    memset(m_convertBuffer, 0, samples->pkt->max_nb_samples * m_sinkFormat.m_channelLayout.Count() * m_sinkFormat.m_frameSize);
-    m_convertState = NEED_CONVERT;
-  }
-  else if (AE_IS_RAW(m_requestedFormat.m_dataFormat) && CAEUtil::S16NeedsByteSwap(AE_FMT_S16NE, m_sinkFormat.m_dataFormat))
-  {
-    m_convertState = NEED_BYTESWAP;
+    m_swapState = NEED_BYTESWAP;
   }
   else
-    m_convertState = SKIP_CONVERT;
-}
-
-void CActiveAESink::EnsureConvertBuffer(CSampleBuffer* samples)
-{
-  if (!m_convertBuffer)
-    return;
-
-  if (samples->pkt->max_nb_samples <= m_convertBufferSampleSize)
-    return;
-
-  _aligned_free(m_convertBuffer);
-  m_convertBufferSampleSize = samples->pkt->max_nb_samples;
-  m_convertBuffer = (uint8_t*)_aligned_malloc(samples->pkt->max_nb_samples * m_sinkFormat.m_channelLayout.Count() * m_sinkFormat.m_frameSize, 16);
-  memset(m_convertBuffer, 0, samples->pkt->max_nb_samples * m_sinkFormat.m_channelLayout.Count() * m_sinkFormat.m_frameSize);
-}
-
-uint8_t* CActiveAESink::Convert(CSampleBuffer* samples)
-{
-  m_convertFn((float*)samples->pkt->data[0], samples->pkt->nb_samples * samples->pkt->config.channels, m_convertBuffer);
-  return m_convertBuffer;
+    m_swapState = SKIP_SWAP;
 }
 
 #define PI 3.1415926536f
 
 void CActiveAESink::GenerateNoise()
 {
-  int nb_floats = m_sinkFormat.m_frames*m_sinkFormat.m_channelLayout.Count();
+  int nb_floats = m_sampleOfSilence.pkt->max_nb_samples;
+  nb_floats *= m_sampleOfSilence.pkt->config.channels;
+
   float *noise = (float*)_aligned_malloc(nb_floats*sizeof(float), 16);
+  if (!noise)
+    throw std::bad_alloc();
 
   float R1, R2;
   for(int i=0; i<nb_floats;i++)
@@ -841,8 +894,35 @@ void CActiveAESink::GenerateNoise()
     noise[i] = (float) sqrt( -2.0f * log( R1 )) * cos( 2.0f * PI * R2 ) * 0.00001f;
   }
 
-  AEDataFormat fmt = CActiveAEResample::GetAESampleFormat(m_sampleOfSilence.pkt->config.fmt, m_sampleOfSilence.pkt->config.bits_per_sample);
-  CAEConvert::AEConvertFrFn convertFn = CAEConvert::FrFloat(fmt);
-  convertFn(noise, nb_floats, m_sampleOfSilence.pkt->data[0]);
+  SampleConfig config = m_sampleOfSilence.pkt->config;
+  IAEResample *resampler = CAEResampleFactory::Create();
+  resampler->Init(config.channel_layout,
+                 config.channels,
+                 config.sample_rate,
+                 config.fmt,
+                 config.bits_per_sample,
+                 config.dither_bits,
+                 config.channel_layout,
+                 config.channels,
+                 config.sample_rate,
+                 AV_SAMPLE_FMT_FLT,
+                 CAEUtil::DataFormatToUsedBits(m_sinkFormat.m_dataFormat),
+                 CAEUtil::DataFormatToDitherBits(m_sinkFormat.m_dataFormat),
+                 false, false, NULL, AE_QUALITY_UNKNOWN);
+  resampler->Resample(m_sampleOfSilence.pkt->data, m_sampleOfSilence.pkt->max_nb_samples,
+                     (uint8_t**)&noise, m_sampleOfSilence.pkt->max_nb_samples, 1.0);
+
   _aligned_free(noise);
+  delete resampler;
+}
+
+void CActiveAESink::SetSilenceTimer()
+{
+  if (m_extStreaming)
+    m_extSilenceTimeout = XbmcThreads::EndTime::InfiniteValue;
+  else if (m_extAppFocused)
+    m_extSilenceTimeout = CSettings::Get().GetInt("audiooutput.streamsilence") * 60000;
+  else
+    m_extSilenceTimeout = 0;
+  m_extSilenceTimer.Set(m_extSilenceTimeout);
 }

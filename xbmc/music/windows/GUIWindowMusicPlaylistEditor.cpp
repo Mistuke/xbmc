@@ -22,6 +22,7 @@
 #include "GUIWindowMusicPlaylistEditor.h"
 #include "Util.h"
 #include "utils/URIUtils.h"
+#include "utils/StringUtils.h"
 #include "Autorun.h"
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "filesystem/PlaylistFileDirectory.h"
@@ -34,8 +35,9 @@
 #include "FileItem.h"
 #include "settings/Settings.h"
 #include "GUIUserMessages.h"
-#include "guilib/Key.h"
+#include "input/Key.h"
 #include "guilib/LocalizeStrings.h"
+#include "ContextMenuManager.h"
 
 #define CONTROL_LABELFILES        12
 
@@ -137,10 +139,10 @@ bool CGUIWindowMusicPlaylistEditor::OnMessage(CGUIMessage& message)
   return CGUIWindowMusicBase::OnMessage(message);
 }
 
-bool CGUIWindowMusicPlaylistEditor::GetDirectory(const CStdString &strDirectory, CFileItemList &items)
+bool CGUIWindowMusicPlaylistEditor::GetDirectory(const std::string &strDirectory, CFileItemList &items)
 {
   items.Clear();
-  if (strDirectory.IsEmpty())
+  if (strDirectory.empty())
   { // root listing - list files:// and musicdb://
     CFileItemPtr files(new CFileItem("files://", true));
     files->SetLabel(g_localizeStrings.Get(744));
@@ -167,6 +169,8 @@ bool CGUIWindowMusicPlaylistEditor::GetDirectory(const CStdString &strDirectory,
 
 void CGUIWindowMusicPlaylistEditor::OnPrepareFileItems(CFileItemList &items)
 {
+  CGUIWindowMusicBase::OnPrepareFileItems(items);
+
   RetrieveMusicInfo();
 }
 
@@ -175,8 +179,7 @@ void CGUIWindowMusicPlaylistEditor::UpdateButtons()
   CGUIWindowMusicBase::UpdateButtons();
 
   // Update object count label
-  CStdString items;
-  items.Format("%i %s", m_vecItems->GetObjectCount(), g_localizeStrings.Get(127).c_str()); // " 14 Objects"
+  std::string items = StringUtils::Format("%i %s", m_vecItems->GetObjectCount(), g_localizeStrings.Get(127).c_str()); // " 14 Objects"
   SET_CONTROL_LABEL(CONTROL_LABELFILES, items);
 }
 
@@ -216,7 +219,7 @@ void CGUIWindowMusicPlaylistEditor::OnQueueItem(int iItem)
   AppendToPlaylist(newItems);
 }
 
-bool CGUIWindowMusicPlaylistEditor::Update(const CStdString &strDirectory, bool updateFilterPath /* = true */)
+bool CGUIWindowMusicPlaylistEditor::Update(const std::string &strDirectory, bool updateFilterPath /* = true */)
 {
   if (m_thumbLoader.IsLoading())
     m_thumbLoader.StopThread();
@@ -254,8 +257,7 @@ void CGUIWindowMusicPlaylistEditor::UpdatePlaylist()
   OnMessage(msg);
 
   // indicate how many songs we have
-  CStdString items;
-  items.Format("%i %s", m_playlist->Size(), g_localizeStrings.Get(134).c_str()); // "123 Songs"
+  std::string items = StringUtils::Format("%i %s", m_playlist->Size(), g_localizeStrings.Get(134).c_str()); // "123 Songs"
   SET_CONTROL_LABEL(CONTROL_LABEL_PLAYLIST, items);
 
   m_playlistThumbLoader.Load(*m_playlist);
@@ -317,6 +319,8 @@ void CGUIWindowMusicPlaylistEditor::GetContextButtons(int itemNumber, CContextBu
     buttons.Add(CONTEXT_BUTTON_CLEAR, 192);
   }
   buttons.Add(CONTEXT_BUTTON_LOAD, 21385);
+
+  CContextMenuManager::Get().AddVisibleItems(item, buttons);
 }
 
 bool CGUIWindowMusicPlaylistEditor::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
@@ -354,7 +358,7 @@ bool CGUIWindowMusicPlaylistEditor::OnContextButton(int itemNumber, CONTEXT_BUTT
 void CGUIWindowMusicPlaylistEditor::OnLoadPlaylist()
 {
   // prompt user for file to load
-  CStdString playlist;
+  std::string playlist;
   VECSOURCES shares;
   m_rootDir.GetSources(shares);
   // add the playlist share
@@ -367,9 +371,10 @@ void CGUIWindowMusicPlaylistEditor::OnLoadPlaylist()
     LoadPlaylist(playlist);
 }
 
-void CGUIWindowMusicPlaylistEditor::LoadPlaylist(const CStdString &playlist)
+void CGUIWindowMusicPlaylistEditor::LoadPlaylist(const std::string &playlist)
 {
-  if (playlist.Equals("newplaylist://"))
+  const CURL pathToUrl(playlist);
+  if (pathToUrl.IsProtocol("newplaylist"))
   {
     ClearPlaylist();
     m_strLoadedPlaylist.clear();
@@ -378,7 +383,7 @@ void CGUIWindowMusicPlaylistEditor::LoadPlaylist(const CStdString &playlist)
 
   XFILE::CPlaylistFileDirectory dir;
   CFileItemList items;
-  if (dir.GetDirectory(playlist, items))
+  if (dir.GetDirectory(pathToUrl, items))
   {
     ClearPlaylist();
     AppendToPlaylist(items);
@@ -389,15 +394,15 @@ void CGUIWindowMusicPlaylistEditor::LoadPlaylist(const CStdString &playlist)
 void CGUIWindowMusicPlaylistEditor::OnSavePlaylist()
 {
   // saves playlist to the playlist folder
-  CStdString name = URIUtils::GetFileName(m_strLoadedPlaylist);
-  CStdString strExt = URIUtils::GetExtension(name);
-  name = name.Mid(0,name.size()-strExt.size());
+  std::string name = URIUtils::GetFileName(m_strLoadedPlaylist);
+  URIUtils::RemoveExtension(name);
+
   if (CGUIKeyboardFactory::ShowAndGetInput(name, g_localizeStrings.Get(16012), false))
   { // save playlist as an .m3u
     PLAYLIST::CPlayListM3U playlist;
     playlist.Add(*m_playlist);
-    CStdString strBase = URIUtils::AddFileToFolder(CSettings::Get().GetString("system.playlistspath"), "music");
-    CStdString path = URIUtils::AddFileToFolder(strBase, name + ".m3u");
+    std::string strBase = URIUtils::AddFileToFolder(CSettings::Get().GetString("system.playlistspath"), "music");
+    std::string path = URIUtils::AddFileToFolder(strBase, name + ".m3u");
     playlist.Save(path);
     m_strLoadedPlaylist = name;
   }

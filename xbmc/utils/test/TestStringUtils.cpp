@@ -19,6 +19,7 @@
  */
 
 #include "utils/StringUtils.h"
+#include <algorithm>
 
 #include "gtest/gtest.h"
 
@@ -29,7 +30,7 @@ TEST(TestStringUtils, Format)
   std::string varstr = StringUtils::Format("%s %d %.1f %x %02X", "test", 25, 2.743f, 0x00ff, 0x00ff);
   EXPECT_STREQ(refstr.c_str(), varstr.c_str());
 
-  varstr = StringUtils::Format(NULL, "test", 25, 2.743f, 0x00ff, 0x00ff);
+  varstr = StringUtils::Format("", "test", 25, 2.743f, 0x00ff, 0x00ff);
   EXPECT_STREQ("", varstr.c_str());
 }
 
@@ -199,39 +200,9 @@ TEST(TestStringUtils, EndsWith)
   EXPECT_TRUE(StringUtils::EndsWithNoCase(refstr, "TesT"));
 }
 
-TEST(TestStringUtils, JoinString)
-{
-  CStdString refstr, varstr;
-  CStdStringArray strarray;
-
-  strarray.push_back("a");
-  strarray.push_back("b");
-  strarray.push_back("c");
-  strarray.push_back("de");
-  strarray.push_back(",");
-  strarray.push_back("fg");
-  strarray.push_back(",");
-  refstr = "a,b,c,de,,,fg,,";
-  StringUtils::JoinString(strarray, ",", varstr);
-  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
-
-  strarray.clear();
-  varstr.clear();
-  strarray.push_back("g");
-  strarray.push_back("h");
-  strarray.push_back("i");
-  strarray.push_back("jk,");
-  strarray.push_back(",");
-  strarray.push_back("lmn,,");
-  strarray.push_back(",");
-  refstr = "g,h,i,jk,,,,lmn,,,,";
-  varstr = StringUtils::JoinString(strarray, ",");
-  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
-}
-
 TEST(TestStringUtils, Join)
 {
-  CStdString refstr, varstr;
+  std::string refstr, varstr;
   std::vector<std::string> strarray;
 
   strarray.push_back("a");
@@ -246,36 +217,11 @@ TEST(TestStringUtils, Join)
   EXPECT_STREQ(refstr.c_str(), varstr.c_str());
 }
 
-TEST(TestStringUtils, SplitString)
-{
-  CStdStringArray varresults;
-
-  EXPECT_EQ(9, StringUtils::SplitString("a,b,c,de,,,fg,,", ",", varresults));
-  EXPECT_STREQ("a", varresults.at(0).c_str());
-  EXPECT_STREQ("b", varresults.at(1).c_str());
-  EXPECT_STREQ("c", varresults.at(2).c_str());
-  EXPECT_STREQ("de", varresults.at(3).c_str());
-  EXPECT_STREQ("", varresults.at(4).c_str());
-  EXPECT_STREQ("", varresults.at(5).c_str());
-  EXPECT_STREQ("fg", varresults.at(6).c_str());
-  EXPECT_STREQ("", varresults.at(7).c_str());
-  EXPECT_STREQ("", varresults.at(8).c_str());
-
-  varresults.clear();
-  varresults = StringUtils::SplitString("g,h,ij,k,lm,,n", ",");
-  EXPECT_STREQ("g", varresults.at(0).c_str());
-  EXPECT_STREQ("h", varresults.at(1).c_str());
-  EXPECT_STREQ("ij", varresults.at(2).c_str());
-  EXPECT_STREQ("k", varresults.at(3).c_str());
-  EXPECT_STREQ("lm", varresults.at(4).c_str());
-  EXPECT_STREQ("", varresults.at(5).c_str());
-  EXPECT_STREQ("n", varresults.at(6).c_str());
-}
-
 TEST(TestStringUtils, Split)
 {
   std::vector<std::string> varresults;
 
+  // test overload with string as delimiter
   varresults = StringUtils::Split("g,h,ij,k,lm,,n", ",");
   EXPECT_STREQ("g", varresults.at(0).c_str());
   EXPECT_STREQ("h", varresults.at(1).c_str());
@@ -284,6 +230,39 @@ TEST(TestStringUtils, Split)
   EXPECT_STREQ("lm", varresults.at(4).c_str());
   EXPECT_STREQ("", varresults.at(5).c_str());
   EXPECT_STREQ("n", varresults.at(6).c_str());
+
+  EXPECT_TRUE(StringUtils::Split("", "|").empty());
+
+  EXPECT_EQ(4, StringUtils::Split("a bc  d ef ghi ", " ", 4).size());
+  EXPECT_STREQ("d ef ghi ", StringUtils::Split("a bc  d ef ghi ", " ", 4).at(3).c_str()) << "Last part must include rest of the input string";
+  EXPECT_EQ(7, StringUtils::Split("a bc  d ef ghi ", " ").size()) << "Result must be 7 strings including two empty strings";
+  EXPECT_STREQ("bc", StringUtils::Split("a bc  d ef ghi ", " ").at(1).c_str());
+  EXPECT_STREQ("", StringUtils::Split("a bc  d ef ghi ", " ").at(2).c_str());
+  EXPECT_STREQ("", StringUtils::Split("a bc  d ef ghi ", " ").at(6).c_str());
+
+  EXPECT_EQ(2, StringUtils::Split("a bc  d ef ghi ", "  ").size());
+  EXPECT_EQ(2, StringUtils::Split("a bc  d ef ghi ", "  ", 10).size());
+  EXPECT_STREQ("a bc", StringUtils::Split("a bc  d ef ghi ", "  ", 10).at(0).c_str());
+
+  EXPECT_EQ(1, StringUtils::Split("a bc  d ef ghi ", " z").size());
+  EXPECT_STREQ("a bc  d ef ghi ", StringUtils::Split("a bc  d ef ghi ", " z").at(0).c_str());
+
+  EXPECT_EQ(1, StringUtils::Split("a bc  d ef ghi ", "").size());
+  EXPECT_STREQ("a bc  d ef ghi ", StringUtils::Split("a bc  d ef ghi ", "").at(0).c_str());
+  
+  // test overload with char as delimiter
+  EXPECT_EQ(4, StringUtils::Split("a bc  d ef ghi ", ' ', 4).size());
+  EXPECT_STREQ("d ef ghi ", StringUtils::Split("a bc  d ef ghi ", ' ', 4).at(3).c_str());
+  EXPECT_EQ(7, StringUtils::Split("a bc  d ef ghi ", ' ').size()) << "Result must be 7 strings including two empty strings";
+  EXPECT_STREQ("bc", StringUtils::Split("a bc  d ef ghi ", ' ').at(1).c_str());
+  EXPECT_STREQ("", StringUtils::Split("a bc  d ef ghi ", ' ').at(2).c_str());
+  EXPECT_STREQ("", StringUtils::Split("a bc  d ef ghi ", ' ').at(6).c_str());
+
+  EXPECT_EQ(1, StringUtils::Split("a bc  d ef ghi ", 'z').size());
+  EXPECT_STREQ("a bc  d ef ghi ", StringUtils::Split("a bc  d ef ghi ", 'z').at(0).c_str());
+
+  EXPECT_EQ(1, StringUtils::Split("a bc  d ef ghi ", "").size());
+  EXPECT_STREQ("a bc  d ef ghi ", StringUtils::Split("a bc  d ef ghi ", 'z').at(0).c_str());
 }
 
 TEST(TestStringUtils, FindNumber)
@@ -319,7 +298,7 @@ TEST(TestStringUtils, TimeStringToSeconds)
 
 TEST(TestStringUtils, RemoveCRLF)
 {
-  CStdString refstr, varstr;
+  std::string refstr, varstr;
 
   refstr = "test\r\nstring\nblah blah";
   varstr = "test\r\nstring\nblah blah\n";
@@ -338,7 +317,7 @@ TEST(TestStringUtils, utf8_strlen)
 
 TEST(TestStringUtils, SecondsToTimeString)
 {
-  CStdString ref, var;
+  std::string ref, var;
 
   ref = "21:30:55";
   var = StringUtils::SecondsToTimeString(77455);
@@ -377,7 +356,7 @@ TEST(TestStringUtils, IsInteger)
 
 TEST(TestStringUtils, SizeToString)
 {
-  CStdString ref, var;
+  std::string ref, var;
 
   ref = "2.00 GB";
   var = StringUtils::SizeToString(2147483647);
@@ -386,7 +365,7 @@ TEST(TestStringUtils, SizeToString)
 
 TEST(TestStringUtils, EmptyString)
 {
-  EXPECT_STREQ("", StringUtils::EmptyString.c_str());
+  EXPECT_STREQ("", StringUtils::Empty.c_str());
 }
 
 TEST(TestStringUtils, FindWords)
@@ -447,7 +426,7 @@ TEST(TestStringUtils, DateStringToYYYYMMDD)
 
 TEST(TestStringUtils, WordToDigits)
 {
-  CStdString ref, var;
+  std::string ref, var;
 
   ref = "8378 787464";
   var = "test string";
@@ -478,7 +457,7 @@ TEST(TestStringUtils, FindBestMatch)
 {
   double refdouble, vardouble;
   int refint, varint;
-  CStdStringArray strarray;
+  std::vector<std::string> strarray;
 
   refint = 3;
   refdouble = 0.5625f;
@@ -499,4 +478,17 @@ TEST(TestStringUtils, Paramify)
 
   std::string result = StringUtils::Paramify(input);
   EXPECT_STREQ(ref, result.c_str());
+}
+
+TEST(TestStringUtils, sortstringbyname)
+{
+  std::vector<std::string> strarray;
+  strarray.push_back("B");
+  strarray.push_back("c");
+  strarray.push_back("a");
+  std::sort(strarray.begin(), strarray.end(), sortstringbyname());
+
+  EXPECT_STREQ("a", strarray[0].c_str());
+  EXPECT_STREQ("B", strarray[1].c_str());
+  EXPECT_STREQ("c", strarray[2].c_str());
 }

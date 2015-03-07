@@ -31,10 +31,6 @@
 #include "GUISliderControl.h"
 #include "GUIButtonControl.h"
 
-#define SPIN_CONTROL_TYPE_INT    1
-#define SPIN_CONTROL_TYPE_FLOAT  2
-#define SPIN_CONTROL_TYPE_TEXT   3
-
 /*!
  \ingroup controls
  \brief
@@ -64,7 +60,7 @@ public:
   void SetText(const std::string &label) {m_buttonControl.SetLabel(label);};
   virtual float GetXPosition() const { return m_buttonControl.GetXPosition();};
   virtual float GetYPosition() const { return m_buttonControl.GetYPosition();};
-  virtual CStdString GetDescription() const;
+  virtual std::string GetDescription() const;
   virtual bool HitTest(const CPoint &point) const { return m_buttonControl.HitTest(point); };
 
 protected:

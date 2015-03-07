@@ -44,22 +44,16 @@ INCLUDES+=-I@abs_top_srcdir@/addons/library.xbmc.addon
 INCLUDES+=-I@abs_top_srcdir@/addons/library.xbmc.pvr
 INCLUDES+=-I@abs_top_srcdir@/addons/library.xbmc.codec
 INCLUDES+=$(sort @INCLUDES@)
-ifneq (@USE_EXTERNAL_FFMPEG@,1)
-	INCLUDES+=-I@abs_top_srcdir@/lib/ffmpeg
-endif
 INCLUDES+=-I@abs_top_srcdir@/xbmc/linux
 INCLUDES+=-I@abs_top_srcdir@/xbmc/cores/dvdplayer
-ifeq (@USE_OMXPLAYER@,1)
-INCLUDES+=-I@abs_top_srcdir@/xbmc/cores/AudioEngine
-INCLUDES+=-I@abs_top_srcdir@/xbmc/cores/AudioEngine/Utils
-endif
 DEFINES+= \
 	@ARCH_DEFINES@ \
 	-D_FILE_DEFINED \
 	-D__STDC_CONSTANT_MACROS \
-	-DBIN_INSTALL_PATH="\"$(libdir)/xbmc\"" \
-	-DINSTALL_PATH="\"$(datarootdir)/xbmc\"" \
+	-DBIN_INSTALL_PATH="\"$(libdir)/@APP_NAME_LC@\"" \
+	-DINSTALL_PATH="\"$(datarootdir)/@APP_NAME_LC@\"" \
 	@SDL_DEFINES@ \
+	@UPNP_DEFINES@ \
 	@DEFS@ \
 
 ifeq ($(findstring osx,$(ARCH)), osx)
@@ -125,7 +119,7 @@ GEN_DEPS=\
 
 %.o: %.m
 	@rm -f $@
-	$(SILENT_MM) $(CXX) -MF $*.d -MD -c $(CXXFLAGS) $(DEFINES) $(INCLUDES) $< -o $@ \
+	$(SILENT_MM) $(CC) -MF $*.d -MD -c $(CFLAGS) $(DEFINES) $(INCLUDES) $< -o $@ \
 	&& $(GEN_DEPS)
 
 %.o: %.mm

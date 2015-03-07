@@ -23,7 +23,7 @@
 #include "guilib/GUIWindowManager.h"
 #include "peripherals/Peripherals.h"
 #include "FileItem.h"
-#include "guilib/Key.h"
+#include "input/Key.h"
 #include "utils/log.h"
 
 #define BUTTON_CLOSE     10
@@ -95,7 +95,7 @@ bool CGUIDialogPeripheralManager::OpenSettingsDialog(void)
   CGUIDialogPeripheralSettings *dialog = (CGUIDialogPeripheralSettings *)g_windowManager.GetWindow(WINDOW_DIALOG_PERIPHERAL_SETTINGS);
   if (dialog)
   {
-    dialog->SetFileItem(GetCurrentListItem());
+    dialog->SetFileItem(GetCurrentListItem().get());
     dialog->DoModal();
     return true;
   }

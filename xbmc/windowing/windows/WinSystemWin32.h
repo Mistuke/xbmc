@@ -22,6 +22,7 @@
 #define WINDOW_SYSTEM_WIN32_H
 
 #include "windowing/WinSystem.h"
+#include <string>
 
 struct MONITOR_DETAILS
 {
@@ -33,9 +34,9 @@ struct MONITOR_DETAILS
   bool      Interlaced;
 
   HMONITOR  hMonitor;
-  char      MonitorName[128];
-  char      CardName[128];
-  char      DeviceName[128];
+  std::wstring MonitorNameW;
+  std::wstring CardNameW;
+  std::wstring DeviceNameW;
   int       ScreenNumber; // XBMC POV, not Windows. Windows primary is XBMC #0, then each secondary is +1.
 };
 
@@ -131,7 +132,7 @@ public:
   // CWinSystemBase
   virtual bool InitWindowSystem();
   virtual bool DestroyWindowSystem();
-  virtual bool CreateNewWindow(const CStdString& name, bool fullScreen, RESOLUTION_INFO& res, PHANDLE_EVENT_FUNC userFunction);
+  virtual bool CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res, PHANDLE_EVENT_FUNC userFunction);
   virtual bool ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop);
   virtual bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays);
   virtual void UpdateResolutions();

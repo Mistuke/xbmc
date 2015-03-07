@@ -28,6 +28,7 @@
 #include "utils/log.h"
 #include "cdioSupport.h"
 #include "filesystem/iso9660.h"
+#include "filesystem/File.h"
 #include "threads/SingleLock.h"
 #ifdef TARGET_POSIX
 #include <sys/types.h>
@@ -60,8 +61,8 @@ int CDetectDVDMedia::m_DriveState = DRIVE_CLOSED_NO_MEDIA;
 CCdInfo* CDetectDVDMedia::m_pCdInfo = NULL;
 time_t CDetectDVDMedia::m_LastPoll = 0;
 CDetectDVDMedia* CDetectDVDMedia::m_pInstance = NULL;
-CStdString CDetectDVDMedia::m_diskLabel = "";
-CStdString CDetectDVDMedia::m_diskPath = "";
+std::string CDetectDVDMedia::m_diskLabel = "";
+std::string CDetectDVDMedia::m_diskPath = "";
 
 CDetectDVDMedia::CDetectDVDMedia() : CThread("DetectDVDMedia")
 {
@@ -220,7 +221,7 @@ void CDetectDVDMedia::DetectMediaType()
   bool bCDDA(false);
   CLog::Log(LOGINFO, "Detecting DVD-ROM media filesystem...");
 
-  CStdString strNewUrl;
+  std::string strNewUrl;
   CCdIoSupport cdio;
 
   // Delete old CD-Information
@@ -286,7 +287,7 @@ void CDetectDVDMedia::DetectMediaType()
     CLog::Log(LOGWARNING, "Filesystem is not supported");
   }
 
-  CStdString strLabel = "";
+  std::string strLabel;
   if (bCDDA)
   {
     strLabel = "Audio-CD";
@@ -294,15 +295,15 @@ void CDetectDVDMedia::DetectMediaType()
   else
   {
     strLabel = m_pCdInfo->GetDiscLabel();
-    strLabel.TrimRight(" ");
+    StringUtils::TrimRight(strLabel);
   }
 
   SetNewDVDShareUrl( strNewUrl , bCDDA, strLabel);
 }
 
-void CDetectDVDMedia::SetNewDVDShareUrl( const CStdString& strNewUrl, bool bCDDA, const CStdString& strDiscLabel )
+void CDetectDVDMedia::SetNewDVDShareUrl( const std::string& strNewUrl, bool bCDDA, const std::string& strDiscLabel )
 {
-  CStdString strDescription = "DVD";
+  std::string strDescription = "DVD";
   if (bCDDA) strDescription = "CD";
 
   if (strDiscLabel != "") strDescription = strDiscLabel;
@@ -489,12 +490,12 @@ CCdInfo* CDetectDVDMedia::GetCdInfo()
   return pCdInfo;
 }
 
-const CStdString &CDetectDVDMedia::GetDVDLabel()
+const std::string &CDetectDVDMedia::GetDVDLabel()
 {
   return m_diskLabel;
 }
 
-const CStdString &CDetectDVDMedia::GetDVDPath()
+const std::string &CDetectDVDMedia::GetDVDPath()
 {
   return m_diskPath;
 }

@@ -22,7 +22,7 @@
 #ifdef HAS_FILESYSTEM_RAR
 #include "filesystem/Directory.h"
 #include "filesystem/File.h"
-#include "filesystem/NFSFile.h"
+#include "URL.h"
 #include "utils/URIUtils.h"
 #include "FileItem.h"
 #include "test/TestUtils.h"
@@ -32,17 +32,21 @@
 
 #include "gtest/gtest.h"
 
+#ifndef S_IFLNK
+#define S_IFLNK 0120000
+#endif
+
 TEST(TestRarFile, Read)
 {
   XFILE::CFile file;
   char buf[20];
   memset(&buf, 0, sizeof(buf));
-  CStdString reffile, strrarpath, strpathinrar;
+  std::string reffile, strpathinrar;
   CFileItemList itemlist;
 
   reffile = XBMC_REF_FILE_PATH("xbmc/filesystem/test/reffile.txt.rar");
-  URIUtils::CreateArchivePath(strrarpath, "rar", reffile, "");
-  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(strrarpath, itemlist, "",
+  CURL rarUrl = URIUtils::CreateArchivePath("rar", CURL(reffile), "");
+  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(rarUrl, itemlist, "",
     XFILE::DIR_FLAG_NO_FILE_DIRS));
   strpathinrar = itemlist[0]->GetPath();
   ASSERT_TRUE(file.Open(strpathinrar));
@@ -87,12 +91,12 @@ TEST(TestRarFile, Read)
 
 TEST(TestRarFile, Exists)
 {
-  CStdString reffile, strrarpath, strpathinrar;
+  std::string reffile, strpathinrar;
   CFileItemList itemlist;
 
   reffile = XBMC_REF_FILE_PATH("xbmc/filesystem/test/reffile.txt.rar");
-  URIUtils::CreateArchivePath(strrarpath, "rar", reffile, "");
-  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(strrarpath, itemlist, "",
+  CURL rarUrl = URIUtils::CreateArchivePath("rar", CURL(reffile), "");
+  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(rarUrl, itemlist, "",
     XFILE::DIR_FLAG_NO_FILE_DIRS));
   strpathinrar = itemlist[0]->GetPath();
 
@@ -102,12 +106,12 @@ TEST(TestRarFile, Exists)
 TEST(TestRarFile, Stat)
 {
   struct __stat64 buffer;
-  CStdString reffile, strrarpath, strpathinrar;
+  std::string reffile, strpathinrar;
   CFileItemList itemlist;
 
   reffile = XBMC_REF_FILE_PATH("xbmc/filesystem/test/reffile.txt.rar");
-  URIUtils::CreateArchivePath(strrarpath, "rar", reffile, "");
-  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(strrarpath, itemlist, "",
+  CURL rarUrl = URIUtils::CreateArchivePath("rar", CURL(reffile), "");
+  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(rarUrl, itemlist, "",
     XFILE::DIR_FLAG_NO_FILE_DIRS));
   strpathinrar = itemlist[0]->GetPath();
 
@@ -124,7 +128,7 @@ TEST(TestRarFile, CorruptedFile)
   XFILE::CFile *file;
   char buf[16];
   memset(&buf, 0, sizeof(buf));
-  CStdString reffilepath, strrarpath, strpathinrar, str;
+  std::string reffilepath, strpathinrar, str;
   CFileItemList itemlist;
   unsigned int size, i;
   int64_t count = 0;
@@ -133,8 +137,8 @@ TEST(TestRarFile, CorruptedFile)
   ASSERT_TRUE((file = XBMC_CREATECORRUPTEDFILE(reffilepath, ".rar")) != NULL);
   std::cout << "Reference file generated at '" << XBMC_TEMPFILEPATH(file) << "'" << std::endl;
 
-  URIUtils::CreateArchivePath(strrarpath, "rar", XBMC_TEMPFILEPATH(file), "");
-  if (!XFILE::CDirectory::GetDirectory(strrarpath, itemlist, "",
+  CURL rarUrl = URIUtils::CreateArchivePath("rar", CURL(XBMC_TEMPFILEPATH(file)), "");
+  if (!XFILE::CDirectory::GetDirectory(rarUrl, itemlist, "",
                                        XFILE::DIR_FLAG_NO_FILE_DIRS))
   {
     XBMC_DELETETEMPFILE(file);
@@ -166,12 +170,12 @@ TEST(TestRarFile, CorruptedFile)
   std::cout << "File contents:" << std::endl;
   while ((size = file->Read(buf, sizeof(buf))) > 0)
   {
-    str.Format("  %08X", count);
+    str = StringUtils::Format("  %08X", count);
     std::cout << str << "  ";
     count += size;
     for (i = 0; i < size; i++)
     {
-      str.Format("%02X ", buf[i]);
+      str = StringUtils::Format("%02X ", buf[i]);
       std::cout << str;
     }
     while (i++ < sizeof(buf))
@@ -195,13 +199,13 @@ TEST(TestRarFile, StoredRAR)
   XFILE::CFile file;
   char buf[20];
   memset(&buf, 0, sizeof(buf));
-  CStdString reffile, strrarpath, strpathinrar;
+  std::string reffile, strpathinrar;
   CFileItemList itemlist, itemlistemptydir;
   struct __stat64 stat_buffer;
 
   reffile = XBMC_REF_FILE_PATH("xbmc/filesystem/test/refRARstored.rar");
-  URIUtils::CreateArchivePath(strrarpath, "rar", reffile, "");
-  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(strrarpath, itemlist));
+  CURL rarUrl = URIUtils::CreateArchivePath("rar", CURL(reffile), "");
+  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(rarUrl, itemlist));
   itemlist.Sort(SortByPath, SortOrderAscending);
 
   /* /reffile.txt */
@@ -417,13 +421,13 @@ TEST(TestRarFile, NormalRAR)
   XFILE::CFile file;
   char buf[20];
   memset(&buf, 0, sizeof(buf));
-  CStdString reffile, strrarpath, strpathinrar;
+  std::string reffile, strpathinrar;
   CFileItemList itemlist, itemlistemptydir;
   struct __stat64 stat_buffer;
 
   reffile = XBMC_REF_FILE_PATH("xbmc/filesystem/test/refRARnormal.rar");
-  URIUtils::CreateArchivePath(strrarpath, "rar", reffile, "");
-  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(strrarpath, itemlist));
+  CURL rarUrl = URIUtils::CreateArchivePath("rar", CURL(reffile), "");
+  ASSERT_TRUE(XFILE::CDirectory::GetDirectory(rarUrl, itemlist));
   itemlist.Sort(SortByPath, SortOrderAscending);
 
   /* /reffile.txt */

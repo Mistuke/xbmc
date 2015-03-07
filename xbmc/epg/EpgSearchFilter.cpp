@@ -48,8 +48,6 @@ void EpgSearchFilter::Reset()
   m_startDateTime.SetFromUTCDateTime(g_EpgContainer.GetFirstEPGDate());
   m_endDateTime.SetFromUTCDateTime(g_EpgContainer.GetLastEPGDate());
   m_bIncludeUnknownGenres    = false;
-  m_bIgnorePresentTimers     = false;
-  m_bIgnorePresentRecordings = false;
   m_bPreventRepeats          = false;
 
   /* pvr specific filters */
@@ -58,6 +56,7 @@ void EpgSearchFilter::Reset()
   m_iChannelGroup            = EPG_SEARCH_UNSET;
   m_bIgnorePresentTimers     = true;
   m_bIgnorePresentRecordings = true;
+  m_iUniqueBroadcastId	     = EPG_SEARCH_UNSET;
 }
 
 bool EpgSearchFilter::MatchGenre(const CEpgInfoTag &tag) const
@@ -96,7 +95,7 @@ bool EpgSearchFilter::MatchSearchTerm(const CEpgInfoTag &tag) const
 {
   bool bReturn(true);
 
-  if (!m_strSearchTerm.IsEmpty())
+  if (!m_strSearchTerm.empty())
   {
     CTextSearch search(m_strSearchTerm, m_bIsCaseSensitive, SEARCH_DEFAULT_OR);
     bReturn = search.Search(tag.Title()) ||
@@ -106,16 +105,26 @@ bool EpgSearchFilter::MatchSearchTerm(const CEpgInfoTag &tag) const
   return bReturn;
 }
 
+bool EpgSearchFilter::MatchBroadcastId(const CEpgInfoTag &tag) const
+{
+  if (m_iUniqueBroadcastId != EPG_SEARCH_UNSET)
+    return (tag.UniqueBroadcastID() == m_iUniqueBroadcastId);
+
+  return true;
+}
+
 bool EpgSearchFilter::FilterEntry(const CEpgInfoTag &tag) const
 {
   return (MatchGenre(tag) &&
+      MatchBroadcastId(tag) &&
       MatchDuration(tag) &&
       MatchStartAndEndTimes(tag) &&
       MatchSearchTerm(tag)) &&
       (!tag.HasPVRChannel() ||
-      (MatchChannelNumber(tag) &&
-       MatchChannelGroup(tag) &&
-       (!m_bFTAOnly || !tag.ChannelTag()->IsEncrypted())));
+       (MatchChannelType(tag) &&
+        MatchChannelNumber(tag) &&
+        MatchChannelGroup(tag) &&
+        (!m_bFTAOnly || !tag.ChannelTag()->IsEncrypted())));
 }
 
 int EpgSearchFilter::RemoveDuplicates(CFileItemList &results)
@@ -124,11 +133,17 @@ int EpgSearchFilter::RemoveDuplicates(CFileItemList &results)
 
   for (unsigned int iResultPtr = 0; iResultPtr < iSize; iResultPtr++)
   {
-    const CEpgInfoTag *epgentry_1 = results.Get(iResultPtr)->GetEPGInfoTag();
+    const CEpgInfoTagPtr epgentry_1(results.Get(iResultPtr)->GetEPGInfoTag());
+    if (!epgentry_1)
+      continue;
+
     for (unsigned int iTagPtr = 0; iTagPtr < iSize; iTagPtr++)
     {
-      const CEpgInfoTag *epgentry_2 = results.Get(iTagPtr)->GetEPGInfoTag();
       if (iResultPtr == iTagPtr)
+        continue;
+
+      const CEpgInfoTagPtr epgentry_2(results.Get(iTagPtr)->GetEPGInfoTag());
+      if (!epgentry_2)
         continue;
 
       if (epgentry_1->Title()       != epgentry_2->Title() ||
@@ -146,6 +161,10 @@ int EpgSearchFilter::RemoveDuplicates(CFileItemList &results)
   return iSize;
 }
 
+bool EpgSearchFilter::MatchChannelType(const CEpgInfoTag &tag) const
+{
+  return (g_PVRManager.IsStarted() && tag.ChannelTag()->IsRadio() == m_bIsRadio);
+}
 
 bool EpgSearchFilter::MatchChannelNumber(const CEpgInfoTag &tag) const
 {
@@ -157,7 +176,7 @@ bool EpgSearchFilter::MatchChannelNumber(const CEpgInfoTag &tag) const
     if (!group)
       group = CPVRManager::Get().ChannelGroups()->GetGroupAllTV();
 
-    bReturn = (m_iChannelNumber == (int) group->GetChannelNumber(*tag.ChannelTag()));
+    bReturn = (m_iChannelNumber == (int) group->GetChannelNumber(tag.ChannelTag()));
   }
 
   return bReturn;
@@ -170,7 +189,7 @@ bool EpgSearchFilter::MatchChannelGroup(const CEpgInfoTag &tag) const
   if (m_iChannelGroup != EPG_SEARCH_UNSET && g_PVRManager.IsStarted())
   {
     CPVRChannelGroupPtr group = g_PVRChannelGroups->GetByIdFromAll(m_iChannelGroup);
-    bReturn = (group && group->IsGroupMember(*tag.ChannelTag()));
+    bReturn = (group && group->IsGroupMember(tag.ChannelTag()));
   }
 
   return bReturn;
@@ -186,15 +205,16 @@ int EpgSearchFilter::FilterRecordings(CFileItemList &results)
   g_PVRRecordings->GetAll(recordings);
 
   // TODO inefficient!
+  CPVRRecordingPtr recording;
   for (int iRecordingPtr = 0; iRecordingPtr < recordings.Size(); iRecordingPtr++)
   {
-    CPVRRecording *recording = recordings.Get(iRecordingPtr)->GetPVRRecordingInfoTag();
+    recording = recordings.Get(iRecordingPtr)->GetPVRRecordingInfoTag();
     if (!recording)
       continue;
 
     for (int iResultPtr = 0; iResultPtr < results.Size(); iResultPtr++)
     {
-      const CEpgInfoTag *epgentry  = results.Get(iResultPtr)->GetEPGInfoTag();
+      const CEpgInfoTagPtr epgentry(results.Get(iResultPtr)->GetEPGInfoTag());
 
       /* no match */
       if (!epgentry ||
@@ -225,13 +245,13 @@ int EpgSearchFilter::FilterTimers(CFileItemList &results)
     if (!fileItem || !fileItem->HasPVRTimerInfoTag())
       continue;
 
-    CPVRTimerInfoTag *timer = fileItem->GetPVRTimerInfoTag();
+    CPVRTimerInfoTagPtr timer = fileItem->GetPVRTimerInfoTag();
     if (!timer)
       continue;
 
     for (int iResultPtr = 0; iResultPtr < results.Size(); iResultPtr++)
     {
-      const CEpgInfoTag *epgentry = results.Get(iResultPtr)->GetEPGInfoTag();
+      const CEpgInfoTagPtr epgentry(results.Get(iResultPtr)->GetEPGInfoTag());
       if (!epgentry ||
           *epgentry->ChannelTag() != *timer->ChannelTag() ||
           epgentry->StartAsUTC()   <  timer->StartAsUTC() ||

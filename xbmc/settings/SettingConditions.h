@@ -1,6 +1,6 @@
 #pragma once
 /*
- *      Copyright (C) 2013 Team XBMC
+ *      Copyright (C) 2014 Team XBMC
  *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,89 +19,22 @@
  *
  */
 
-#include <map>
 #include <set>
 #include <string>
 
-#include "utils/BooleanLogic.h"
+#include "settings/lib/SettingConditions.h"
 
-class CSettingsManager;
-
-typedef bool (*SettingConditionCheck)(const std::string &condition, const std::string &value, const std::string &settingId);
-
-class ISettingCondition
+class CSettingConditions
 {
 public:
-  ISettingCondition(CSettingsManager *settingsManager)
-    : m_settingsManager(settingsManager)
-  { }
-  virtual ~ISettingCondition() { }
+  static void Initialize();
 
-  virtual bool Check() const = 0;
+  static const std::set<std::string>& GetSimpleConditions() { return m_simpleConditions; }
+  static const std::map<std::string, SettingConditionCheck>& GetComplexConditions() { return m_complexConditions; }
 
-protected:
-  CSettingsManager *m_settingsManager;
-};
-
-class CSettingConditionItem : public CBooleanLogicValue, public ISettingCondition
-{
-public:
-  CSettingConditionItem(CSettingsManager *settingsManager = NULL)
-    : ISettingCondition(settingsManager)
-  { }
-  virtual ~CSettingConditionItem() { }
-  
-  virtual bool Deserialize(const TiXmlNode *node);
-  virtual const char* GetTag() const { return "condition"; }
-  virtual bool Check() const;
-
-protected:
-  std::string m_name;
-  std::string m_setting;
-};
-
-class CSettingConditionCombination : public CBooleanLogicOperation, public ISettingCondition
-{
-public:
-  CSettingConditionCombination(CSettingsManager *settingsManager = NULL)
-    : ISettingCondition(settingsManager)
-  { }
-  virtual ~CSettingConditionCombination() { }
-
-  virtual bool Check() const;
+  static bool Check(const std::string &condition, const std::string &value = "", const CSetting *setting = NULL);
 
 private:
-  virtual CBooleanLogicOperation* newOperation() { return new CSettingConditionCombination(m_settingsManager); }
-  virtual CBooleanLogicValue* newValue() { return new CSettingConditionItem(m_settingsManager); }
-};
-
-class CSettingCondition : public CBooleanLogic, public ISettingCondition
-{
-public:
-  CSettingCondition(CSettingsManager *settingsManager = NULL);
-  virtual ~CSettingCondition() { }
-
-  virtual bool Check() const;
-};
-
-class CSettingConditionsManager
-{
-public:
-  CSettingConditionsManager();
-  virtual ~CSettingConditionsManager();
-
-  void AddCondition(const std::string &condition);
-  void AddCondition(const std::string &identifier, SettingConditionCheck condition);
-
-  bool Check(const std::string &condition, const std::string &value = "", const std::string &settingId = "") const;
-
-private:
-  CSettingConditionsManager(const CSettingConditionsManager&);
-  CSettingConditionsManager const& operator=(CSettingConditionsManager const&);
-  
-  typedef std::pair<std::string, SettingConditionCheck> SettingConditionPair;
-  typedef std::map<std::string, SettingConditionCheck> SettingConditionMap;
-
-  SettingConditionMap m_conditions;
-  std::set<std::string> m_defines;
+  static std::set<std::string> m_simpleConditions;
+  static std::map<std::string, SettingConditionCheck> m_complexConditions;
 };

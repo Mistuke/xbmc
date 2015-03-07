@@ -3,7 +3,7 @@
 SETLOCAL
 
 SET CUR_PATH=%WORKSPACE%\project\BuildDependencies
-SET XBMC_PATH=%WORKSPACE%
+SET APP_PATH=%WORKSPACE%
 SET TMP_PATH=%CUR_PATH%\scripts\tmp
 
 SET MSYS_INSTALL_PATH="%CUR_PATH%\msys"
@@ -43,7 +43,7 @@ SET FSTAB=%MINGW_INSTALL_PATH%
 SET FSTAB=%FSTAB:\=/%
 SET FSTAB=%FSTAB:"=%
 ECHO %FSTAB% /mingw>>"%MSYS_INSTALL_PATH%\etc\fstab"
-SET FSTAB=%XBMC_PATH%
+SET FSTAB=%APP_PATH%
 SET FSTAB=%FSTAB:\=/%
 SET FSTAB=%FSTAB:"=%
 ECHO %FSTAB% /xbmc>>"%MSYS_INSTALL_PATH%\etc\fstab"
@@ -55,16 +55,10 @@ CALL pi_patches.bat
 
 cd %CUR_PATH%
 
-rem insert call to vcvars32.bat in msys.bat
-SET NET90VARS="%VS90COMNTOOLS%..\..\VC\bin\vcvars32.bat"
-SET NET100VARS="%VS100COMNTOOLS%..\..\VC\bin\vcvars32.bat"
+rem insert call to vsvars32.bat in msys.bat
 cd %MSYS_INSTALL_PATH%
 Move msys.bat msys.bat_dist
-IF EXIST %NET100VARS% (
-	ECHO CALL %NET100VARS%>>msys.bat
-) ELSE IF EXIST %NET90VARS% (
-	ECHO CALL %NET90VARS%>>msys.bat
-)
+ECHO CALL "%VS120COMNTOOLS%vsvars32.bat">>msys.bat
 TYPE msys.bat_dist>>msys.bat
 
 cd %CUR_PATH%

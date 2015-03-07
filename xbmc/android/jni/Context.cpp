@@ -35,7 +35,9 @@
 #include "PowerManager.h"
 #include "Cursor.h"
 #include "ConnectivityManager.h"
+#include "AudioFormat.h"
 #include "AudioManager.h"
+#include "AudioTrack.h"
 #include "Surface.h"
 #include "MediaCodec.h"
 #include "MediaCodecInfo.h"
@@ -49,7 +51,6 @@
 using namespace jni;
 
 jhobject CJNIContext::m_context(0);
-CJNIContext* CJNIContext::m_appInstance(NULL);
 
 CJNIContext::CJNIContext(const ANativeActivity *nativeActivity)
 {
@@ -57,12 +58,10 @@ CJNIContext::CJNIContext(const ANativeActivity *nativeActivity)
   xbmc_jni_on_load(nativeActivity->vm, nativeActivity->env);
   CJNIBase::SetSDKVersion(nativeActivity->sdkVersion);
   PopulateStaticFields();
-  m_appInstance = this;
 }
 
 CJNIContext::~CJNIContext()
 {
-  m_appInstance = NULL;
   xbmc_jni_on_unload();
 }
 
@@ -76,7 +75,9 @@ void CJNIContext::PopulateStaticFields()
   CJNICursor::PopulateStaticFields();
   CJNIContentResolver::PopulateStaticFields();
   CJNIConnectivityManager::PopulateStaticFields();
+  CJNIAudioFormat::PopulateStaticFields();
   CJNIAudioManager::PopulateStaticFields();
+  CJNIAudioTrack::PopulateStaticFields();
   CJNISurface::PopulateStaticFields();
   CJNIMediaCodec::PopulateStaticFields();
   CJNIMediaCodecInfoCodecProfileLevel::PopulateStaticFields();
@@ -134,9 +135,9 @@ void CJNIContext::unregisterReceiver(const CJNIBroadcastReceiver &receiver)
     receiver.get_raw());
 }
 
-CJNIIntent CJNIContext::sendBroadcast(const CJNIIntent &intent)
+void CJNIContext::sendBroadcast(const CJNIIntent &intent)
 {
-  return call_method<jhobject>(m_context,
+  call_method<void>(m_context,
     "sendBroadcast", "(Landroid/content/Intent;)V",
     intent.get_raw());
 }
@@ -195,12 +196,4 @@ CJNIWindow CJNIContext::getWindow()
 {
   return call_method<jhobject>(m_context,
     "getWindow", "()Landroid/view/Window;");
-}
-
-void CJNIContext::_onNewIntent(JNIEnv *env, jobject context, jobject intent)
-{
-  (void)env;
-  (void)context;
-  if(m_appInstance)
-    m_appInstance->onNewIntent(CJNIIntent(jhobject(intent)));
 }

@@ -22,13 +22,12 @@
 #include "FileItem.h"
 #include "GUIDialogPVRGuideInfo.h"
 #include "guilib/GUIWindowManager.h"
-#include "guilib/Key.h"
+#include "input/Key.h"
 #include "view/ViewState.h"
 #include "epg/Epg.h"
 
 #include "pvr/PVRManager.h"
 
-using namespace std;
 using namespace PVR;
 
 #define CONTROL_LIST  11
@@ -99,7 +98,7 @@ void CGUIDialogPVRGuideOSD::OnInitWindow()
   for (int iEpgPtr = 0; iEpgPtr < m_vecItems->Size(); iEpgPtr++)
   {
     CFileItemPtr entry = m_vecItems->Get(iEpgPtr);
-    if (entry->GetEPGInfoTag()->IsActive())
+    if (entry->HasEPGInfoTag() && entry->GetEPGInfoTag()->IsActive())
     {
       iSelectedItem = iEpgPtr;
       break;

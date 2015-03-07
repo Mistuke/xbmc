@@ -52,7 +52,7 @@ void CPipeFile::SetLength(int64_t len)
 
 bool CPipeFile::Open(const CURL& url)
 {
-  CStdString name = url.Get();
+  std::string name = url.Get();
   m_pipe = PipesManager::GetInstance().OpenPipe(name);
   if (m_pipe)
     m_pipe->AddListener(this);
@@ -61,7 +61,7 @@ bool CPipeFile::Open(const CURL& url)
 
 bool CPipeFile::Exists(const CURL& url)
 {
-  CStdString name = url.Get();
+  std::string name = url.Get();
   return PipesManager::GetInstance().Exists(name);
 }
 
@@ -77,21 +77,24 @@ int CPipeFile::Stat(struct __stat64* buffer)
   return 0;
 }
 
-unsigned int CPipeFile::Read(void* lpBuf, int64_t uiBufSize)
+ssize_t CPipeFile::Read(void* lpBuf, size_t uiBufSize)
 {
   if (!m_pipe)
     return -1;
   
+  if (uiBufSize > SSIZE_MAX)
+    uiBufSize = SSIZE_MAX;
+
   return m_pipe->Read((char *)lpBuf,(int)uiBufSize);
 }
 
-int CPipeFile::Write(const void* lpBuf, int64_t uiBufSize)
+ssize_t CPipeFile::Write(const void* lpBuf, size_t uiBufSize)
 {
   if (!m_pipe)
     return -1;
   
   // m_pipe->Write return bool. either all was written or not.
-  return m_pipe->Write((const char *)lpBuf,(int)uiBufSize) ? (int)uiBufSize : 0;
+  return m_pipe->Write((const char *)lpBuf,uiBufSize) ? uiBufSize : -1;
 }
 
 void CPipeFile::SetEof()
@@ -143,7 +146,7 @@ void CPipeFile::Flush()
 
 bool CPipeFile::OpenForWrite(const CURL& url, bool bOverWrite)
 {
-  CStdString name = url.Get();
+  std::string name = url.Get();
 
   m_pipe = PipesManager::GetInstance().CreatePipe(name);
   if (m_pipe)
@@ -166,10 +169,10 @@ int CPipeFile::IoControl(int request, void* param)
   return -1;
 }
 
-CStdString CPipeFile::GetName() const
+std::string CPipeFile::GetName() const
 {
   if (!m_pipe)
-    return StringUtils::EmptyString;
+    return "";
   return m_pipe->GetName();
 }
 
@@ -211,7 +214,7 @@ void CPipeFile::RemoveListener(IPipeListener *l)
     if ( (*i) == l)
       i = m_listeners.erase(i);
     else
-      i++;
+      ++i;
   }
 }
 

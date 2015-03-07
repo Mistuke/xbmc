@@ -24,6 +24,7 @@
 #include "DAAPFile.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
+#include "utils/StringUtils.h"
 #include <sys/stat.h>
 
 #include "lib/libXDAAP/private.h"
@@ -79,7 +80,7 @@ void CDaapClient::Release()
   }
 }
 
-DAAP_SClientHost* CDaapClient::GetHost(const CStdString &strHost)
+DAAP_SClientHost* CDaapClient::GetHost(const std::string &strHost)
 {
   try
   {
@@ -167,9 +168,9 @@ bool CDAAPFile::Open(const CURL& url)
   m_url = url;
 
   CLog::Log(LOGDEBUG, "CDAAPFile::Open(%s)", url.GetFileName().c_str());
-  CStdString host = url.GetHostName();
+  std::string host = url.GetHostName();
   if (url.HasPort())
-    host.Format("%s:%i",url.GetHostName(),url.GetPort());
+    host = StringUtils::Format("%s:%i", url.GetHostName().c_str(), url.GetPort());
   m_thisHost = g_DaapClient.GetHost(host);
   if (!m_thisHost)
     return false;
@@ -187,7 +188,7 @@ bool CDAAPFile::Open(const CURL& url)
 
   //m_curl.SetRequestHeader(HEADER_VERSION, "3.0");
   m_curl.SetRequestHeader(HEADER_REQUESTID, requestid);
-  m_curl.SetRequestHeader(HEADER_VALIDATE, CStdString(hash));
+  m_curl.SetRequestHeader(HEADER_VALIDATE, std::string(hash));
   m_curl.SetRequestHeader(HEADER_ACCESS_INDEX, 2);
 
   m_url.SetProtocol("http");
@@ -202,7 +203,7 @@ bool CDAAPFile::Open(const CURL& url)
 
 
 //*********************************************************************************************
-unsigned int CDAAPFile::Read(void *lpBuf, int64_t uiBufSize)
+ssize_t CDAAPFile::Read(void *lpBuf, size_t uiBufSize)
 {
   return m_curl.Read(lpBuf, uiBufSize);
 }
@@ -225,7 +226,7 @@ int64_t CDAAPFile::Seek(int64_t iFilePosition, int iWhence)
   GenerateHash(m_thisHost->version_major, (unsigned char*)(m_hashurl.c_str()), 2, (unsigned char*)hash, requestid);
 
   m_curl.SetRequestHeader(HEADER_REQUESTID, requestid);
-  m_curl.SetRequestHeader(HEADER_VALIDATE, CStdString(hash));
+  m_curl.SetRequestHeader(HEADER_VALIDATE, std::string(hash));
 
   return m_curl.Seek(iFilePosition, iWhence);
 }

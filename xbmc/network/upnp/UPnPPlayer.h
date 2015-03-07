@@ -20,8 +20,13 @@
  */
 
 #include "cores/IPlayer.h"
+#include <string>
 
 class PLT_MediaController;
+class CGUIDialogBusy;
+
+namespace XbmcThreads { class EndTime; }
+
 
 namespace UPNP
 {
@@ -37,7 +42,7 @@ public:
 
   virtual bool OpenFile(const CFileItem& file, const CPlayerOptions& options);
   virtual bool QueueNextFile(const CFileItem &file);
-  virtual bool CloseFile();
+  virtual bool CloseFile(bool reopen = false);
   virtual bool IsPlaying() const;
   virtual void Pause();
   virtual bool IsPaused() const;
@@ -47,16 +52,16 @@ public:
   virtual void SeekPercentage(float fPercent = 0);
   virtual float GetPercentage();
   virtual void SetVolume(float volume);
-  virtual void GetAudioInfo( CStdString& strAudioInfo) {};
-  virtual void GetVideoInfo( CStdString& strVideoInfo) {};
-  virtual void GetGeneralInfo( CStdString& strVideoInfo) {};
+  virtual void GetAudioInfo(std::string& strAudioInfo) {};
+  virtual void GetVideoInfo(std::string& strVideoInfo) {};
+  virtual void GetGeneralInfo(std::string& strVideoInfo) {};
   virtual bool CanRecord() { return false;};
   virtual bool IsRecording() { return false;};
   virtual bool Record(bool bOnOff) { return false;};
 
   virtual int  GetChapterCount()                               { return 0; }
   virtual int  GetChapter()                                    { return -1; }
-  virtual void GetChapterName(CStdString& strChapterName)      { return; }
+  virtual void GetChapterName(std::string& strChapterName)     { return; }
   virtual int  SeekChapter(int iChapter)                       { return -1; }
 
   virtual void SeekTime(__int64 iTime = 0);
@@ -68,16 +73,19 @@ public:
   virtual bool IsCaching() const {return false;};
   virtual int GetCacheLevel() const {return -1;};
   virtual void DoAudioWork();
+  virtual bool OnAction(const CAction &action);
 
+  virtual std::string GetPlayingTitle();
 
-  virtual CStdString GetPlayingTitle();
+  int PlayFile(const CFileItem& file, const CPlayerOptions& options, CGUIDialogBusy*& dialog, XbmcThreads::EndTime& timeout);
 
 private:
   PLT_MediaController*   m_control;
   CUPnPPlayerController* m_delegate;
-  CStdString             m_current_uri;
-  CStdString             m_current_meta;
+  std::string            m_current_uri;
+  std::string            m_current_meta;
   bool                   m_started;
+  bool                   m_stopremote;
 };
 
 } /* namespace UPNP */

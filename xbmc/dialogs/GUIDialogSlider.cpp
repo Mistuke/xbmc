@@ -21,7 +21,7 @@
 #include "GUIDialogSlider.h"
 #include "guilib/GUISliderControl.h"
 #include "guilib/GUIWindowManager.h"
-#include "guilib/Key.h"
+#include "input/Key.h"
 #include "guilib/LocalizeStrings.h"
 
 #define CONTROL_HEADING 10
@@ -57,7 +57,7 @@ bool CGUIDialogSlider::OnMessage(CGUIMessage& message)
   case GUI_MSG_CLICKED:
     if (message.GetSenderId() == CONTROL_SLIDER)
     {
-      CGUISliderControl *slider = (CGUISliderControl *)GetControl(CONTROL_SLIDER);
+      CGUISliderControl *slider = dynamic_cast<CGUISliderControl *>(GetControl(CONTROL_SLIDER));
       if (slider && m_callback)
       {
         m_callback->OnSliderChange(m_callbackData, slider);
@@ -73,15 +73,15 @@ bool CGUIDialogSlider::OnMessage(CGUIMessage& message)
   return CGUIDialog::OnMessage(message);
 }
 
-void CGUIDialogSlider::SetSlider(const CStdString &label, float value, float min, float delta, float max, ISliderCallback *callback, void *callbackData)
+void CGUIDialogSlider::SetSlider(const std::string &label, float value, float min, float delta, float max, ISliderCallback *callback, void *callbackData)
 {
   SET_CONTROL_LABEL(CONTROL_HEADING, label);
-  CGUISliderControl *slider = (CGUISliderControl *)GetControl(CONTROL_SLIDER);
+  CGUISliderControl *slider = dynamic_cast<CGUISliderControl *>(GetControl(CONTROL_SLIDER));
   m_callback = callback;
   m_callbackData = callbackData;
   if (slider)
   {
-    slider->SetType(SPIN_CONTROL_TYPE_FLOAT);
+    slider->SetType(SLIDER_CONTROL_TYPE_FLOAT);
     slider->SetFloatRange(min, max);
     slider->SetFloatInterval(delta);
     slider->SetFloatValue(value);
@@ -101,7 +101,7 @@ void CGUIDialogSlider::OnWindowLoaded()
   CGUIDialog::OnWindowLoaded();
 }
 
-void CGUIDialogSlider::ShowAndGetInput(const CStdString &label, float value, float min, float delta, float max, ISliderCallback *callback, void *callbackData)
+void CGUIDialogSlider::ShowAndGetInput(const std::string &label, float value, float min, float delta, float max, ISliderCallback *callback, void *callbackData)
 {
   // grab the slider dialog
   CGUIDialogSlider *slider = (CGUIDialogSlider *)g_windowManager.GetWindow(WINDOW_DIALOG_SLIDER);

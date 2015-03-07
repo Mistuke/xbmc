@@ -75,23 +75,10 @@ void CAESinkNULL::Deinitialize()
   StopThread();
 }
 
-bool CAESinkNULL::IsCompatible(const AEAudioFormat &format, const std::string &device)
-{
-  return ((m_format.m_sampleRate    == format.m_sampleRate) &&
-          (m_format.m_dataFormat    == format.m_dataFormat) &&
-          (m_format.m_channelLayout == format.m_channelLayout));
-}
-
-double CAESinkNULL::GetDelay()
+void CAESinkNULL::GetDelay(AEDelayStatus& status)
 {
   double sinkbuffer_seconds_to_empty = m_sinkbuffer_sec_per_byte * (double)m_sinkbuffer_level;
-  return sinkbuffer_seconds_to_empty;
-}
-
-double CAESinkNULL::GetCacheTime()
-{
-  double sinkbuffer_seconds_to_empty = m_sinkbuffer_sec_per_byte * (double)m_sinkbuffer_level;
-  return sinkbuffer_seconds_to_empty;
+  status.SetDelay(sinkbuffer_seconds_to_empty);
 }
 
 double CAESinkNULL::GetCacheTotal()
@@ -99,13 +86,13 @@ double CAESinkNULL::GetCacheTotal()
   return m_sinkbuffer_sec_per_byte * (double)m_sinkbuffer_size;
 }
 
-unsigned int CAESinkNULL::AddPackets(uint8_t *data, unsigned int frames, bool hasAudio, bool blocking)
+unsigned int CAESinkNULL::AddPackets(uint8_t **data, unsigned int frames, unsigned int offset)
 {
   unsigned int max_frames = (m_sinkbuffer_size - m_sinkbuffer_level) / m_sink_frameSize;
   if (frames > max_frames)
     frames = max_frames;
 
-  if (hasAudio && frames)
+  if (frames)
   {
     m_sinkbuffer_level += frames * m_sink_frameSize;
     m_wake.Set();

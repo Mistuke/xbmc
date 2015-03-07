@@ -40,22 +40,20 @@ CSourcesDirectory::~CSourcesDirectory(void)
 {
 }
 
-bool CSourcesDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items)
+bool CSourcesDirectory::GetDirectory(const CURL& url, CFileItemList &items)
 {
   // break up our path
   // format is:  sources://<type>/
-  CURL url(strPath);
-  CStdString type(url.GetFileName());
+  std::string type(url.GetFileName());
   URIUtils::RemoveSlashAtEnd(type);
 
   VECSOURCES sources;
   VECSOURCES *sourcesFromType = CMediaSourceSettings::Get().GetSources(type);
-  if (sourcesFromType)
-    sources = *sourcesFromType;
-  g_mediaManager.GetRemovableDrives(sources);
-
   if (!sourcesFromType)
     return false;
+
+  sources = *sourcesFromType;
+  g_mediaManager.GetRemovableDrives(sources);
 
   return GetDirectory(sources, items);
 }
@@ -66,27 +64,27 @@ bool CSourcesDirectory::GetDirectory(const VECSOURCES &sources, CFileItemList &i
   {
     const CMediaSource& share = sources[i];
     CFileItemPtr pItem(new CFileItem(share));
-    if (StringUtils::StartsWithNoCase(pItem->GetPath(), "musicsearch://"))
+    if (URIUtils::IsProtocol(pItem->GetPath(), "musicsearch"))
       pItem->SetCanQueue(false);
     
-    CStdString strIcon;
+    std::string strIcon;
     // We have the real DVD-ROM, set icon on disktype
-    if (share.m_iDriveType == CMediaSource::SOURCE_TYPE_DVD && share.m_strThumbnailImage.IsEmpty())
+    if (share.m_iDriveType == CMediaSource::SOURCE_TYPE_DVD && share.m_strThumbnailImage.empty())
     {
       CUtil::GetDVDDriveIcon( pItem->GetPath(), strIcon );
       // CDetectDVDMedia::SetNewDVDShareUrl() caches disc thumb as special://temp/dvdicon.tbn
-      CStdString strThumb = "special://temp/dvdicon.tbn";
+      std::string strThumb = "special://temp/dvdicon.tbn";
       if (XFILE::CFile::Exists(strThumb))
         pItem->SetArt("thumb", strThumb);
     }
-    else if (pItem->GetPath().Left(9) == "addons://")
+    else if (URIUtils::IsProtocol(pItem->GetPath(), "addons"))
       strIcon = "DefaultHardDisk.png";
     else if (   pItem->IsVideoDb()
              || pItem->IsMusicDb()
              || pItem->IsPlugin()
-             || pItem->GetPath() == "special://musicplaylists/"
-             || pItem->GetPath() == "special://videoplaylists/"
-             || pItem->GetPath() == "musicsearch://")
+             || pItem->IsPath("special://musicplaylists/")
+             || pItem->IsPath("special://videoplaylists/")
+             || pItem->IsPath("musicsearch://"))
       strIcon = "DefaultFolder.png";
     else if (pItem->IsRemote())
       strIcon = "DefaultNetwork.png";
@@ -112,7 +110,7 @@ bool CSourcesDirectory::GetDirectory(const VECSOURCES &sources, CFileItemList &i
   return true;
 }
 
-bool CSourcesDirectory::Exists(const char* strPath)
+bool CSourcesDirectory::Exists(const CURL& url)
 {
   return true;
 }

@@ -55,7 +55,7 @@ SPCCodec::~SPCCodec()
   DeInit();
 }
 
-bool SPCCodec::Init(const CStdString &strFile, unsigned int filecache)
+bool SPCCodec::Init(const std::string &strFile, unsigned int filecache)
 {
   // SNESAPU can ONLY be opened and used by one instance (lot's of statics).
   // So to work around this problem with SNESAPU, we need to make sure that
@@ -65,12 +65,12 @@ bool SPCCodec::Init(const CStdString &strFile, unsigned int filecache)
   // This forces the shared lib loader to load a per-instance copy of SNESAPU.
 #ifdef TARGET_POSIX
   m_loader_name = CUtil::GetNextFilename("special://temp/SNESAPU-%03d.so", 999);
-  XFILE::CFile::Cache(DLL_PATH_SPC_CODEC, m_loader_name);
+  XFILE::CFile::Copy(DLL_PATH_SPC_CODEC, m_loader_name);
 
   m_loader = new SoLoader(m_loader_name);
 #else
   m_loader_name = CUtil::GetNextFilename("special://temp/SNESAPU-%03d.dll", 999);
-  XFILE::CFile::Cache(DLL_PATH_SPC_CODEC, m_loader_name);
+  XFILE::CFile::Copy(DLL_PATH_SPC_CODEC, m_loader_name);
 
   m_loader = new Win32DllLoader(m_loader_name);
 #endif
@@ -103,7 +103,7 @@ bool SPCCodec::Init(const CStdString &strFile, unsigned int filecache)
     return false;
   }
   m_szBuffer = new char[0x10200];
-  if (!file.Read(m_szBuffer,0x10200))
+  if (file.Read(m_szBuffer,0x10200) <= 0)
   {
     delete[] m_szBuffer;
     m_szBuffer = NULL;

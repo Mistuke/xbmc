@@ -37,7 +37,7 @@
 
 using namespace MEDIA_DETECT;
 
-boost::shared_ptr<CLibcdio> CLibcdio::m_pInstance;
+std::shared_ptr<CLibcdio> CLibcdio::m_pInstance;
 
 /* Some interesting sector numbers stored in the above buffer. */
 #define ISO_SUPERBLOCK_SECTOR  16  /* buffer[0] */
@@ -118,11 +118,11 @@ void CLibcdio::ReleaseInstance()
   m_pInstance.reset();
 }
 
-boost::shared_ptr<CLibcdio> CLibcdio::GetInstance()
+std::shared_ptr<CLibcdio> CLibcdio::GetInstance()
 {
   if (!m_pInstance)
   {
-    m_pInstance = boost::shared_ptr<CLibcdio>(new CLibcdio());
+    m_pInstance = std::shared_ptr<CLibcdio>(new CLibcdio());
   }
   return m_pInstance;
 }
@@ -275,11 +275,11 @@ HANDLE CCdIoSupport::OpenCDROM()
   return (HANDLE) cdio;
 }
 
-HANDLE CCdIoSupport::OpenIMAGE( CStdString& strFilename )
+HANDLE CCdIoSupport::OpenIMAGE( std::string& strFilename )
 {
   CSingleLock lock(*m_cdio);
 
-  CdIo* cdio = ::cdio_open(strFilename, DRIVER_UNKNOWN);
+  CdIo* cdio = ::cdio_open(strFilename.c_str(), DRIVER_UNKNOWN);
 
   return (HANDLE) cdio;
 }
@@ -400,8 +400,8 @@ void CCdIoSupport::PrintAnalysis(int fs, int num_audio)
   case FS_ISO_9660_INTERACTIVE:
   case FS_ISO_HFS:
   case FS_ISO_UDF:
-    CLog::Log(LOGINFO, "ISO 9660: %i blocks, label `%.32s'\n",
-              m_nIsofsSize, buffer[0] + 40);
+    CLog::Log(LOGINFO, "ISO 9660: %i blocks, label %s",
+              m_nIsofsSize, m_strDiscLabel.c_str());
     break;
   }
 
@@ -882,8 +882,8 @@ CCdInfo* CCdIoSupport::GetCdInfo(char* cDeviceFileName)
                   " ISO 9660 blocks: %6i",
                   j++, i, m_nStartTrack, m_nIsofsSize);
 
-        CLog::Log(LOGINFO, "ISO 9660: %i blocks, label '%.32s'\n",
-                  m_nIsofsSize, buffer[0] + 40);
+        CLog::Log(LOGINFO, "ISO 9660: %i blocks, label %s",
+                  m_nIsofsSize, m_strDiscLabel.c_str());
         m_nFs |= MULTISESSION;
         ti.nfsInfo = m_nFs;
       }

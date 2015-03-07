@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+#include <cstdlib>
 
 #include "NSFCodec.h"
 #include "utils/log.h"
@@ -40,20 +41,20 @@ NSFCodec::~NSFCodec()
   DeInit();
 }
 
-bool NSFCodec::Init(const CStdString &strFile, unsigned int filecache)
+bool NSFCodec::Init(const std::string &strFile, unsigned int filecache)
 {
   DeInit();
 
   if (!m_dll.Load())
     return false; // error logged previously
 
-  CStdString strFileToLoad = strFile;
+  std::string strFileToLoad = strFile;
   m_iTrack = 0;
   if (URIUtils::HasExtension(strFile, ".nsfstream"))
   {
     //  Extract the track to play
-    CStdString strFileName=URIUtils::GetFileName(strFile);
-    int iStart=strFileName.ReverseFind('-')+1;
+    std::string strFileName=URIUtils::GetFileName(strFile);
+    size_t iStart=strFileName.rfind('-') + 1;
     m_iTrack = atoi(strFileName.substr(iStart, strFileName.size()-iStart-10).c_str());
     //  The directory we are in, is the file
     //  that contains the bitstream to play,
