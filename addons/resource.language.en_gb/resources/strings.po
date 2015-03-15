@@ -4914,37 +4914,14 @@ msgctxt "#12348"
 msgid "Item locked"
 msgstr ""
 
-#: xbmc/utils/EdenVideoArtUpdater.cpp
-msgctxt "#12349"
-msgid "Updating video library art"
-msgstr ""
-
-#: xbmc/utils/EdenVideoArtUpdater.cpp
-msgctxt "#12350"
-msgid "Processing %s"
-msgstr ""
-
-#: xbmc/video/windows/GUIWindowVideoBase.cpp
-msgctxt "#12351"
-msgid "The art cache in your video library needs updating."
-msgstr ""
-
-#: xbmc/video/windows/GUIWindowVideoBase.cpp
-msgctxt "#12352"
-msgid "No downloading is needed."
-msgstr ""
+#empty strings with id 12349 to 12352
 
 #: xbmc/dialogs/GUIDialogContextMenu.cpp
 msgctxt "#12353"
 msgid "Reactivate lock"
 msgstr ""
 
-#: xbmc/video/windows/GUIWindowVideoBase.cpp
-msgctxt "#12354"
-msgid "Would you like to update it now?"
-msgstr ""
-
-#empty string with id 12355
+#empty strings with id 12354 to 12355
 
 #: xbmc/dialogs/GUIDialogContextMenu.cpp
 msgctxt "#12356"
@@ -7936,7 +7913,7 @@ msgctxt "#19068"
 msgid "This recording could not be deleted. Check the log for details."
 msgstr ""
 
-#: system/settings/settings.xml
+#. Electronic program guide. used by ?
 msgctxt "#19069"
 msgid "EPG"
 msgstr ""
@@ -10328,17 +10305,9 @@ msgctxt "#20255"
 msgid "First logon, edit your profile"
 msgstr ""
 
-#: xbmc/network/GUIDialogNetworkSetup.cpp
-msgctxt "#20256"
-msgid "HTS Tvheadend client"
-msgstr ""
+#empty string with id 20256
 
-#: xbmc/network/GUIDialogNetworkSetup.cpp
-msgctxt "#20257"
-msgid "VDR Streamdev client"
-msgstr ""
-
-#empty string with id 20285
+#empty strings from id 20257 to 20258
 
 #: xbmc/network/GUIDialogNetworkSetup.cpp
 msgctxt "#20259"
@@ -12096,16 +12065,16 @@ msgctxt "#22017"
 msgid "By group"
 msgstr ""
 
-msgctxt "#22018"
-msgid "Live channels"
-msgstr ""
+#empty string with id 22018
 
 msgctxt "#22019"
 msgid "Recordings by title"
 msgstr ""
 
-#. Electronic program guide, used as label in the menu of the PVR section
-#: addons/skin/confluence
+#. Electronic program guide, used as label in the menu of the PVR settings section and by confluence and other skins
+#: system/settings/settings.xml
+#: addons/skin.confluence/720p/IncludesPVR.xml
+#: addons/skin.confluence/720p/IncludesHomeMenuItems.xml
 msgctxt "#22020"
 msgid "Guide"
 msgstr ""
