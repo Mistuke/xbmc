@@ -21,25 +21,13 @@
 
 #include "Addon.h"
 #include "utils/Job.h"
+#include "utils/ProgressJob.h"
 
 namespace ADDON
 {
-  class CRepository;
-  typedef std::shared_ptr<CRepository> RepositoryPtr;
   class CRepository : public CAddon
   {
   public:
-    virtual AddonPtr Clone() const;
-    CRepository(const AddonProps& props);
-    CRepository(const cp_extension_t *props);
-    virtual ~CRepository();
-
-    /*! \brief Get the md5 hash for an addon.
-     \param the addon in question.
-     \return the md5 hash for the given addon, empty if non exists.
-     */
-    std::string GetAddonHash(const AddonPtr& addon) const;
-
     struct DirInfo
     {
       DirInfo() : version("0.0.0"), compressed(false), zipped(false), hashes(false) {}
@@ -53,30 +41,50 @@ namespace ADDON
     };
 
     typedef std::vector<DirInfo> DirList;
+
     DirList m_dirs;
+
+    static std::unique_ptr<CRepository> FromExtension(AddonProps props, const cp_extension_t* ext);
+
+    explicit CRepository(AddonProps props) : CAddon(std::move(props)) {};
+    CRepository(AddonProps props, DirList dirs);
+
+    /*! \brief Get the md5 hash for an addon.
+     \param the addon in question.
+     \return the md5 hash for the given addon, empty if non exists.
+     */
+    std::string GetAddonHash(const AddonPtr& addon) const;
 
     static bool Parse(const DirInfo& dir, VECADDONS& addons);
     static std::string FetchChecksum(const std::string& url);
 
-    virtual void OnPostInstall(bool restart, bool update, bool modal);
-    virtual void OnPostUnInstall();
-
   private:
-    CRepository(const CRepository &rhs);
+    static bool FetchIndex(const std::string& url, VECADDONS& addons);
   };
 
-  class CRepositoryUpdateJob : public CJob
+  typedef std::shared_ptr<CRepository> RepositoryPtr;
+
+
+  class CRepositoryUpdateJob : public CProgressJob
   {
   public:
-    CRepositoryUpdateJob(const VECADDONS& repos);
+    CRepositoryUpdateJob(const RepositoryPtr& repo);
     virtual ~CRepositoryUpdateJob() {}
-
-    virtual const char *GetType() const { return "repoupdate"; };
     virtual bool DoWork();
-  private:
-    bool GrabAddons(const RepositoryPtr& repo, VECADDONS& addons);
+    const RepositoryPtr& GetAddon() const { return m_repo; };
 
-    VECADDONS m_repos;
+  private:
+    enum FetchStatus
+    {
+      STATUS_OK,
+      STATUS_NOT_MODIFIED,
+      STATUS_ERROR
+    };
+
+    FetchStatus FetchIfChanged(const std::string& oldChecksum,
+        std::string& checksum, VECADDONS& addons);
+
+    const RepositoryPtr m_repo;
   };
 }
 

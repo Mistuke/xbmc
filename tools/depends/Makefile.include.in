@@ -20,7 +20,7 @@ NATIVE_OS=@build_os@
 CROSS_COMPILING=@cross_compiling@
 ARCH_DEFINES=@ARCH_DEFINES@
 NATIVE_ARCH_DEFINES=@NATIVE_ARCH_DEFINES@
-TARGET_PLATFORM=@use_platform@
+TARGET_PLATFORM=@target_platform@
 XCODE_VERSION=@use_xcode@
 AAPT=@AAPT@
 DX=@DX@
@@ -32,7 +32,10 @@ LINK_ICONV=@link_iconv@
 ENABLE_GPLV3=@use_gplv3@
 HAS_LIBCRYSTAX=@has_libcrystax@
 
-BASE_URL=http://mirrors.xbmc.org/build-deps/sources
+BASE_URL=http://mirrors.kodi.tv/build-deps/sources
+ifneq ($(KODI_MIRROR),)
+BASE_URL=$(KODI_MIRROR)/build-deps/sources
+endif
 RETRIEVE_TOOL_FLAGS=-Ls --create-dirs -f -O
 ARCHIVE_TOOL_FLAGS=--strip-components=1 -xf
 CONFIG_SUB=@prefix@/@tool_dir@/share/automake-1.11/config.sub
@@ -79,6 +82,9 @@ NATIVE_CPPFLAGS=-I@prefix@/@tool_dir@/include
 NATIVE_CXXFLAGS=-I@prefix@/@tool_dir@/include
 
 
+ifeq ($(CPU), arm64)
+  export GASPP_FIX_XCODE5=1
+endif
 export AUTOM4TE=@prefix@/@tool_dir@/bin/autom4te
 export AUTOMAKE=@prefix@/@tool_dir@/bin/automake
 export AUTOCONF=@prefix@/@tool_dir@/bin/autoconf

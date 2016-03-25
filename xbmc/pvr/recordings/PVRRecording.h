@@ -22,34 +22,33 @@
 /*
  * DESCRIPTION:
  *
- * CPVRRecordingInfoTag is part of the XBMC PVR system to support recording entrys,
+ * CPVRRecordingInfoTag is part of the Kodi PVR system to support recording entrys,
  * stored on a other Backend like VDR or MythTV.
  *
  * The recording information tag holds data about name, length, recording time
  * and so on of recorded stream stored on the backend.
  *
- * The filename string is used to by the PVRManager and passed to DVDPlayer
- * to stream data from the backend to XBMC.
+ * The filename string is used to by the PVRManager and passed to VideoPlayer
+ * to stream data from the backend to Kodi.
  *
  * It is a also CVideoInfoTag and some of his variables must be set!
  *
  */
 
-#include "addons/include/xbmc_pvr_types.h"
-#include "video/VideoInfoTag.h"
 #include "XBDateTime.h"
-
-#define PVR_RECORDING_BASE_PATH     "recordings"
-#define PVR_RECORDING_DELETED_PATH  "deleted"
-#define PVR_RECORDING_ACTIVE_PATH   "active"
+#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
+#include "video/VideoInfoTag.h"
 
 class CVideoDatabase;
+class CVariant;
 
 namespace PVR
 {
   class CPVRRecording;
-
   typedef std::shared_ptr<PVR::CPVRRecording> CPVRRecordingPtr;
+
+  class CPVRChannel;
+  typedef std::shared_ptr<PVR::CPVRChannel> CPVRChannelPtr;
 
   /*!
    * @brief Representation of a CPVRRecording unique ID.
@@ -119,6 +118,11 @@ namespace PVR
     bool Delete(void);
 
     /*!
+     * @brief Called when this recording has been deleted
+     */
+    void OnDelete(void);
+
+    /*!
      * @brief Undelete this recording on the client (if supported).
      * @return True if it was undeleted successfully, false otherwise.
      */
@@ -164,7 +168,7 @@ namespace PVR
     std::vector<PVR_EDL_ENTRY> GetEdl() const;
 
     /*!
-     * @brief Get the resume point and play count from the database if the 
+     * @brief Get the resume point and play count from the database if the
      * client doesn't handle it itself.
      */
     void UpdateMetadata(CVideoDatabase &db);
@@ -198,10 +202,47 @@ namespace PVR
      */
     bool IsDeleted() const { return m_bIsDeleted; }
 
+    /*!
+     * @brief Check whether this is a tv or radio recording
+     * @return true if this is a radio recording, false if this is a tv recording
+     */
+    bool IsRadio() const { return m_bRadio; }
+
+    /*!
+     * @return Broadcast id of the EPG event associated with this recording or EPG_TAG_INVALID_UID
+     */
+    unsigned int BroadcastUid(void) const { return m_iEpgEventId; }
+
+    /*!
+     * @return channel id associated with this recording or PVR_CHANNEL_INVALID_UID
+     */
+    int ChannelUid(void) const { return m_iChannelUid; }
+
+    /*!
+     * @return Get the channel on which this recording is/was running
+     * @note Only works if the recording has a channel uid provided by the add-on
+     */
+    CPVRChannelPtr Channel(void) const;
+
+    /*!
+     * @return True while the recording is running
+     * @note Only works if the recording has a channel uid and an EPG id provided by the add-on
+     */
+    bool IsBeingRecorded(void) const;
+
+    /*!
+     * @brief Retrieve the recording Episode Name
+     * @note Returns an empty string if no Episode Name was provided by the PVR client
+     */
+    std::string EpisodeName(void) const { return m_strShowTitle; };
+
   private:
-    CDateTime m_recordingTime; /*!< start time of the recording */
-    bool      m_bGotMetaData;
-    bool      m_bIsDeleted;    /*!< set if entry is a deleted recording which can be undelete */
+    CDateTime    m_recordingTime; /*!< start time of the recording */
+    bool         m_bGotMetaData;
+    bool         m_bIsDeleted;    /*!< set if entry is a deleted recording which can be undelete */
+    unsigned int m_iEpgEventId;   /*!< epg broadcast id associated with this recording */
+    int          m_iChannelUid;   /*!< channel uid associated with this recording */
+    bool         m_bRadio;        /*!< radio or tv recording */
 
     void UpdatePath(void);
     void DisplayError(PVR_ERROR err) const;

@@ -23,6 +23,8 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+
+#include "pictures/PictureScalingAlgorithm.h"
 #include "utils/Job.h"
 
 class CBaseTexture;
@@ -83,8 +85,6 @@ public:
   std::string m_oldHash;
   CTextureDetails m_details;
 private:
-  friend class CEdenVideoArtUpdater;
-
   /*! \brief retrieve a hash for the given image
    Combines the size, ctime and mtime of the image file into a "unique" hash
    \param url location of the image
@@ -105,10 +105,11 @@ private:
    \param url wrapped URL of the image
    \param width width derived from URL
    \param height height derived from URL
+   \param scalingAlgorithm scaling algorithm derived from URL
    \param additional_info additional information, such as "flipped" to flip horizontally
    \return URL of the underlying image file.
    */
-  static std::string DecodeImageURL(const std::string &url, unsigned int &width, unsigned int &height, std::string &additional_info);
+  static std::string DecodeImageURL(const std::string &url, unsigned int &width, unsigned int &height, CPictureScalingAlgorithm::Algorithm& scalingAlgorithm, std::string &additional_info);
 
   /*! \brief Load an image at a given target size and orientation.
 
@@ -124,20 +125,6 @@ private:
   static CBaseTexture *LoadImage(const std::string &image, unsigned int width, unsigned int height, const std::string &additional_info, bool requirePixels = false);
 
   std::string    m_cachePath;
-};
-
-/* \brief Job class for creating .dds versions of textures
- */
-class CTextureDDSJob : public CJob
-{
-public:
-  CTextureDDSJob(const std::string &original);
-
-  virtual const char* GetType() const { return kJobTypeDDSCompress; };
-  virtual bool operator==(const CJob *job) const;
-  virtual bool DoWork();
-
-  std::string m_original;
 };
 
 /* \brief Job class for storing the use count of textures

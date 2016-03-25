@@ -24,12 +24,7 @@
 
 #include "Window.h"
 #include "windows/GUIMediaWindow.h"
-
-#include "threads/Thread.h"
-
 #include "swighelper.h"
-#include "FileItem.h"
-
 #include "WindowDialogMixin.h"
 
 namespace XBMCAddon
@@ -45,14 +40,14 @@ namespace XBMCAddon
      * WindowXML(self, xmlFilename, scriptPath[, defaultSkin, defaultRes]) -- Create a new WindowXML script.
      * 
      * xmlFilename     : string - the name of the xml file to look for.\n
-     * scriptPath      : string - path to script. used to fallback to if the xml doesn't exist in the current skin. (eg os.getcwd())\n
+     * scriptPath      : string - path to script. used to fallback to if the xml doesn't exist in the current skin. (eg xbmcaddon.Addon().getAddonInfo('path').decode('utf-8'))\n
      * defaultSkin     : [opt] string - name of the folder in the skins path to look in for the xml. (default='Default')\n
      * defaultRes      : [opt] string - default skins resolution. (default='720p')
      * 
      * *Note, skin folder structure is eg(resources/skins/Default/720p)
      * 
      * example:\n
-     *  - ui = GUI('script-Lyrics-main.xml', os.getcwd(), 'LCARS', 'PAL')\n
+     *  - ui = GUI('script-Lyrics-main.xml', xbmcaddon.Addon().getAddonInfo('path').decode('utf-8'), 'default', '1080p')\n
      *    ui.doModal()\n
      *    del ui
      */
@@ -66,7 +61,7 @@ namespace XBMCAddon
        * This helper retrieves the next available id. It is doesn't
        *  assume that the global lock is already being held.
        */
-      static int lockingGetNextAvailalbeWindowId() throw (WindowException);
+      static int lockingGetNextAvailableWindowId();
 
       WindowXMLInterceptor* interceptor;
 #endif
@@ -74,7 +69,7 @@ namespace XBMCAddon
      public:
       WindowXML(const String& xmlFilename, const String& scriptPath,
                 const String& defaultSkin = "Default",
-                const String& defaultRes = "720p") throw(WindowException);
+                const String& defaultRes = "720p");
       virtual ~WindowXML();
 
       /**
@@ -126,7 +121,7 @@ namespace XBMCAddon
        * example:\n
        *   - listitem = self.getListItem(6)
        */
-      SWIGHIDDENVIRTUAL ListItem* getListItem(int position) throw (WindowException);
+      SWIGHIDDENVIRTUAL ListItem* getListItem(int position);
 
       /**
        * getListSize() -- Returns the number of items in this Window List.
@@ -145,7 +140,7 @@ namespace XBMCAddon
       SWIGHIDDENVIRTUAL void clearList();
 
       /**
-       * setProperty(key, value) -- Sets a container property, similar to an infolabel.
+       * setContainerProperty(key, value) -- Sets a container property, similar to an infolabel.
        * 
        * key            : string - property name.\n
        * value          : string or unicode - value of property.
@@ -155,9 +150,9 @@ namespace XBMCAddon
        *        Once you use a keyword, all following arguments require the keyword.
        * 
        * example:\n
-       *   - self.setProperty('Category', 'Newest')
+       *   - self.setContainerProperty('Category', 'Newest')
        */
-      SWIGHIDDENVIRTUAL void setProperty(const String &strProperty, const String &strValue);
+      SWIGHIDDENVIRTUAL void setContainerProperty(const String &strProperty, const String &strValue);
 
 #ifndef SWIG
       // CGUIWindow
@@ -214,14 +209,14 @@ namespace XBMCAddon
      * WindowXMLDialog(self, xmlFilename, scriptPath[, defaultSkin, defaultRes]) -- Create a new WindowXMLDialog script.
      * 
      * xmlFilename     : string - the name of the xml file to look for.\n
-     * scriptPath      : string - path to script. used to fallback to if the xml doesn't exist in the current skin. (eg os.getcwd())\n
+     * scriptPath      : string - path to script. used to fallback to if the xml doesn't exist in the current skin. (eg xbmcaddon.Addon().getAddonInfo('path').decode('utf-8'))\n
      * defaultSkin     : [opt] string - name of the folder in the skins path to look in for the xml. (default='Default')\n
      * defaultRes      : [opt] string - default skins resolution. (default='720p')
      * 
      * *Note, skin folder structure is eg(resources/skins/Default/720p)
      * 
      * example:
-     *  - ui = GUI('script-Lyrics-main.xml', os.getcwd(), 'LCARS', 'PAL')
+     *  - ui = GUI('script-Lyrics-main.xml', xbmcaddon.Addon().getAddonInfo('path').decode('utf-8'), 'default', '1080p')
      *  - ui.doModal()
      *  - del ui
      */
@@ -230,7 +225,7 @@ namespace XBMCAddon
     public:
       WindowXMLDialog(const String& xmlFilename, const String& scriptPath,
                       const String& defaultSkin = "Default",
-                      const String& defaultRes = "720p") throw(WindowException);
+                      const String& defaultRes = "720p");
 
       virtual ~WindowXMLDialog();
 
@@ -242,6 +237,8 @@ namespace XBMCAddon
       SWIGHIDDENVIRTUAL bool    IsMediaWindow() const { XBMC_TRACE; return false; };
       SWIGHIDDENVIRTUAL bool    OnAction(const CAction &action);
       SWIGHIDDENVIRTUAL void    OnDeinitWindow(int nextWindowID);
+
+      SWIGHIDDENVIRTUAL bool    LoadXML(const String &strPath, const String &strPathLower);
 
       SWIGHIDDENVIRTUAL inline void show() { XBMC_TRACE; WindowDialogMixin::show(); }
       SWIGHIDDENVIRTUAL inline void close() { XBMC_TRACE; WindowDialogMixin::close(); }

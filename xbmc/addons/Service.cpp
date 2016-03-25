@@ -23,31 +23,23 @@
 #include "utils/log.h"
 #include "system.h"
 
-using namespace std;
-
 namespace ADDON
 {
 
-CService::CService(const cp_extension_t *ext)
-  : CAddon(ext), m_type(UNKNOWN), m_startOption(LOGIN)
+std::unique_ptr<CService> CService::FromExtension(AddonProps props, const cp_extension_t* ext)
 {
-  BuildServiceType();
-
-  std::string start = CAddonMgr::Get().GetExtValue(ext->configuration, "@start");
+  START_OPTION startOption(LOGIN);
+  std::string start = CAddonMgr::GetInstance().GetExtValue(ext->configuration, "@start");
   if (start == "startup")
-    m_startOption = STARTUP;
+    startOption = STARTUP;
+  return std::unique_ptr<CService>(new CService(std::move(props), TYPE(UNKNOWN), startOption));
 }
 
 
-CService::CService(const AddonProps &props)
-  : CAddon(props), m_type(UNKNOWN), m_startOption(LOGIN)
+CService::CService(AddonProps props, TYPE type, START_OPTION startOption)
+  : CAddon(std::move(props)), m_type(type), m_startOption(startOption)
 {
   BuildServiceType();
-}
-
-AddonPtr CService::Clone() const
-{
-  return AddonPtr(new CService(*this));
 }
 
 bool CService::Start()
@@ -57,7 +49,7 @@ bool CService::Start()
   {
 #ifdef HAS_PYTHON
   case PYTHON:
-    ret = (CScriptInvocationManager::Get().ExecuteAsync(LibPath(), this->shared_from_this()) != -1);
+    ret = (CScriptInvocationManager::GetInstance().ExecuteAsync(LibPath(), this->shared_from_this()) != -1);
     break;
 #endif
 
@@ -78,7 +70,7 @@ bool CService::Stop()
   {
 #ifdef HAS_PYTHON
   case PYTHON:
-    ret = CScriptInvocationManager::Get().Stop(LibPath());
+    ret = CScriptInvocationManager::GetInstance().Stop(LibPath());
     break;
 #endif
 
@@ -97,7 +89,7 @@ void CService::BuildServiceType()
   std::string ext;
 
   size_t p = str.find_last_of('.');
-  if (p != string::npos)
+  if (p != std::string::npos)
     ext = str.substr(p + 1);
 
 #ifdef HAS_PYTHON
@@ -111,48 +103,6 @@ void CService::BuildServiceType()
     m_type = UNKNOWN;
     CLog::Log(LOGERROR, "ADDON: extension '%s' is not currently supported for service addon", ext.c_str());
   }
-}
-
-void CService::OnDisabled()
-{
-  Stop();
-}
-
-void CService::OnEnabled()
-{
-  Start();
-}
-
-bool CService::OnPreInstall()
-{
-  // make sure the addon is stopped
-  AddonPtr localAddon; // need to grab the local addon so we have the correct library path to stop
-  if (CAddonMgr::Get().GetAddon(ID(), localAddon, ADDON_SERVICE, false))
-  {
-    std::shared_ptr<CService> service = std::dynamic_pointer_cast<CService>(localAddon);
-    if (service)
-      service->Stop();
-  }
-  return !CAddonMgr::Get().IsAddonDisabled(ID());
-}
-
-void CService::OnPostInstall(bool restart, bool update, bool modal)
-{
-  if (restart) // reload/start it if it was running
-  {
-    AddonPtr localAddon; // need to grab the local addon so we have the correct library path to stop
-    if (CAddonMgr::Get().GetAddon(ID(), localAddon, ADDON_SERVICE, false))
-    {
-      std::shared_ptr<CService> service = std::dynamic_pointer_cast<CService>(localAddon);
-      if (service)
-        service->Start();
-    }
-  }
-}
-
-void CService::OnPreUnInstall()
-{
-  Stop();
 }
 
 }

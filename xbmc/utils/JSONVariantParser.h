@@ -19,10 +19,9 @@
  *
  */
 
-#include "Variant.h"
+#include "utils/Variant.h"
 
 #include <yajl/yajl_parse.h>
-#include <yajl/yajl_gen.h>
 
 class IParseCallback
 {

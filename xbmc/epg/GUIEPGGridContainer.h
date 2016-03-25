@@ -1,5 +1,4 @@
 #pragma once
-
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://xbmc.org
@@ -25,16 +24,14 @@
 #include "guilib/GUIControl.h"
 #include "guilib/GUIListItemLayout.h"
 #include "guilib/IGUIContainer.h"
-#include "pvr/channels/PVRChannel.h"
 
 namespace EPG
 {
-  #define MAXCHANNELS 20
   #define MAXBLOCKS   (33 * 24 * 60 / 5) //! 33 days of 5 minute blocks (31 days for upcoming data + 1 day for past data + 1 day for fillers)
 
   struct GridItemsPtr
   {
-    CGUIListItemPtr item;
+    CFileItemPtr item;
     float originWidth;
     float originHeight;
     float width;
@@ -47,8 +44,10 @@ namespace EPG
     CGUIEPGGridContainer(int parentID, int controlID, float posX, float posY, float width, float height,
                          int scrollTime, int preloadItems, int minutesPerPage,
                          int rulerUnit, const CTextureInfo& progressIndicatorTexture);
+    CGUIEPGGridContainer(const CGUIEPGGridContainer &other);
+
     virtual ~CGUIEPGGridContainer(void);
-    virtual CGUIEPGGridContainer *Clone() const { return new CGUIEPGGridContainer(*this); };
+    virtual CGUIEPGGridContainer *Clone() const { return new CGUIEPGGridContainer(*this); }
 
     virtual bool OnAction(const CAction &action);
     virtual void OnDown();
@@ -65,9 +64,8 @@ namespace EPG
     virtual std::string GetDescription() const;
     const int GetNumChannels()   { return m_channels; };
     virtual int GetSelectedItem() const;
-    const int GetSelectedChannel() { return m_channelCursor + m_channelOffset; }
-    void SetSelectedChannel(int channelIndex);
-    PVR::CPVRChannelPtr GetChannel(int iIndex);
+    CFileItemPtr GetSelectedChannelItem() const;
+    PVR::CPVRChannelPtr GetSelectedChannel();
     virtual EVENT_RESULT OnMouseEvent(const CPoint &point, const CMouseEvent &event);
 
     virtual void Process(unsigned int currentTime, CDirtyRegionList &dirtyregions);
@@ -92,14 +90,13 @@ namespace EPG
     void SetStartEnd(CDateTime start, CDateTime end);
     void SetChannel(const PVR::CPVRChannelPtr &channel);
     void SetChannel(const std::string &channel);
+    void ResetCoordinates();
 
   protected:
     bool OnClick(int actionID);
     bool SelectItemFromPoint(const CPoint &point, bool justGrid = true);
 
-    void UpdateItems();
-
-    void SetChannel(int channel);
+    void SetChannel(int channel, bool bFindClosestItem = true);
     void SetBlock(int block);
     void ChannelScroll(int amount);
     void ProgrammesScroll(int amount);
@@ -108,20 +105,22 @@ namespace EPG
     void Reset();
     void ClearGridIndex(void);
 
-    GridItemsPtr *GetItem(const int &channel);
-    GridItemsPtr *GetNextItem(const int &channel);
-    GridItemsPtr *GetPrevItem(const int &channel);
-    GridItemsPtr *GetClosestItem(const int &channel);
+    GridItemsPtr *GetItem(int channel);
+    GridItemsPtr *GetNextItem(int channel);
+    GridItemsPtr *GetPrevItem(int channel);
+    GridItemsPtr *GetClosestItem(int channel);
 
     int GetItemSize(GridItemsPtr *item);
-    int GetBlock(const CGUIListItemPtr &item, const int &channel);
-    int GetRealBlock(const CGUIListItemPtr &item, const int &channel);
+    int GetBlock(const CGUIListItemPtr &item, int channel);
+    int GetRealBlock(const CGUIListItemPtr &item, int channel);
     void MoveToRow(int row);
 
     CGUIListItemLayout *GetFocusedLayout() const;
 
     void ScrollToBlockOffset(int offset);
     void ScrollToChannelOffset(int offset);
+    void GoToBlock(int blockIndex);
+    void GoToChannel(int channelIndex);
     void UpdateScrollOffset(unsigned int currentTime);
     void ProcessItem(float posX, float posY, CGUIListItem *item, CGUIListItem *&lastitem, bool focused, CGUIListItemLayout* normallayout, CGUIListItemLayout* focusedlayout, unsigned int currentTime, CDirtyRegionList &dirtyregions, float resize = -1.0f);
     void RenderItem(float posX, float posY, CGUIListItem *item, bool focused);
@@ -144,9 +143,9 @@ namespace EPG
       long stop;
     };
     std::vector<ItemsPtr> m_epgItemsPtr;
-    std::vector<CGUIListItemPtr> m_channelItems;
-    std::vector<CGUIListItemPtr> m_rulerItems;
-    std::vector<CGUIListItemPtr> m_programmeItems;
+    std::vector<CFileItemPtr> m_channelItems;
+    std::vector<CFileItemPtr> m_rulerItems;
+    std::vector<CFileItemPtr> m_programmeItems;
     std::vector<CGUIListItemLayout> m_channelLayouts;
     std::vector<CGUIListItemLayout> m_focusedChannelLayouts;
     std::vector<CGUIListItemLayout> m_focusedProgrammeLayouts;
@@ -173,6 +172,10 @@ namespace EPG
     void GetProgrammeCacheOffsets(int &cacheBefore, int &cacheAfter);
 
   private:
+    void UpdateItems(CFileItemList *items);
+
+    EPG::CEpgInfoTagPtr GetSelectedEpgInfoTag() const;
+
     int m_rulerUnit; //! number of blocks that makes up one element of the ruler
     int m_channels;
     int m_channelsPerPage;
@@ -221,5 +224,7 @@ namespace EPG
     int m_channelScrollLastTime;
     float m_channelScrollSpeed;
     float m_channelScrollOffset;
+
+    CCriticalSection m_critSection;
   };
 }

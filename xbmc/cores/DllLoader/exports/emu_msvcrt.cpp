@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <math.h>
 #ifndef TARGET_POSIX
 #include <io.h>
@@ -71,14 +72,13 @@
 #include "utils/URIUtils.h"
 #endif
 #if defined(TARGET_ANDROID)
-#include "android/loader/AndroidDyload.h"
+#include "platform/android/loader/AndroidDyload.h"
 #elif !defined(TARGET_WINDOWS)
 #include <dlfcn.h>
 #endif
 #include "utils/Environment.h"
 #include "utils/StringUtils.h"
 
-using namespace std;
 using namespace XFILE;
 
 struct SDirData
@@ -114,7 +114,7 @@ extern "C" void __stdcall init_emu_environ()
   // python
 #if defined(TARGET_WINDOWS)
   // fill our array with the windows system vars
-  LPTSTR lpszVariable; 
+  LPTSTR lpszVariable;
   LPTCH lpvEnv;
   lpvEnv = GetEnvironmentStrings();
   if (lpvEnv != NULL)
@@ -139,31 +139,31 @@ extern "C" void __stdcall init_emu_environ()
   // check if we are running as real xbmc.app or just binary
   if (!CUtil::GetFrameworksPath(true).empty())
   {
-    // using external python, it's build looking for xxx/lib/python2.6
-    // so point it to frameworks which is where python2.6 is located
-    dll_putenv(string("PYTHONPATH=" +
+    // using external python, it's build looking for xxx/lib/python2.7
+    // so point it to frameworks which is where python2.7 is located
+    dll_putenv(std::string("PYTHONPATH=" +
       CSpecialProtocol::TranslatePath("special://frameworks")).c_str());
-    dll_putenv(string("PYTHONHOME=" +
+    dll_putenv(std::string("PYTHONHOME=" +
       CSpecialProtocol::TranslatePath("special://frameworks")).c_str());
-    dll_putenv(string("PATH=.;" +
+    dll_putenv(std::string("PATH=.;" +
       CSpecialProtocol::TranslatePath("special://xbmc") + ";" +
       CSpecialProtocol::TranslatePath("special://frameworks")).c_str());
   }
   else
   {
-    dll_putenv(string("PYTHONPATH=" +
+    dll_putenv(std::string("PYTHONPATH=" +
       CSpecialProtocol::TranslatePath("special://xbmc/system/python/DLLs") + ";" +
       CSpecialProtocol::TranslatePath("special://xbmc/system/python/Lib")).c_str());
-    dll_putenv(string("PYTHONHOME=" +
+    dll_putenv(std::string("PYTHONHOME=" +
       CSpecialProtocol::TranslatePath("special://xbmc/system/python")).c_str());
-    dll_putenv(string("PATH=.;" + CSpecialProtocol::TranslatePath("special://xbmc") + ";" +
+    dll_putenv(std::string("PATH=.;" + CSpecialProtocol::TranslatePath("special://xbmc") + ";" +
       CSpecialProtocol::TranslatePath("special://xbmc/system/python")).c_str());
   }
 
 #if defined(TARGET_ANDROID)
-  string apkPath = getenv("XBMC_ANDROID_APK");
-  apkPath += "/assets/python2.6";
-  dll_putenv(string("PYTHONHOME=" + apkPath).c_str());
+  std::string apkPath = getenv("XBMC_ANDROID_APK");
+  apkPath += "/assets/python2.7";
+  dll_putenv(std::string("PYTHONHOME=" + apkPath).c_str());
   dll_putenv("PYTHONOPTIMIZE=");
   dll_putenv("PYTHONNOUSERSITE=1");
   dll_putenv("PYTHONPATH=");
@@ -194,22 +194,22 @@ extern "C" void __stdcall init_emu_environ()
 extern "C" void __stdcall update_emu_environ()
 {
   // Use a proxy, if the GUI was configured as such
-  if (CSettings::Get().GetBool("network.usehttpproxy")
-      && !CSettings::Get().GetString("network.httpproxyserver").empty()
-      && CSettings::Get().GetInt("network.httpproxyport") > 0
-      && CSettings::Get().GetInt("network.httpproxytype") == 0)
+  if (CSettings::GetInstance().GetBool(CSettings::SETTING_NETWORK_USEHTTPPROXY)
+      && !CSettings::GetInstance().GetString(CSettings::SETTING_NETWORK_HTTPPROXYSERVER).empty()
+      && CSettings::GetInstance().GetInt(CSettings::SETTING_NETWORK_HTTPPROXYPORT) > 0
+      && CSettings::GetInstance().GetInt(CSettings::SETTING_NETWORK_HTTPPROXYTYPE) == 0)
   {
     std::string strProxy;
-    if (!CSettings::Get().GetString("network.httpproxyusername").empty() &&
-        !CSettings::Get().GetString("network.httpproxypassword").empty())
+    if (!CSettings::GetInstance().GetString(CSettings::SETTING_NETWORK_HTTPPROXYUSERNAME).empty() &&
+        !CSettings::GetInstance().GetString(CSettings::SETTING_NETWORK_HTTPPROXYPASSWORD).empty())
     {
       strProxy = StringUtils::Format("%s:%s@",
-                                     CSettings::Get().GetString("network.httpproxyusername").c_str(),
-                                     CSettings::Get().GetString("network.httpproxypassword").c_str());
+                                     CSettings::GetInstance().GetString(CSettings::SETTING_NETWORK_HTTPPROXYUSERNAME).c_str(),
+                                     CSettings::GetInstance().GetString(CSettings::SETTING_NETWORK_HTTPPROXYPASSWORD).c_str());
     }
 
-    strProxy += CSettings::Get().GetString("network.httpproxyserver");
-    strProxy += StringUtils::Format(":%d", CSettings::Get().GetInt("network.httpproxyport"));
+    strProxy += CSettings::GetInstance().GetString(CSettings::SETTING_NETWORK_HTTPPROXYSERVER);
+    strProxy += StringUtils::Format(":%d", CSettings::GetInstance().GetInt(CSettings::SETTING_NETWORK_HTTPPROXYPORT));
 
     CEnvironment::setenv( "HTTP_PROXY", "http://" + strProxy, true );
     CEnvironment::setenv( "HTTPS_PROXY", "http://" + strProxy, true );
@@ -530,10 +530,7 @@ extern "C"
     if (bWrite)
       bResult = pFile->OpenForWrite(CUtil::ValidatePath(str), bOverwrite);
     else
-      bResult = pFile->Open(CUtil::ValidatePath(str), 0 /* READ_TRUNCATED */); // Disabled READ_TRUNCATED for release
-    /* Looks that libdvdnav / libdvdread / libdvdcss have bugs and do not process correctly partial reads */
-    /* All found bug were eliminated but for safety READ_TRUNCATED is disabled for Helix release */
-    /* TODO: enable READ_TRUNCATED after release of Helix */
+      bResult = pFile->Open(CUtil::ValidatePath(str), READ_TRUNCATED);
 
     if (bResult)
     {
@@ -570,7 +567,6 @@ extern "C"
     return NULL;
   }
 
-
   int dll_read(int fd, void* buffer, unsigned int uiSize)
   {
     CFile* pFile = g_emuFileWrapper.GetFileXbmcByDescriptor(fd);
@@ -586,7 +582,7 @@ extern "C"
              err != ECONNRESET && err != ENOTCONN && err != ETIMEDOUT &&
              err != ENOBUFS && err != ENOMEM && err != ENXIO))
           errno = EIO; // exact errno is unknown or incorrect, use default error number
-        
+
         return -1;
       }
       return ret;
@@ -857,18 +853,18 @@ extern "C"
     // non-local files. handle through IDirectory-class - only supports '*.bah' or '*.*'
     std::string strURL(file);
     std::string strMask;
-    if (url.GetFileName().find("*.*") != string::npos)
+    if (url.GetFileName().find("*.*") != std::string::npos)
     {
       std::string strReplaced = url.GetFileName();
       StringUtils::Replace(strReplaced, "*.*","");
       url.SetFileName(strReplaced);
     }
-    else if (url.GetFileName().find("*.") != string::npos)
+    else if (url.GetFileName().find("*.") != std::string::npos)
     {
       strMask = URIUtils::GetExtension(url.GetFileName());
       url.SetFileName(url.GetFileName().substr(0, url.GetFileName().find("*.")));
     }
-    else if (url.GetFileName().find("*") != string::npos)
+    else if (url.GetFileName().find("*") != std::string::npos)
     {
       std::string strReplaced = url.GetFileName();
       StringUtils::Replace(strReplaced, "*","");
@@ -1236,7 +1232,7 @@ extern "C"
     int fd = dll_open(filename, convert_fmode(mode));
     if (fd >= 0)
     {
-      file = g_emuFileWrapper.GetStreamByDescriptor(fd);;
+      file = g_emuFileWrapper.GetStreamByDescriptor(fd);
     }
 
     return file;
@@ -1315,7 +1311,8 @@ extern "C"
     {
       if (g_emuFileWrapper.StreamIsEmulatedFile(stream))
       {
-        not_implement("msvcrt.dll fake function dll_fputs() called\n");
+        size_t len = strlen(szLine);
+        return dll_fwrite(static_cast<const void*>(szLine), sizeof(char), len, stream);
       }
       else if (!IS_STD_STREAM(stream))
       {
@@ -1753,7 +1750,7 @@ extern "C"
     }
     else if (!IS_STD_STREAM(stream))
     {
-      return clearerr(stream);
+      clearerr(stream);
     }
   }
 
@@ -1763,7 +1760,6 @@ extern "C"
     pdup = strdup(str);
     return pdup;
   }
-
 
   //Critical Section has been fixed in EMUkernel32.cpp
 
@@ -2066,8 +2062,6 @@ extern "C"
     return added ? 0 : -1;
   }
 
-
-
   char* dll_getenv(const char* szKey)
   {
     char* value = NULL;
@@ -2225,6 +2219,7 @@ extern "C"
 #endif
   }
 
+#if _MSC_VER < 1900
   int dll_filbuf(FILE *fp)
   {
     if (fp == NULL)
@@ -2283,6 +2278,7 @@ extern "C"
 #endif
   }
 
+#endif
   // this needs to be wrapped, since dll's have their own file
   // descriptor list, but we always use app's list with our wrappers
   int __cdecl dll_open_osfhandle(intptr_t _OSFileHandle, int _Flags)

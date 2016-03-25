@@ -20,20 +20,21 @@
 
 #include "system.h"
 #include "PerformanceSample.h"
+#include "TimeUtils.h"
 
 #ifdef TARGET_POSIX
 #include "linux/PlatformInclude.h"
+#include "log.h"
 #endif
 
+#ifdef HAS_PERFORMANCE_SAMPLE
 #include "Application.h"
-#include "log.h"
-#include "TimeUtils.h"
-
-using namespace std;
+#include "PerformanceStats.h"
+#endif
 
 int64_t CPerformanceSample::m_tmFreq;
 
-CPerformanceSample::CPerformanceSample(const string &statName, bool bCheckWhenDone) : m_statName(statName)
+CPerformanceSample::CPerformanceSample(const std::string &statName, bool bCheckWhenDone) : m_statName(statName)
 {
   m_bCheckWhenDone = bCheckWhenDone;
   if (m_tmFreq == 0LL)
@@ -62,7 +63,7 @@ void CPerformanceSample::CheckPoint()
 #ifdef HAS_PERFORMANCE_SAMPLE
   int64_t tmNow;
   tmNow = CurrentHostCounter();
-  double elapsed = (double)(tmNow - m_tmStart) / (double)m_tmFreq.QuadPart;
+  double elapsed = (double)(tmNow - m_tmStart) / (double)m_tmFreq;
 
   double dUser=0.0, dSys=0.0;
 #ifdef TARGET_POSIX

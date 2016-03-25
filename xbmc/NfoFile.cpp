@@ -28,12 +28,9 @@
 #include "FileItem.h"
 #include "music/Album.h"
 #include "music/Artist.h"
-#include "settings/Settings.h"
-#include "utils/log.h"
 
 #include <vector>
 
-using namespace std;
 using namespace XFILE;
 using namespace ADDON;
 
@@ -49,7 +46,7 @@ CNfoFile::NFOResult CNfoFile::Create(const std::string& strPath, const ScraperPt
 
   AddonPtr addon;
   ScraperPtr defaultScraper;
-  if (CAddonMgr::Get().GetDefault(m_type, addon))
+  if (CAddonMgr::GetInstance().GetDefault(m_type, addon))
     defaultScraper = std::dynamic_pointer_cast<CScraper>(addon);
 
   if (m_type == ADDON_SCRAPER_ALBUMS)
@@ -90,7 +87,7 @@ CNfoFile::NFOResult CNfoFile::Create(const std::string& strPath, const ScraperPt
     }
   }
 
-  vector<ScraperPtr> vecScrapers;
+  std::vector<ScraperPtr> vecScrapers;
 
   // add selected scraper - first proirity
   if (m_info)
@@ -98,7 +95,7 @@ CNfoFile::NFOResult CNfoFile::Create(const std::string& strPath, const ScraperPt
 
   // Add all scrapers except selected and default
   VECADDONS addons;
-  CAddonMgr::Get().GetAddons(m_type,addons);
+  CAddonMgr::GetInstance().GetAddons(addons, m_type);
 
   for (unsigned i = 0; i < addons.size(); ++i)
   {

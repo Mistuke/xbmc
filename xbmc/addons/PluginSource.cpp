@@ -17,49 +17,46 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "PluginSource.h"
+
+#include <utility>
+
 #include "AddonManager.h"
 #include "utils/StringUtils.h"
-
-using namespace std;
 
 namespace ADDON
 {
 
-CPluginSource::CPluginSource(const AddonProps &props)
-  : CAddon(props)
+std::unique_ptr<CPluginSource> CPluginSource::FromExtension(AddonProps props, const cp_extension_t* ext)
+{
+  std::string provides = CAddonMgr::GetInstance().GetExtValue(ext->configuration, "provides");
+  if (!provides.empty())
+    props.extrainfo.insert(make_pair("provides", provides));
+  return std::unique_ptr<CPluginSource>(new CPluginSource(std::move(props), provides));
+}
+
+CPluginSource::CPluginSource(AddonProps props) : CAddon(std::move(props))
 {
   std::string provides;
-  InfoMap::const_iterator i = Props().extrainfo.find("provides");
-  if (i != Props().extrainfo.end())
+  InfoMap::const_iterator i = m_props.extrainfo.find("provides");
+  if (i != m_props.extrainfo.end())
     provides = i->second;
   SetProvides(provides);
 }
 
-CPluginSource::CPluginSource(const cp_extension_t *ext)
-  : CAddon(ext)
+CPluginSource::CPluginSource(AddonProps props, const std::string& provides)
+  : CAddon(std::move(props))
 {
-  std::string provides;
-  if (ext)
-  {
-    provides = CAddonMgr::Get().GetExtValue(ext->configuration, "provides");
-    if (!provides.empty())
-      Props().extrainfo.insert(make_pair("provides", provides));
-  }
   SetProvides(provides);
-}
-
-AddonPtr CPluginSource::Clone() const
-{
-  return AddonPtr(new CPluginSource(*this));
 }
 
 void CPluginSource::SetProvides(const std::string &content)
 {
   if (!content.empty())
   {
-    vector<string> provides = StringUtils::Split(content, ' ');
-    for (vector<string>::const_iterator i = provides.begin(); i != provides.end(); ++i)
+    std::vector<std::string> provides = StringUtils::Split(content, ' ');
+    for (std::vector<std::string>::const_iterator i = provides.begin(); i != provides.end(); ++i)
     {
       Content content = Translate(*i);
       if (content != UNKNOWN)
@@ -82,6 +79,20 @@ CPluginSource::Content CPluginSource::Translate(const std::string &content)
     return CPluginSource::VIDEO;
   else
     return CPluginSource::UNKNOWN;
+}
+
+TYPE CPluginSource::FullType() const
+{
+  if (Provides(VIDEO))
+    return ADDON_VIDEO;
+  if (Provides(AUDIO))
+    return ADDON_AUDIO;
+  if (Provides(IMAGE))
+    return ADDON_IMAGE;
+  if (Provides(EXECUTABLE))
+    return ADDON_EXECUTABLE;
+
+  return CAddon::FullType();
 }
 
 bool CPluginSource::IsType(TYPE type) const

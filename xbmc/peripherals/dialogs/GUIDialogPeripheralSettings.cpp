@@ -19,21 +19,22 @@
  */
 
 #include "GUIDialogPeripheralSettings.h"
-#include "FileItem.h"
+
+#include <utility>
+
 #include "addons/Skin.h"
 #include "dialogs/GUIDialogYesNo.h"
+#include "FileItem.h"
 #include "peripherals/Peripherals.h"
 #include "settings/lib/Setting.h"
 #include "settings/lib/SettingSection.h"
 #include "utils/log.h"
+#include "utils/Variant.h"
 
-#define CONTROL_BUTTON_DEFAULTS 50
-
-using namespace std;
 using namespace PERIPHERALS;
 
 CGUIDialogPeripheralSettings::CGUIDialogPeripheralSettings()
-  : CGUIDialogSettingsManualBase(WINDOW_DIALOG_PERIPHERAL_SETTINGS, "DialogPeripheralSettings.xml"),
+  : CGUIDialogSettingsManualBase(WINDOW_DIALOG_PERIPHERAL_SETTINGS, "DialogSettings.xml"),
     m_item(NULL),
     m_initialising(false)
 { }
@@ -49,7 +50,7 @@ CGUIDialogPeripheralSettings::~CGUIDialogPeripheralSettings()
 bool CGUIDialogPeripheralSettings::OnMessage(CGUIMessage &message)
 {
   if (message.GetMessage() == GUI_MSG_CLICKED &&
-      message.GetSenderId() == CONTROL_BUTTON_DEFAULTS)
+      message.GetSenderId() == CONTROL_SETTINGS_CUSTOM_BUTTON)
   {
     OnResetSettings();
     return true;
@@ -106,7 +107,7 @@ void CGUIDialogPeripheralSettings::OnResetSettings()
   if (peripheral == NULL)
     return;
 
-  if (!CGUIDialogYesNo::ShowAndGetInput(10041, 0, 10042, 0))
+  if (!CGUIDialogYesNo::ShowAndGetInput(CVariant{10041}, CVariant{10042}))
     return;
 
   // reset the settings in the peripheral
@@ -120,7 +121,10 @@ void CGUIDialogPeripheralSettings::SetupView()
 {
   CGUIDialogSettingsManualBase::SetupView();
 
-  SetHeading(5);
+  SetHeading(m_item->GetLabel());
+  SET_CONTROL_LABEL(CONTROL_SETTINGS_OKAY_BUTTON, 186);
+  SET_CONTROL_LABEL(CONTROL_SETTINGS_CANCEL_BUTTON, 222);
+  SET_CONTROL_LABEL(CONTROL_SETTINGS_CUSTOM_BUTTON, 409);
 }
 
 void CGUIDialogPeripheralSettings::InitializeSettings()
@@ -159,8 +163,8 @@ void CGUIDialogPeripheralSettings::InitializeSettings()
     return;
   }
   
-  vector<CSetting*> settings = peripheral->GetSettings();
-  for (vector<CSetting*>::iterator itSetting = settings.begin(); itSetting != settings.end(); ++itSetting)
+  std::vector<CSetting*> settings = peripheral->GetSettings();
+  for (std::vector<CSetting*>::iterator itSetting = settings.begin(); itSetting != settings.end(); ++itSetting)
   {
     CSetting *setting = *itSetting;
     if (setting == NULL)
@@ -188,11 +192,7 @@ void CGUIDialogPeripheralSettings::InitializeSettings()
 
       case SettingTypeInteger:
       {
-        CSettingInt *intSetting = static_cast<CSettingInt*>(setting);
-        if (intSetting == NULL)
-          break;
-        
-        CSettingInt *settingInt = new CSettingInt(setting->GetId(), *intSetting);
+        CSettingInt *settingInt = new CSettingInt(setting->GetId(), *static_cast<CSettingInt*>(setting));
         if (settingInt->GetOptions().empty())
           settingInt->SetControl(GetSliderControl("integer", false, -1, usePopup, -1, "%i"));
         else

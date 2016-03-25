@@ -41,7 +41,8 @@ public:
 
   // job callback
   void OnJobComplete(unsigned int jobID, bool success, CJob* job);
-protected:
+
+private:
   void OnInitWindow();
 
   /*! \brief Set the item to display addon info on.
@@ -54,11 +55,22 @@ protected:
   void OnUpdate();
   void OnInstall();
   void OnUninstall();
-  void OnEnable(bool enable);
+  void OnEnableDisable();
   void OnSettings();
   void OnChangeLog();
-  void OnRollback();
-  void OnLaunch();
+  void OnSelect();
+  void OnToggleAutoUpdates();
+
+  /*! Returns true if current addon can be opened (i.e is a plugin)*/
+  bool CanOpen() const;
+
+  /*! Returns true if current addon can be run (i.e is a script)*/
+  bool CanRun() const;
+
+  /*!
+   * Returns true if current addon is of a type that can only have one activly
+   * in use at a time and can be changed (e.g skins)*/
+  bool CanUse() const;
 
   /*! \brief check if the add-on is a dependency of others, and if so prompt the user.
    \param heading the label for the heading of the prompt dialog
@@ -68,13 +80,9 @@ protected:
   bool PromptIfDependency(int heading, int line2);
 
   CFileItemPtr m_item;
-  ADDON::AddonPtr m_addon;
   ADDON::AddonPtr m_localAddon;
+  bool m_addonEnabled;
   unsigned int m_jobid;
   bool m_changelog;
-
-  // rollback data
-  void GrabRollbackVersions();
-  std::vector<std::string> m_rollbackVersions;
 };
 

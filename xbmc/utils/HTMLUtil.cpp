@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2005-2015 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
@@ -22,106 +22,13 @@
 #include "utils/StringUtils.h"
 #include <wctype.h>
 
-using namespace std;
 using namespace HTML;
-
 
 CHTMLUtil::CHTMLUtil(void)
 {}
 
 CHTMLUtil::~CHTMLUtil(void)
 {}
-
-int CHTMLUtil::FindTag(const std::string& strHTML, const std::string& strTag, std::string& strtagFound, int iPos)
-{
-  std::string strHTMLLow = strHTML;
-  std::string strTagLow = strTag;
-  StringUtils::ToLower(strHTMLLow);
-  StringUtils::ToLower(strTagLow);
-  strtagFound = "";
-
-  size_t iStart = strHTMLLow.find(strTag, iPos);
-  if (iStart == std::string::npos)
-    return -1;
-
-  size_t iEnd = strHTMLLow.find(">", iStart);
-  if (iEnd == std::string::npos)
-    iEnd = strHTMLLow.size();
-
-  strtagFound = strHTMLLow.substr(iStart, (iEnd + 1) - iStart);
-  return iStart;
-}
-
-int CHTMLUtil::FindClosingTag(const std::string& strHTML, const std::string& strTag, std::string& strtagFound, int iPos)
-{
-  std::string strHTMLLow = strHTML;
-  std::string strTagLow = strTag;
-  StringUtils::ToLower(strHTMLLow);
-  StringUtils::ToLower(strTagLow);
-  strtagFound = "";
-
-  size_t iStart = strHTMLLow.find("</" + strTag, iPos);
-  if (iStart == std::string::npos)
-    return -1;
-
-  size_t iOpenStart = strHTMLLow.find("<" + strTag, iPos);
-  while (iOpenStart < iStart && iOpenStart != std::string::npos)
-  {
-    iStart = strHTMLLow.find("</" + strTag, iStart + 1);
-    iOpenStart = strHTMLLow.find("<" + strTag, iOpenStart + 1);
-  }
-
-  size_t iEnd = strHTMLLow.find(">", iStart);
-  if (iEnd == std::string::npos)
-    iEnd = strHTMLLow.size();
-
-  strtagFound = strHTMLLow.substr(iStart, (iEnd + 1) - iStart);
-  return iStart;
-}
-
-void CHTMLUtil::getValueOfTag(const std::string& strTagAndValue, std::string& strValue)
-{
-  // strTagAndValue contains:
-  // like <a href=blablabla.....>value</a>
-  strValue = strTagAndValue;
-  size_t iStart = strTagAndValue.find(">");
-  size_t iEnd = strTagAndValue.find("<", iStart + 1);
-  if (iStart != std::string::npos &&
-      iEnd != std::string::npos)
-  {
-    iStart++;
-    strValue = strTagAndValue.substr(iStart, iEnd - iStart);
-  }
-}
-
-void CHTMLUtil::getAttributeOfTag(const std::string& strTagAndValue, const std::string& strTag, std::string& strValue)
-{
-  // strTagAndValue contains:
-  // like <a href=""value".....
-  strValue = strTagAndValue;
-  size_t iStart = strTagAndValue.find(strTag);
-  if (iStart == std::string::npos)
-    return ;
-
-  iStart += strTag.size();
-
-  while (strTagAndValue[iStart + 1] == 0x20 ||
-         strTagAndValue[iStart + 1] == 0x27 ||
-         strTagAndValue[iStart + 1] == 34)
-    iStart++;
-
-  size_t iEnd = iStart + 1;
-  while (strTagAndValue[iEnd] != 0x27 &&
-         strTagAndValue[iEnd] != 0x20 &&
-         strTagAndValue[iEnd] != 34 &&
-         strTagAndValue[iEnd] != '>')
-    iEnd++;
-
-  if (iStart != std::string::npos && iEnd != std::string::npos)
-  {
-    strValue = strTagAndValue.substr(iStart, iEnd - iStart);
-  }
-}
 
 void CHTMLUtil::RemoveTags(std::string& strHTML)
 {
@@ -289,7 +196,7 @@ static const HTMLMapping mappings[] =
 void CHTMLUtil::ConvertHTMLToW(const std::wstring& strHTML, std::wstring& strStripped)
 {
   /* TODO:STRING_CLEANUP */
-  if (strHTML.size() == 0)
+  if (strHTML.empty())
   {
     strStripped.clear();
     return ;

@@ -1,5 +1,4 @@
 #pragma once
-
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://xbmc.org
@@ -79,6 +78,6 @@ namespace EPG
     int           m_iChannelGroup;            /*!< The group this channel belongs to */
     bool          m_bIgnorePresentTimers;     /*!< True to ignore currently present timers (future recordings), false if not */
     bool          m_bIgnorePresentRecordings; /*!< True to ignore currently active recordings, false if not */
-    int           m_iUniqueBroadcastId;       /*!< The broadcastid to search for */
+    unsigned int  m_iUniqueBroadcastId;       /*!< The broadcastid to search for */
   };
 }

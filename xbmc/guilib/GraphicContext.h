@@ -23,9 +23,6 @@
 \brief
 */
 
-#ifndef GUILIB_GRAPHICCONTEXT_H
-#define GUILIB_GRAPHICCONTEXT_H
-
 #pragma once
 
 #ifdef __GNUC__
@@ -66,7 +63,7 @@ enum VIEW_TYPE { VIEW_TYPE_NONE = 0,
 
 enum AdjustRefreshRate
 {
-  ADJUST_REFRESHRATE_OFF          = 0,
+  ADJUST_REFRESHRATE_OFF = 0,
   ADJUST_REFRESHRATE_ALWAYS,
   ADJUST_REFRESHRATE_ON_STARTSTOP
 };
@@ -78,12 +75,7 @@ public:
   CGraphicContext(void);
   virtual ~CGraphicContext(void);
 
-  virtual void OnSettingChanged(const CSetting *setting);
-
-  // the following two functions should wrap any
-  // GL calls to maintain thread safety
-  void BeginPaint(bool lock=true);
-  void EndPaint(bool lock=true);
+  virtual void OnSettingChanged(const CSetting *setting) override;
 
   int GetWidth() const { return m_iScreenWidth; }
   int GetHeight() const { return m_iScreenHeight; }
@@ -100,7 +92,7 @@ public:
   const CRect GetViewWindow() const;
   void SetViewWindow(float left, float top, float right, float bottom);
   bool IsFullScreenRoot() const;
-  bool ToggleFullScreenRoot();
+  void ToggleFullScreen();
   void SetFullScreenVideo(bool bOnOff);
   bool IsFullScreenVideo() const;
   bool IsCalibrating() const;
@@ -138,7 +130,7 @@ public:
   void SetRenderingResolution(const RESOLUTION_INFO &res, bool needsScaling);  ///< Sets scaling up for rendering
   void SetScalingResolution(const RESOLUTION_INFO &res, bool needsScaling);    ///< Sets scaling up for skin loading etc.
   float GetScalingPixelRatio() const;
-  void Flip(const CDirtyRegionList& dirty);
+  void Flip(bool rendered);
   void InvertFinalCoords(float &x, float &y) const;
   inline float ScaleFinalXCoord(float x, float y) const XBMC_FORCE_INLINE { return m_finalTransform.matrix.TransformXCoord(x, y, 0); }
   inline float ScaleFinalYCoord(float x, float y) const XBMC_FORCE_INLINE { return m_finalTransform.matrix.TransformYCoord(x, y, 0); }
@@ -164,6 +156,8 @@ public:
   void SetStereoMode(RENDER_STEREO_MODE mode) { m_nextStereoMode = mode; }
   RENDER_STEREO_MODE GetStereoMode()  { return m_stereoMode; }
   void RestoreCameraPosition();
+  void SetStereoFactor(float factor);
+  void RestoreStereoFactor();
   /*! \brief Set a region in which to clip all rendering
    Anything that is rendered after setting a clip region will be clipped so that no part renders
    outside of the clip region.  Successive calls to SetClipRegion intersect the clip region, which
@@ -238,6 +232,11 @@ public:
 
   CRect generateAABB(const CRect &rect) const;
 
+  /*! \brief sets refresh rate, overrides the one stored with modes
+   *  \param fps refresh rate
+   */
+  void SetFPS(float fps);
+
 protected:
   std::stack<CRect> m_viewStack;
 
@@ -250,6 +249,7 @@ protected:
   bool m_bFullScreenVideo;
   bool m_bCalibrating;
   RESOLUTION m_Resolution;
+  float m_fFPSOverride;
 
 private:
   class UITransform
@@ -263,7 +263,7 @@ private:
     float scaleX;
     float scaleY;
   };
-  void UpdateCameraPosition(const CPoint &camera);
+  void UpdateCameraPosition(const CPoint &camera, const float &factor);
   // this method is indirectly called by the public SetVideoResolution
   // it only works when called from mainthread (thats what SetVideoResolution ensures)
   void SetVideoResolutionInternal(RESOLUTION res, bool forceUpdate);
@@ -271,6 +271,7 @@ private:
   std::stack<CPoint> m_cameras;
   std::stack<CPoint> m_origins;
   std::stack<CRect>  m_clipRegions;
+  std::stack<float>  m_stereoFactors;
 
   UITransform m_guiTransform;
   UITransform m_finalTransform;
@@ -287,6 +288,5 @@ private:
  \brief
  */
 
-XBMC_GLOBAL(CGraphicContext,g_graphicsContext);
-
-#endif
+XBMC_GLOBAL_REF(CGraphicContext,g_graphicsContext);
+#define g_graphicsContext XBMC_GLOBAL_USE(CGraphicContext)

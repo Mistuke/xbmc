@@ -53,6 +53,7 @@ bool CWinEventsLinux::MessagePump()
   if (!m_initialized)
   {
     m_devices.InitAvailable();
+    m_checkHotplug = std::unique_ptr<CLinuxInputDevicesCheckHotplugged>(new CLinuxInputDevicesCheckHotplugged(m_devices));
     m_initialized = true;
   }
 
@@ -77,6 +78,11 @@ bool CWinEventsLinux::MessagePump()
 size_t CWinEventsLinux::GetQueueSize()
 {
   return m_devices.Size();
+}
+
+void CWinEventsLinux::MessagePush(XBMC_Event *ev)
+{
+  g_application.OnEvent(*ev);
 }
 
 #endif

@@ -22,6 +22,7 @@
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "dialogs/GUIDialogSelect.h"
+#include "dialogs/GUIDialogTextViewer.h"
 #include "guilib/GUIWindowManager.h"
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "dialogs/GUIDialogNumeric.h"
@@ -30,6 +31,12 @@
 #include "ModuleXbmcgui.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "utils/StringUtils.h"
+#include "utils/Variant.h"
+#include "WindowException.h"
+#include "messaging/ApplicationMessenger.h"
+#include "Dialog.h"
+
+using namespace KODI::MESSAGING;
 
 #define ACTIVE_WINDOW g_windowManager.GetActiveWindow()
 
@@ -37,12 +44,6 @@ namespace XBMCAddon
 {
   namespace xbmcgui
   {
-    static void XBMCWaitForThreadMessage(int message, int param1, int param2)
-    {
-      ThreadMessage tMsg = {(DWORD)message, param1, param2};
-      CApplicationMessenger::Get().SendMessage(tMsg, true);
-    }
-
     Dialog::~Dialog() {}
 
     bool Dialog::yesno(const String& heading, const String& line1, 
@@ -50,49 +51,46 @@ namespace XBMCAddon
                        const String& line3,
                        const String& nolabel,
                        const String& yeslabel,
-                       int autoclose) throw (WindowException)
+                       int autoclose)
     {
       DelayedCallGuard dcguard(languageHook);
-      const int window = WINDOW_DIALOG_YES_NO;
-      CGUIDialogYesNo* pDialog = (CGUIDialogYesNo*)g_windowManager.GetWindow(window);
+      CGUIDialogYesNo* pDialog = (CGUIDialogYesNo*)g_windowManager.GetWindow(WINDOW_DIALOG_YES_NO);
       if (pDialog == NULL)
         throw WindowException("Error: Window is NULL, this is not possible :-)");
 
       // get lines, last 4 lines are optional.
       if (!heading.empty())
-        pDialog->SetHeading(heading);
+        pDialog->SetHeading(CVariant{heading});
       if (!line1.empty())
-        pDialog->SetLine(0, line1);
+        pDialog->SetLine(0, CVariant{line1});
       if (!line2.empty())
-        pDialog->SetLine(1, line2);
+        pDialog->SetLine(1, CVariant{line2});
       if (!line3.empty())
-        pDialog->SetLine(2, line3);
+        pDialog->SetLine(2, CVariant{line3});
 
       if (!nolabel.empty())
-        pDialog->SetChoice(0,nolabel);
+        pDialog->SetChoice(0, CVariant{nolabel});
       if (!yeslabel.empty())
-        pDialog->SetChoice(1,yeslabel);
+        pDialog->SetChoice(1, CVariant{yeslabel});
 
       if (autoclose > 0)
         pDialog->SetAutoClose(autoclose);
 
-      //send message and wait for user input
-      XBMCWaitForThreadMessage(TMSG_DIALOG_DOMODAL, window, ACTIVE_WINDOW);
+      pDialog->Open();
 
       return pDialog->IsConfirmed();
     }
 
-    int Dialog::select(const String& heading, const std::vector<String>& list, int autoclose) throw (WindowException)
+    int Dialog::select(const String& heading, const std::vector<String>& list, int autoclose)
     {
       DelayedCallGuard dcguard(languageHook);
-      const int window = WINDOW_DIALOG_SELECT;
-      CGUIDialogSelect* pDialog= (CGUIDialogSelect*)g_windowManager.GetWindow(window);
+      CGUIDialogSelect* pDialog= (CGUIDialogSelect*)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
       if (pDialog == NULL)
         throw WindowException("Error: Window is NULL, this is not possible :-)");
 
       pDialog->Reset();
       if (!heading.empty())
-        pDialog->SetHeading(heading);
+        pDialog->SetHeading(CVariant{heading});
 
       String listLine;
       for(unsigned int i = 0; i < list.size(); i++)
@@ -103,42 +101,81 @@ namespace XBMCAddon
       if (autoclose > 0)
         pDialog->SetAutoClose(autoclose);
 
-      //send message and wait for user input
-      XBMCWaitForThreadMessage(TMSG_DIALOG_DOMODAL, window, ACTIVE_WINDOW);
+      pDialog->Open();
 
-      return pDialog->GetSelectedLabel();
+      return pDialog->GetSelectedItem();
+    }
+
+
+    std::unique_ptr<std::vector<int>> Dialog::multiselect(const String& heading,
+        const std::vector<String>& options, int autoclose)
+    {
+      DelayedCallGuard dcguard(languageHook);
+      CGUIDialogSelect* pDialog = (CGUIDialogSelect*)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
+      if (pDialog == nullptr)
+        throw WindowException("Error: Window is NULL");
+
+      pDialog->Reset();
+      pDialog->SetMultiSelection(true);
+      pDialog->SetHeading(CVariant{heading});
+
+      for (const auto& option : options)
+        pDialog->Add(option);
+
+      if (autoclose > 0)
+        pDialog->SetAutoClose(autoclose);
+
+      pDialog->Open();
+
+      if (pDialog->IsConfirmed())
+        return std::unique_ptr<std::vector<int>>(new std::vector<int>(pDialog->GetSelectedItems()));
+      else
+        return std::unique_ptr<std::vector<int>>();
     }
 
     bool Dialog::ok(const String& heading, const String& line1, 
                     const String& line2,
-                    const String& line3) throw (WindowException)
+                    const String& line3)
     {
       DelayedCallGuard dcguard(languageHook);
-      const int window = WINDOW_DIALOG_OK;
-
-      CGUIDialogOK* pDialog = (CGUIDialogOK*)g_windowManager.GetWindow(window);
+      CGUIDialogOK* pDialog = (CGUIDialogOK*)g_windowManager.GetWindow(WINDOW_DIALOG_OK);
       if (pDialog == NULL)
         throw WindowException("Error: Window is NULL, this is not possible :-)");
 
       if (!heading.empty())
-        pDialog->SetHeading(heading);
+        pDialog->SetHeading(CVariant{heading});
       if (!line1.empty())
-        pDialog->SetLine(0, line1);
+        pDialog->SetLine(0, CVariant{line1});
       if (!line2.empty())
-        pDialog->SetLine(1, line2);
+        pDialog->SetLine(1, CVariant{line2});
       if (!line3.empty())
-        pDialog->SetLine(2, line3);
+        pDialog->SetLine(2, CVariant{line3});
 
-      //send message and wait for user input
-      XBMCWaitForThreadMessage(TMSG_DIALOG_DOMODAL, window, ACTIVE_WINDOW);
+      pDialog->Open();
 
       return pDialog->IsConfirmed();
     }
 
+    void Dialog::textviewer(const String& heading, const String& text)
+    {
+      DelayedCallGuard dcguard(languageHook);
+      const int window = WINDOW_DIALOG_TEXT_VIEWER;
+
+      CGUIDialogTextViewer* pDialog = (CGUIDialogTextViewer*)g_windowManager.GetWindow(window);
+      if (pDialog == NULL)
+        throw WindowException("Error: Window is NULL, this is not possible :-)");
+      if (!heading.empty())
+        pDialog->SetHeading(heading);
+      if (!text.empty())
+        pDialog->SetText(text);
+      pDialog->Open();
+    }
+
+
     Alternative<String, std::vector<String> > Dialog::browse(int type, const String& heading, 
                                 const String& s_shares, const String& maskparam, bool useThumbs, 
                                 bool useFileDirectories, const String& defaultt,
-                                bool enableMultiple) throw (WindowException)
+                                bool enableMultiple)
     {
       Alternative<String, std::vector<String> > ret;
       if (enableMultiple)
@@ -151,12 +188,12 @@ namespace XBMCAddon
     String Dialog::browseSingle(int type, const String& heading, const String& s_shares,
                                 const String& maskparam, bool useThumbs, 
                                 bool useFileDirectories, 
-                                const String& defaultt ) throw (WindowException)
+                                const String& defaultt )
     {
       DelayedCallGuard dcguard(languageHook);
       std::string value;
       std::string mask = maskparam;
-      VECSOURCES *shares = CMediaSourceSettings::Get().GetSources(s_shares);
+      VECSOURCES *shares = CMediaSourceSettings::GetInstance().GetSources(s_shares);
       if (!shares) 
         throw WindowException("Error: GetSources given %s is NULL.",s_shares.c_str());
 
@@ -175,10 +212,10 @@ namespace XBMCAddon
 
     std::vector<String> Dialog::browseMultiple(int type, const String& heading, const String& s_shares,
                           const String& mask, bool useThumbs, 
-                          bool useFileDirectories, const String& defaultt ) throw (WindowException)
+                          bool useFileDirectories, const String& defaultt )
     {
       DelayedCallGuard dcguard(languageHook);
-      VECSOURCES *shares = CMediaSourceSettings::Get().GetSources(s_shares);
+      VECSOURCES *shares = CMediaSourceSettings::GetInstance().GetSources(s_shares);
       std::vector<String> valuelist;
       String lmask = mask;
       if (!shares) 
@@ -271,7 +308,7 @@ namespace XBMCAddon
         CGUIDialogKaiToast::QueueNotification(strIcon, heading, message, iTime, sound);
     }
     
-    String Dialog::input(const String& heading, const String& defaultt, int type, int option, int autoclose) throw (WindowException)
+    String Dialog::input(const String& heading, const String& defaultt, int type, int option, int autoclose)
     {
       DelayedCallGuard dcguard(languageHook);
       std::string value(defaultt);
@@ -283,7 +320,7 @@ namespace XBMCAddon
         case INPUT_ALPHANUM:
           {
             bool bHiddenInput = (option & ALPHANUM_HIDE_INPUT) == ALPHANUM_HIDE_INPUT;
-            if (!CGUIKeyboardFactory::ShowAndGetInput(value, heading, true, bHiddenInput, autoclose))
+            if (!CGUIKeyboardFactory::ShowAndGetInput(value, CVariant{heading}, true, bHiddenInput, autoclose))
               value = emptyString;
           }
           break;
@@ -364,7 +401,7 @@ namespace XBMCAddon
 
     void DialogProgress::create(const String& heading, const String& line1, 
                                 const String& line2,
-                                const String& line3) throw (WindowException)
+                                const String& line3)
     {
       DelayedCallGuard dcguard(languageHook);
       CGUIDialogProgress* pDialog= (CGUIDialogProgress*)g_windowManager.GetWindow(WINDOW_DIALOG_PROGRESS);
@@ -375,21 +412,21 @@ namespace XBMCAddon
       dlg = pDialog;
       open = true;
 
-      pDialog->SetHeading(heading);
+      pDialog->SetHeading(CVariant{heading});
 
       if (!line1.empty())
-        pDialog->SetLine(0, line1);
+        pDialog->SetLine(0, CVariant{line1});
       if (!line2.empty())
-        pDialog->SetLine(1, line2);
+        pDialog->SetLine(1, CVariant{line2});
       if (!line3.empty())
-        pDialog->SetLine(2, line3);
+        pDialog->SetLine(2, CVariant{line3});
 
-      pDialog->StartModal();
+      pDialog->Open();
     }
 
     void DialogProgress::update(int percent, const String& line1, 
                                 const String& line2,
-                                const String& line3) throw (WindowException)
+                                const String& line3)
     {
       DelayedCallGuard dcguard(languageHook);
       CGUIDialogProgress* pDialog = dlg;
@@ -408,11 +445,11 @@ namespace XBMCAddon
       }
 
       if (!line1.empty())
-        pDialog->SetLine(0, line1);
+        pDialog->SetLine(0, CVariant{line1});
       if (!line2.empty())
-        pDialog->SetLine(1, line2);
+        pDialog->SetLine(1, CVariant{line2});
       if (!line3.empty())
-        pDialog->SetLine(2, line3);
+        pDialog->SetLine(2, CVariant{line3});
     }
 
     void DialogProgress::close()
@@ -444,7 +481,7 @@ namespace XBMCAddon
       }
     }
 
-    void DialogProgressBG::create(const String& heading, const String& message) throw (WindowException)
+    void DialogProgressBG::create(const String& heading, const String& message)
     {
       DelayedCallGuard dcguard(languageHook);
       CGUIDialogExtendedProgressBar* pDialog = 
@@ -464,7 +501,7 @@ namespace XBMCAddon
         pHandle->SetText(message);
     }
 
-    void DialogProgressBG::update(int percent, const String& heading, const String& message) throw (WindowException)
+    void DialogProgressBG::update(int percent, const String& heading, const String& message)
     {
       DelayedCallGuard dcguard(languageHook);
       CGUIDialogProgressBarHandle* pHandle = handle;

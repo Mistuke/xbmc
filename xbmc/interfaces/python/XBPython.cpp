@@ -33,20 +33,17 @@
 #include "XBPython.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
-#include "profiles/ProfilesManager.h"
 #include "utils/JSONVariantWriter.h"
 #include "utils/log.h"
-#include "pythreadstate.h"
-#include "utils/TimeUtils.h"
+#include "utils/Variant.h"
 #include "Util.h"
-#include "guilib/GraphicContext.h"
 #ifdef TARGET_WINDOWS
+#pragma comment(linker, "\"/manifestdependency:type='Win32' name='Microsoft.VC90.CRT' version='9.0.21022.8' processorArchitecture='x86' publicKeyToken='1fc8b3b9a1e18e3b'\"")
 #include "utils/Environment.h"
 #endif
 #include "settings/AdvancedSettings.h"
 
 #include "threads/SystemClock.h"
-#include "addons/Addon.h"
 #include "interfaces/AnnouncementManager.h"
 
 #include "interfaces/legacy/Monitor.h"
@@ -67,13 +64,13 @@ XBPython::XBPython()
   m_vecPlayerCallbackList.clear();
   m_vecMonitorCallbackList.clear();
 
-  CAnnouncementManager::Get().AddAnnouncer(this);
+  CAnnouncementManager::GetInstance().AddAnnouncer(this);
 }
 
 XBPython::~XBPython()
 {
   XBMC_TRACE;
-  CAnnouncementManager::Get().RemoveAnnouncer(this);
+  CAnnouncementManager::GetInstance().RemoveAnnouncer(this);
 }
 
 #define LOCK_AND_COPY(type, dest, src) \
@@ -494,7 +491,7 @@ void XBPython::Uninitialize()
   // don't handle any more announcements as most scripts are probably already
   // stopped and executing a callback on one of their already destroyed classes
   // would lead to a crash
-  CAnnouncementManager::Get().RemoveAnnouncer(this);
+  CAnnouncementManager::GetInstance().RemoveAnnouncer(this);
 
   LOCK_AND_COPY(std::vector<PyElem>,tmpvec,m_vecPyList);
   m_vecPyList.clear();
@@ -600,12 +597,7 @@ bool XBPython::OnScriptInitialized(ILanguageInvoker *invoker)
     CEnvironment::putenv(buf);
 
 #elif defined(TARGET_ANDROID)
-    std::string apkPath = getenv("XBMC_ANDROID_APK");
-    apkPath += "/assets/python2.6";
-    setenv("PYTHONHOME", apkPath.c_str(), 1);
-    setenv("PYTHONPATH", "", 1);
-    setenv("PYTHONOPTIMIZE", "", 1);
-    setenv("PYTHONNOUSERSITE", "1", 1);
+   setenv("SSL_CERT_FILE", CSpecialProtocol::TranslatePath("special://xbmc/system/certs/cacert.pem").c_str(), 1);
 #endif
 
     if (PyEval_ThreadsInitialized())

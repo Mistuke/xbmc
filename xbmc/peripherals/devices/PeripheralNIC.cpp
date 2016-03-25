@@ -19,14 +19,12 @@
  */
 
 #include "PeripheralNIC.h"
-#include "utils/log.h"
 #include "guilib/LocalizeStrings.h"
 
 using namespace PERIPHERALS;
-using namespace std;
 
-CPeripheralNIC::CPeripheralNIC(const PeripheralScanResult& scanResult) :
-  CPeripheral(scanResult)
+CPeripheralNIC::CPeripheralNIC(const PeripheralScanResult& scanResult, CPeripheralBus* bus) :
+  CPeripheral(scanResult, bus)
 {
   m_strDeviceName = scanResult.m_strDeviceName.empty() ? g_localizeStrings.Get(35002) : scanResult.m_strDeviceName;
   m_features.push_back(FEATURE_NIC);

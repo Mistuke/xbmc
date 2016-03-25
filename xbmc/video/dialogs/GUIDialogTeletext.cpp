@@ -25,18 +25,15 @@
 #include "guilib/Texture.h"
 #include "guilib/LocalizeStrings.h"
 #include "dialogs/GUIDialogKaiToast.h"
-#include "cores/IPlayer.h"
 #include "settings/Settings.h"
-
-using namespace std;
 
 static int teletextFadeAmount = 0;
 
 CGUIDialogTeletext::CGUIDialogTeletext()
     : CGUIDialog(WINDOW_DIALOG_OSD_TELETEXT, "")
 {
-  m_isDialog    = false;
   m_pTxtTexture = NULL;
+  m_renderOrder = RENDER_ORDER_DIALOG_TELETEXT;
 }
 
 CGUIDialogTeletext::~CGUIDialogTeletext()
@@ -180,7 +177,7 @@ void CGUIDialogTeletext::SetCoordinates()
   top = g_graphicsContext.ScaleFinalYCoord(0, 0);
   bottom = g_graphicsContext.ScaleFinalYCoord(0, (float)m_coordsRes.iHeight);
 
-  if (CSettings::Get().GetBool("videoplayer.teletextscale"))
+  if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOPLAYER_TELETEXTSCALE))
   {
     /* Fixed aspect ratio to 4:3 for teletext */
     float width = right - left;

@@ -25,11 +25,11 @@
 class CPVRActionListener : public IActionListener
 {
 public:
-  
-  static CPVRActionListener &Get();
-  
+
+  static CPVRActionListener &GetInstance();
+
   bool OnAction(const CAction &action);
-  
+
 private:
   CPVRActionListener();
   CPVRActionListener(const CPVRActionListener&);

@@ -110,7 +110,7 @@ static int format_to_bits(AVSampleFormat fmt)
   return 0;
 }
 
-bool CActiveAEResamplePi::Init(uint64_t dst_chan_layout, int dst_channels, int dst_rate, AVSampleFormat dst_fmt, int dst_bits, int dst_dither, uint64_t src_chan_layout, int src_channels, int src_rate, AVSampleFormat src_fmt, int src_bits, int src_dither, bool upmix, bool normalize, CAEChannelInfo *remapLayout, AEQuality quality)
+bool CActiveAEResamplePi::Init(uint64_t dst_chan_layout, int dst_channels, int dst_rate, AVSampleFormat dst_fmt, int dst_bits, int dst_dither, uint64_t src_chan_layout, int src_channels, int src_rate, AVSampleFormat src_fmt, int src_bits, int src_dither, bool upmix, bool normalize, CAEChannelInfo *remapLayout, AEQuality quality, bool force_resample)
 {
   LOGTIMEINIT("x");
 
@@ -131,6 +131,7 @@ bool CActiveAEResamplePi::Init(uint64_t dst_chan_layout, int dst_channels, int d
   m_offset = 0;
   m_src_pitch = format_to_bits(m_src_fmt) >> 3;
   m_dst_pitch = format_to_bits(m_dst_fmt) >> 3;
+  m_force_resample = force_resample;
 
   // special handling for S24 formats which are carried in S32 (S24NE3)
   if ((m_dst_fmt == AV_SAMPLE_FMT_S32 || m_dst_fmt == AV_SAMPLE_FMT_S32P) && m_dst_bits == 24 && m_dst_dither_bits == -8)
@@ -280,7 +281,7 @@ bool CActiveAEResamplePi::Init(uint64_t dst_chan_layout, int dst_channels, int d
 
   LOGTIME(3);
 
-  if (CSettings::Get().GetBool("videoplayer.usedisplayasclock") && CSettings::Get().GetInt("videoplayer.synctype") == SYNC_RESAMPLE)
+  if (m_force_resample)
   {
     OMX_PARAM_U32TYPE scaleType;
     OMX_INIT_STRUCTURE(scaleType);
@@ -499,6 +500,7 @@ int CActiveAEResamplePi::Resample(uint8_t **dst_buffer, int dst_samples, uint8_t
     if (omx_err != OMX_ErrorNone)
     {
       CLog::Log(LOGERROR, "%s::%s OMX_EmptyThisBuffer() failed with result(0x%x)", CLASSNAME, __func__, omx_err);
+      m_omx_mixer.DecoderEmptyBufferDone(m_omx_mixer.GetComponent(), omx_buffer);
       return false;
     }
 
@@ -511,8 +513,11 @@ int CActiveAEResamplePi::Resample(uint8_t **dst_buffer, int dst_samples, uint8_t
     }
     omx_err = m_omx_mixer.FillThisBuffer(m_encoded_buffer);
     if (omx_err != OMX_ErrorNone)
+    {
+      CLog::Log(LOGERROR, "%s::%s m_omx_mixer.FillThisBuffer result(0x%x)", CLASSNAME, __func__, omx_err);
+      m_omx_mixer.DecoderFillBufferDone(m_omx_mixer.GetComponent(), m_encoded_buffer);
       return false;
-
+    }
     omx_err = m_omx_mixer.WaitForOutputDone(1000);
     if (omx_err != OMX_ErrorNone)
     {

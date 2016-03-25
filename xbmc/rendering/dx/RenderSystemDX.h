@@ -27,6 +27,7 @@
 
 #include <vector>
 #include "rendering/RenderSystem.h"
+#include "guilib/GUIShaderDX.h"
 #include "threads/CriticalSection.h"
 
 enum PCI_Vendors
@@ -48,65 +49,45 @@ public:
   virtual bool InitRenderSystem();
   virtual bool DestroyRenderSystem();
   virtual bool ResetRenderSystem(int width, int height, bool fullScreen, float refreshRate);
-
   virtual bool BeginRender();
   virtual bool EndRender();
-  virtual bool PresentRender(const CDirtyRegionList &dirty);
   virtual bool ClearBuffers(color_t color);
   virtual bool IsExtSupported(const char* extension);
-  virtual bool IsSurfaceFormatOk(D3DFORMAT surfFormat, DWORD usage);
-  virtual bool IsTextureFormatOk(D3DFORMAT texFormat, DWORD usage);
-
+  virtual bool IsFormatSupport(DXGI_FORMAT format, unsigned int usage);
   virtual void SetVSync(bool vsync);
-
   virtual void SetViewPort(CRect& viewPort);
   virtual void GetViewPort(CRect& viewPort);
   virtual void RestoreViewPort();
-
+  virtual CRect ClipRectToScissorRect(const CRect &rect);
+  virtual bool ScissorsCanEffectClipping();
   virtual void SetScissors(const CRect &rect);
   virtual void ResetScissors();
-
   virtual void CaptureStateBlock();
   virtual void ApplyStateBlock();
-
-  virtual void SetCameraPosition(const CPoint &camera, int screenWidth, int screenHeight);
-
+  virtual void SetCameraPosition(const CPoint &camera, int screenWidth, int screenHeight, float stereoFactor = 0.f);
   virtual void ApplyHardwareTransform(const TransformMatrix &matrix);
   virtual void RestoreHardwareTransform();
   virtual void SetStereoMode(RENDER_STEREO_MODE mode, RENDER_STEREO_VIEW view);
   virtual bool SupportsStereo(RENDER_STEREO_MODE mode) const;
   virtual bool TestRender();
-
   virtual void Project(float &x, float &y, float &z);
+  virtual CRect GetBackBufferRect() { return CRect(0.f, 0.f, static_cast<float>(m_nBackBufferWidth), static_cast<float>(m_nBackBufferHeight)); }
 
+  IDXGIOutput* GetCurrentOutput(void) { return m_pOutput; }
+  void GetDisplayMode(DXGI_MODE_DESC *mode, bool useCached = false);
+  void FinishCommandList(bool bExecute = true);
   void FlushGPU();
 
-  LPDIRECT3DDEVICE9 Get3DDevice() { return m_pD3DDevice; }
-  int GetBackbufferCount() const { return m_D3DPP.BackBufferCount; }
-
-  bool    UseD3D9Ex()       { return m_useD3D9Ex; }
-  DWORD   DefaultD3DUsage() { return m_defaultD3DUsage; }
-  D3DPOOL DefaultD3DPool()  { return m_defaultD3DPool; }
-  D3DADAPTER_IDENTIFIER9 GetAIdentifier() { return m_AIdentifier; }
-  bool    Interlaced()      { return m_interlaced; }
-
-  /*!
-   \brief Register as a dependent of the DirectX Render System
-   Resources should call this on construction if they're dependent on the Render System
-   for survival. Any resources that registers will get callbacks on loss and reset of
-   device, where resources that are in the D3DPOOL_DEFAULT pool should be handled.
-   In addition, callbacks for destruction and creation of the device are also called,
-   where any resources dependent on the DirectX device should be destroyed and recreated.
-   \sa Unregister, ID3DResource
-  */
-  void Register(ID3DResource *resource);
-
-  /*!
-   \brief Unregister as a dependent of the DirectX Render System
-   Resources should call this on destruction if they're a dependent on the Render System
-   \sa Register, ID3DResource
-  */
-  void Unregister(ID3DResource *resource);
+  ID3D11Device*           Get3D11Device()      { return m_pD3DDev; }
+  ID3D11DeviceContext*    Get3D11Context()     { return m_pContext; }
+  ID3D11DeviceContext*    GetImmediateContext(){ return m_pImdContext; }
+  CGUIShaderDX*           GetGUIShader()       { return m_pGUIShader; }
+  unsigned                GetFeatureLevel()    { return m_featureLevel; }
+  D3D11_USAGE             DefaultD3DUsage()    { return m_defaultD3DUsage; }
+  DXGI_ADAPTER_DESC       GetAIdentifier()     { return m_adapterDesc; }
+  bool                    Interlaced()         { return m_interlaced; }
+  int                     GetBackbufferCount() const { return 2; }
+  void                    SetAlphaBlendEnable(bool enable);
 
   static std::string GetErrorDescription(HRESULT hr);
 
@@ -115,28 +96,34 @@ protected:
   void DeleteDevice();
   void OnDeviceLost();
   void OnDeviceReset();
-  bool PresentRenderImpl(const CDirtyRegionList &dirty);
+  void PresentRenderImpl(bool rendered);
 
   void SetFocusWnd(HWND wnd) { m_hFocusWnd = wnd; }
   void SetDeviceWnd(HWND wnd) { m_hDeviceWnd = wnd; }
   void SetMonitor(HMONITOR monitor);
   void SetRenderParams(unsigned int width, unsigned int height, bool fullScreen, float refreshRate);
-  void BuildPresentParameters();
-  virtual void UpdateMonitor() {};
-  BOOL IsDepthFormatOk(D3DFORMAT DepthFormat, D3DFORMAT RenderTargetFormat);
+  bool CreateWindowSizeDependentResources();
+  bool CreateStates();
+  bool InitGUIShader();
   void OnMove();
+  void OnResize(unsigned int width, unsigned int height);
+  void SetFullScreenInternal();
+  void GetClosestDisplayModeToCurrent(IDXGIOutput* output, DXGI_MODE_DESC* outCurrentDisplayMode, bool useCached = false);
+  void CheckInterlasedStereoView(void);
+  void SetMaximumFrameLatency(uint32_t latency);
 
-  LPDIRECT3D9                 m_pD3D;
+  virtual void Register(ID3DResource *resource);
+  virtual void Unregister(ID3DResource *resource);
+  virtual void UpdateMonitor() {};
+  virtual void OnDisplayLost() {};
+  virtual void OnDisplayReset() {};
+  virtual void OnDisplayBack() {};
 
   // our adapter could change as we go
   bool                        m_needNewDevice;
-  unsigned int                m_adapter;
-  LPDIRECT3DDEVICE9           m_pD3DDevice;
+  bool                        m_needNewViews;
+  bool                        m_resizeInProgress;
   unsigned int                m_screenHeight;
-
-  D3DDEVTYPE                  m_devType;
-  D3DPRESENT_PARAMETERS       m_D3DPP;
-  D3DDISPLAYMODEEX            m_D3DDMEX;
   HWND                        m_hFocusWnd;
   HWND                        m_hDeviceWnd;
   unsigned int                m_nBackBufferWidth;
@@ -145,23 +132,46 @@ protected:
   float                       m_refreshRate;
   bool                        m_interlaced;
   HRESULT                     m_nDeviceStatus;
-  IDirect3DStateBlock9*       m_stateBlock;
   int64_t                     m_systemFreq;
-  bool                        m_useD3D9Ex;
-  DWORD                       m_defaultD3DUsage;
-  D3DPOOL                     m_defaultD3DPool;
+  D3D11_USAGE                 m_defaultD3DUsage;
   bool                        m_useWindowedDX;
-  D3DADAPTER_IDENTIFIER9      m_AIdentifier;
-
   CCriticalSection            m_resourceSection;
   std::vector<ID3DResource*>  m_resources;
-
   bool                        m_inScene; ///< True if we're in a BeginScene()/EndScene() block
-
-  D3DVIEWPORT9                m_viewPort;
-  D3DXMATRIX                  m_projection;
-  D3DXMATRIX                  m_view;
-  D3DXMATRIX                  m_world;
+  D3D_DRIVER_TYPE             m_driverType;
+  D3D_FEATURE_LEVEL           m_featureLevel;
+  IDXGIFactory1*              m_dxgiFactory;
+  ID3D11Device*               m_pD3DDev;
+  IDXGIAdapter1*              m_adapter;
+  IDXGIOutput*                m_pOutput;
+  ID3D11DeviceContext*        m_pContext;
+  ID3D11DeviceContext*        m_pImdContext;
+  IDXGISwapChain*             m_pSwapChain;
+  IDXGISwapChain1*            m_pSwapChain1;
+  ID3D11RenderTargetView*     m_pRenderTargetView;
+  ID3D11DepthStencilState*    m_depthStencilState;
+  ID3D11DepthStencilView*     m_depthStencilView;
+  D3D11_VIEWPORT              m_viewPort;
+  CRect                       m_scissor;
+  CGUIShaderDX*               m_pGUIShader;
+  ID3D11BlendState*           m_BlendEnableState;
+  ID3D11BlendState*           m_BlendDisableState;
+  bool                        m_BlendEnabled;
+  ID3D11RasterizerState*      m_RSScissorDisable;
+  ID3D11RasterizerState*      m_RSScissorEnable;
+  bool                        m_ScissorsEnabled;
+  DXGI_ADAPTER_DESC           m_adapterDesc;
+  // stereo interlaced/checkerboard intermediate target
+  ID3D11Texture2D*            m_pTextureRight;
+  ID3D11RenderTargetView*     m_pRenderTargetViewRight;
+  ID3D11ShaderResourceView*   m_pShaderResourceViewRight;
+  bool                        m_bResizeRequred;
+  bool                        m_bHWStereoEnabled;
+  // improve get current mode
+  DXGI_MODE_DESC              m_cachedMode;
+#ifdef _DEBUG
+  ID3D11Debug*                m_d3dDebug = NULL;
+#endif
 };
 
 #endif

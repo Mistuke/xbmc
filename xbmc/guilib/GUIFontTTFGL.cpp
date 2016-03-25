@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2005-2015 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
@@ -37,10 +37,7 @@
 #include FT_GLYPH_H
 #include FT_OUTLINE_H
 
-using namespace std;
-
 #if defined(HAS_GL) || defined(HAS_GLES)
-
 
 CGUIFontTTFGL::CGUIFontTTFGL(const std::string& strFileName)
 : CGUIFontTTFBase(strFileName)
@@ -140,8 +137,6 @@ bool CGUIFontTTFGL::FirstBegin()
     VerifyGLState();
   }
 
-#else
-  g_Windowing.EnableGUIShader(SM_FONTS);
 #endif
   return true;
 }
@@ -168,6 +163,8 @@ void CGUIFontTTFGL::LastEnd()
   glDisable(GL_TEXTURE_2D);
 #else
   // GLES 2.0 version.
+  g_Windowing.EnableGUIShader(SM_FONTS);
+
   CreateStaticVertexBuffers();
 
   GLint posLoc  = g_Windowing.GUIShaderGetPos();
@@ -180,7 +177,7 @@ void CGUIFontTTFGL::LastEnd()
   glEnableVertexAttribArray(colLoc);
   glEnableVertexAttribArray(tex0Loc);
 
-  if (m_vertex.size() > 0)
+  if (!m_vertex.empty())
   {
     // Deal with vertices that had to use software clipping
     std::vector<SVertex> vecVertices( 6 * (m_vertex.size() / 4) );
@@ -206,18 +203,28 @@ void CGUIFontTTFGL::LastEnd()
 
     glDrawArrays(GL_TRIANGLES, 0, vecVertices.size());
   }
-  if (m_vertexTrans.size() > 0)
+  if (!m_vertexTrans.empty())
   {
     // Deal with the vertices that can be hardware clipped and therefore translated
 
     // Bind our pre-calculated array to GL_ELEMENT_ARRAY_BUFFER
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_elementArrayHandle);
+    // Store currect scissor
+    CRect scissor = g_graphicsContext.StereoCorrection(g_graphicsContext.GetScissors());
 
     for (size_t i = 0; i < m_vertexTrans.size(); i++)
     {
       // Apply the clip rectangle
       CRect clip = g_Windowing.ClipRectToScissorRect(m_vertexTrans[i].clip);
-      g_Windowing.SetScissors(clip);
+      if (!clip.IsEmpty())
+      {
+        // intersect with current scissor
+        clip.Intersect(scissor);
+        // skip empty clip
+        if (clip.IsEmpty())
+          continue;
+        g_Windowing.SetScissors(clip);
+      }
 
       // Apply the translation to the currently active (top-of-stack) model view matrix
       glMatrixModview.Push();
@@ -225,7 +232,7 @@ void CGUIFontTTFGL::LastEnd()
       glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glMatrixModview.Get());
 
       // Bind the buffer to the OpenGL context's GL_ARRAY_BUFFER binding point
-      glBindBuffer(GL_ARRAY_BUFFER, (GLuint) m_vertexTrans[i].vertexBuffer->bufferHandle);
+      glBindBuffer(GL_ARRAY_BUFFER, m_vertexTrans[i].vertexBuffer->bufferHandle);
 
       // Do the actual drawing operation, split into groups of characters no
       // larger than the pre-determined size of the element array
@@ -246,7 +253,7 @@ void CGUIFontTTFGL::LastEnd()
       glMatrixModview.Pop();
     }
     // Restore the original scissor rectangle
-    g_Windowing.ResetScissors();
+    g_Windowing.SetScissors(scissor);
     // Restore the original model view matrix
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glMatrixModview.Get());
     // Unbind GL_ARRAY_BUFFER and GL_ELEMENT_ARRAY_BUFFER
@@ -278,7 +285,7 @@ CVertexBuffer CGUIFontTTFGL::CreateVertexBuffer(const std::vector<SVertex> &vert
   // Unbind GL_ARRAY_BUFFER
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-  return CVertexBuffer((void *) bufferHandle, vertices.size() / 4, this);
+  return CVertexBuffer(bufferHandle, vertices.size() / 4, this);
 }
 
 void CGUIFontTTFGL::DestroyVertexBuffer(CVertexBuffer &buffer) const

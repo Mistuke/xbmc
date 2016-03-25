@@ -23,10 +23,8 @@
 #include "filesystem/SpecialProtocol.h"
 #include "filesystem/File.h"
 #include "profiles/ProfilesManager.h"
-#include "utils/AutoPtrHandle.h"
 #include "utils/log.h"
 #include "utils/SortUtils.h"
-#include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
 #include "sqlitedataset.h"
 #include "DatabaseManager.h"
@@ -36,7 +34,6 @@
 #include "mysqldataset.h"
 #endif
 
-using namespace AUTOPTR;
 using namespace dbiplus;
 
 #define MAX_COMPRESS_COUNT 20
@@ -151,7 +148,7 @@ std::string CDatabase::GetSingleValue(const std::string &query, std::unique_ptr<
     if (!m_pDB.get() || !ds.get())
       return ret;
 
-    if (ds->query(query.c_str()) && ds->num_rows() > 0)
+    if (ds->query(query) && ds->num_rows() > 0)
       ret = ds->fv(0).get_asString();
 
     ds->close();
@@ -204,8 +201,8 @@ bool CDatabase::CommitMultipleExecute()
       return false;
     }
   }
-  CommitTransaction();
-  return true;
+
+  return CommitTransaction();
 }
 
 bool CDatabase::ExecuteQuery(const std::string &strQuery)
@@ -222,7 +219,7 @@ bool CDatabase::ExecuteQuery(const std::string &strQuery)
   {
     if (NULL == m_pDB.get()) return bReturn;
     if (NULL == m_pDS.get()) return bReturn;
-    m_pDS->exec(strQuery.c_str());
+    m_pDS->exec(strQuery);
     bReturn = true;
   }
   catch (...)
@@ -245,7 +242,7 @@ bool CDatabase::ResultQuery(const std::string &strQuery)
 
     std::string strPreparedQuery = PrepareSQL(strQuery.c_str());
 
-    bReturn = m_pDS->query(strPreparedQuery.c_str());
+    bReturn = m_pDS->query(strPreparedQuery);
   }
   catch (...)
   {
@@ -313,7 +310,7 @@ bool CDatabase::Open(const DatabaseSettings &settings)
   }
 
   // check our database manager to see if this database can be opened
-  if (!CDatabaseManager::Get().CanOpen(GetBaseDBName()))
+  if (!CDatabaseManager::GetInstance().CanOpen(GetBaseDBName()))
     return false;
 
   DatabaseSettings dbSettings = settings;
@@ -346,7 +343,7 @@ void CDatabase::InitSettings(DatabaseSettings &dbSettings)
   {
     dbSettings.type = "sqlite3";
     if (dbSettings.host.empty())
-      dbSettings.host = CSpecialProtocol::TranslatePath(CProfilesManager::Get().GetDatabaseFolder());
+      dbSettings.host = CSpecialProtocol::TranslatePath(CProfilesManager::GetInstance().GetDatabaseFolder());
   }
 
   // use separate, versioned database
@@ -521,6 +518,8 @@ int CDatabase::GetDBVersion()
 bool CDatabase::UpdateVersion(const std::string &dbName)
 {
   int version = GetDBVersion();
+  bool bReturn = false;
+
   if (version < GetMinSchemaVersion())
   {
     CLog::Log(LOGERROR, "Can't update database %s from version %i - it's too old", dbName.c_str(), version);
@@ -550,17 +549,21 @@ bool CDatabase::UpdateVersion(const std::string &dbName)
       RollbackTransaction();
       return false;
     }
-    CommitTransaction();
+    bReturn = CommitTransaction();
     CLog::Log(LOGINFO, "Update to version %i successful", GetSchemaVersion());
   }
   else if (version > GetSchemaVersion())
   {
+    bReturn = false;
     CLog::Log(LOGERROR, "Can't open the database %s as it is a NEWER version than what we were expecting?", dbName.c_str());
-    return false;
   }
-  else 
+  else
+  {
+    bReturn = true;
     CLog::Log(LOGNOTICE, "Running database version %s", dbName.c_str());
-  return true;
+  }
+
+  return bReturn;
 }
 
 bool CDatabase::IsOpen()
@@ -609,7 +612,7 @@ bool CDatabase::Compress(bool bForce /* =true */)
           iCount = -1;
         m_pDS->close();
         std::string strSQL=PrepareSQL("update version set iCompressCount=%i\n",++iCount);
-        m_pDS->exec(strSQL.c_str());
+        m_pDS->exec(strSQL);
         if (iCount != 0)
           return true;
       }
@@ -686,7 +689,7 @@ bool CDatabase::CreateDatabase()
     CLog::Log(LOGINFO, "creating version table");
     m_pDS->exec("CREATE TABLE version (idVersion integer, iCompressCount integer)\n");
     std::string strSQL=PrepareSQL("INSERT INTO version (idVersion,iCompressCount) values(%i,0)\n", GetSchemaVersion());
-    m_pDS->exec(strSQL.c_str());
+    m_pDS->exec(strSQL);
 
     CreateTables();
     CreateAnalytics();
@@ -697,14 +700,14 @@ bool CDatabase::CreateDatabase()
     RollbackTransaction();
     return false;
   }
-  CommitTransaction();
-  return true;
+
+  return CommitTransaction();
 }
 
 void CDatabase::UpdateVersionNumber()
 {
   std::string strSQL=PrepareSQL("UPDATE version SET idVersion=%i\n", GetSchemaVersion());
-  m_pDS->exec(strSQL.c_str());
+  m_pDS->exec(strSQL);
 }
 
 bool CDatabase::BuildSQL(const std::string &strQuery, const Filter &filter, std::string &strSQL)

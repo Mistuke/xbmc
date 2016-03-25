@@ -21,7 +21,6 @@
 #include "XMLUtils.h"
 #include "ScraperUrl.h"
 #include "settings/AdvancedSettings.h"
-#include "HTMLUtil.h"
 #include "CharsetConverter.h"
 #include "utils/CharsetDetection.h"
 #include "utils/StringUtils.h"
@@ -30,13 +29,11 @@
 #include "filesystem/ZipFile.h"
 #include "URIUtils.h"
 #include "utils/XBMCTinyXML.h"
-#include "utils/XMLUtils.h"
 #include "utils/Mime.h"
+#include "utils/log.h"
 
 #include <cstring>
 #include <sstream>
-
-using namespace std;
 
 CScraperUrl::CScraperUrl(const std::string& strUrl)
 {
@@ -79,7 +76,7 @@ bool CScraperUrl::ParseElement(const TiXmlElement* element)
   if (!element || !element->FirstChild() ||
       !element->FirstChild()->Value()) return false;
 
-  stringstream stream;
+  std::stringstream stream;
   stream << *element;
   m_xml += stream.str();
 
@@ -151,7 +148,7 @@ bool CScraperUrl::ParseString(std::string strUrl)
 
 const CScraperUrl::SUrlEntry CScraperUrl::GetFirstThumb(const std::string &type) const
 {
-  for (vector<SUrlEntry>::const_iterator iter=m_url.begin();iter != m_url.end();++iter)
+  for (std::vector<SUrlEntry>::const_iterator iter=m_url.begin();iter != m_url.end();++iter)
   {
     if (iter->m_type == URL_TYPE_GENERAL && (type.empty() || type == "thumb" || iter->m_aspect == type))
       return *iter;
@@ -167,7 +164,7 @@ const CScraperUrl::SUrlEntry CScraperUrl::GetFirstThumb(const std::string &type)
 
 const CScraperUrl::SUrlEntry CScraperUrl::GetSeasonThumb(int season, const std::string &type) const
 {
-  for (vector<SUrlEntry>::const_iterator iter=m_url.begin();iter != m_url.end();++iter)
+  for (std::vector<SUrlEntry>::const_iterator iter=m_url.begin();iter != m_url.end();++iter)
   {
     if (iter->m_type == URL_TYPE_SEASON && iter->m_season == season &&
        (type.empty() || type == "thumb" || iter->m_aspect == type))
@@ -185,7 +182,7 @@ const CScraperUrl::SUrlEntry CScraperUrl::GetSeasonThumb(int season, const std::
 unsigned int CScraperUrl::GetMaxSeasonThumb() const
 {
   unsigned int maxSeason = 0;
-  for (vector<SUrlEntry>::const_iterator iter=m_url.begin();iter != m_url.end();++iter)
+  for (std::vector<SUrlEntry>::const_iterator iter=m_url.begin();iter != m_url.end();++iter)
   {
     if (iter->m_type == URL_TYPE_SEASON && iter->m_season > 0 && (unsigned int)iter->m_season > maxSeason)
       maxSeason = iter->m_season;
@@ -200,7 +197,7 @@ bool CScraperUrl::Get(const SUrlEntry& scrURL, std::string& strHTML, XFILE::CCur
   std::string strCachePath;
 
   if (scrURL.m_isgz)
-    http.SetContentEncoding("gzip");
+    http.SetAcceptEncoding("gzip");
 
   if (!scrURL.m_cache.empty())
   {
@@ -307,7 +304,7 @@ bool CScraperUrl::Get(const SUrlEntry& scrURL, std::string& strHTML, XFILE::CCur
     std::string strCachePath = URIUtils::AddFileToFolder(g_advancedSettings.m_cachePath,
                               "scrapers/" + cacheContext + "/" + scrURL.m_cache);
     XFILE::CFile file;
-    if (!file.OpenForWrite(strCachePath, true) || file.Write(strHTML.data(), strHTML.size()) != strHTML.size())
+    if (!file.OpenForWrite(strCachePath, true) || file.Write(strHTML.data(), strHTML.size()) != static_cast<ssize_t>(strHTML.size()))
       return false;
   }
   return true;
@@ -352,7 +349,7 @@ std::string CScraperUrl::GetThumbURL(const CScraperUrl::SUrlEntry &entry)
 
 void CScraperUrl::GetThumbURLs(std::vector<std::string> &thumbs, const std::string &type, int season) const
 {
-  for (vector<SUrlEntry>::const_iterator iter = m_url.begin(); iter != m_url.end(); ++iter)
+  for (std::vector<SUrlEntry>::const_iterator iter = m_url.begin(); iter != m_url.end(); ++iter)
   {
     if (iter->m_aspect == type || type.empty() || type == "thumb" || iter->m_aspect.empty())
     {

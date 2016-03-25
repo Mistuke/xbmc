@@ -24,7 +24,6 @@
 #include <time.h>
 
 class CDateTime;
-class CTimeSmoother;
 
 int64_t CurrentHostCounter(void);
 int64_t CurrentHostFrequency(void);
@@ -38,6 +37,5 @@ public:
 
 private:
   static unsigned int frameTime;
-  static CTimeSmoother frameTimer;
 };
 

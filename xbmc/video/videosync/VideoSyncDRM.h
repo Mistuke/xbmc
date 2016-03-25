@@ -31,7 +31,8 @@ public:
   virtual void Run(volatile bool& stop);
   virtual void Cleanup();
   virtual float GetFps();
-  virtual void OnResetDevice();
+  virtual void OnResetDisplay();
+  virtual void RefreshChanged();
 private:
   static void EventHandler(int fd, unsigned int frame, unsigned int sec, unsigned int usec, void *data);
   int m_fd;

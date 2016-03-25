@@ -29,11 +29,10 @@
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
 #include "URL.h"
-#include "utils/StringUtils.h"
 
 using namespace XFILE;
 
-CTextureCache &CTextureCache::Get()
+CTextureCache &CTextureCache::GetInstance()
 {
   static CTextureCache s_cache;
   return s_cache;
@@ -67,8 +66,9 @@ bool CTextureCache::IsCachedImage(const std::string &url) const
     return true;
   if (URIUtils::IsInPath(url, "special://skin/") ||
       URIUtils::IsInPath(url, "special://temp/") ||
+      URIUtils::IsInPath(url, "resource://") ||
       URIUtils::IsInPath(url, "androidapp://")   ||
-      URIUtils::IsInPath(url, CProfilesManager::Get().GetThumbnailsFolder()))
+      URIUtils::IsInPath(url, CProfilesManager::GetInstance().GetThumbnailsFolder()))
     return true;
   return false;
 }
@@ -102,23 +102,13 @@ bool CTextureCache::CanCacheImageURL(const CURL &url)
   return (url.GetUserName().empty() || url.GetUserName() == "music");
 }
 
-std::string CTextureCache::CheckCachedImage(const std::string &url, bool returnDDS, bool &needsRecaching)
+std::string CTextureCache::CheckCachedImage(const std::string &url, bool &needsRecaching)
 {
   CTextureDetails details;
   std::string path(GetCachedImage(url, details, true));
   needsRecaching = !details.hash.empty();
   if (!path.empty())
-  {
-    if (!needsRecaching && returnDDS && !URIUtils::IsInPath(url, "special://skin/")) // TODO: should skin images be .dds'd (currently they're not necessarily writeable)
-    { // check for dds version
-      std::string ddsPath = URIUtils::ReplaceExtension(path, ".dds");
-      if (CFile::Exists(ddsPath))
-        return ddsPath;
-      if (g_advancedSettings.m_useDDSFanart)
-        AddJob(new CTextureDDSJob(path));
-    }
     return path;
-  }
   return "";
 }
 
@@ -133,16 +123,7 @@ void CTextureCache::BackgroundCacheImage(const std::string &url)
   AddJob(new CTextureCacheJob(CTextureUtils::UnwrapImageURL(url), details.hash));
 }
 
-bool CTextureCache::CacheImage(const std::string &image, CTextureDetails &details)
-{
-  std::string path = GetCachedImage(image, details);
-  if (path.empty()) // not cached
-    path = CacheImage(image, NULL, &details);
-
-  return !path.empty();
-}
-
-std::string CTextureCache::CacheImage(const std::string &image, CBaseTexture **texture, CTextureDetails *details)
+std::string CTextureCache::CacheImage(const std::string &image, CBaseTexture **texture /* = NULL */, CTextureDetails *details /* = NULL */)
 {
   std::string url = CTextureUtils::UnwrapImageURL(image);
   CSingleLock lock(m_processingSection);
@@ -174,6 +155,15 @@ std::string CTextureCache::CacheImage(const std::string &image, CBaseTexture **t
   if (!details)
     details = &tempDetails;
   return GetCachedImage(url, *details, true);
+}
+
+bool CTextureCache::CacheImage(const std::string &image, CTextureDetails &details)
+{
+  std::string path = GetCachedImage(image, details);
+  if (path.empty()) // not cached
+    path = CacheImage(image, NULL, &details);
+
+  return !path.empty();
 }
 
 void CTextureCache::ClearCachedImage(const std::string &url, bool deleteSource /*= false */)
@@ -260,7 +250,7 @@ std::string CTextureCache::GetCacheFile(const std::string &url)
 
 std::string CTextureCache::GetCachedPath(const std::string &file)
 {
-  return URIUtils::AddFileToFolder(CProfilesManager::Get().GetThumbnailsFolder(), file);
+  return URIUtils::AddFileToFolder(CProfilesManager::GetInstance().GetThumbnailsFolder(), file);
 }
 
 void CTextureCache::OnCachingComplete(bool success, CTextureCacheJob *job)
@@ -281,10 +271,6 @@ void CTextureCache::OnCachingComplete(bool success, CTextureCacheJob *job)
   }
 
   m_completeEvent.Set();
-
-  // TODO: call back to the UI indicating that it can update it's image...
-  if (success && g_advancedSettings.m_useDDSFanart && !job->m_details.file.empty())
-    AddJob(new CTextureDDSJob(GetCachedPath(job->m_details.file)));
 }
 
 void CTextureCache::OnJobComplete(unsigned int jobID, bool success, CJob *job)

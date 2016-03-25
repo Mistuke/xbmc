@@ -20,11 +20,10 @@
 
 #include "SaveFileStateJob.h"
 #include "pvr/PVRManager.h"
-#include "pvr/recordings/PVRRecordings.h"
 #include "settings/MediaSettings.h"
 #include "network/upnp/UPnP.h"
 #include "StringUtils.h"
-#include "Variant.h"
+#include "utils/Variant.h"
 #include "URIUtils.h"
 #include "URL.h"
 #include "log.h"
@@ -35,6 +34,8 @@
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
 #include "music/MusicDatabase.h"
+#include "cores/AudioEngine/DSPAddons/ActiveAEDSP.h"
+#include "xbmc/music/tags/MusicInfoTag.h"
 
 bool CSaveFileStateJob::DoWork()
 {
@@ -89,6 +90,14 @@ bool CSaveFileStateJob::DoWork()
 
             m_item.SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, true);
             updateListing = true;
+
+            if (m_item.HasVideoInfoTag())
+            {
+              CVariant data;
+              data["id"] = m_item.GetVideoInfoTag()->m_iDbId;
+              data["type"] = m_item.GetVideoInfoTag()->m_type;
+              ANNOUNCEMENT::CAnnouncementManager::GetInstance().Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnUpdate", data);
+            }
           }
           else
             videodatabase.UpdateLastPlayed(m_item);
@@ -112,19 +121,19 @@ bool CSaveFileStateJob::DoWork()
 
             // UPnP announce resume point changes to clients
             // however not if playcount is modified as that already announces
-            if (m_item.IsVideoDb() && !m_updatePlayCount)
+            if (m_item.HasVideoInfoTag() && !m_updatePlayCount)
             {
               CVariant data;
               data["id"] = m_item.GetVideoInfoTag()->m_iDbId;
               data["type"] = m_item.GetVideoInfoTag()->m_type;
-              ANNOUNCEMENT::CAnnouncementManager::Get().Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnUpdate", data);
+              ANNOUNCEMENT::CAnnouncementManager::GetInstance().Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnUpdate", data);
             }
 
             updateListing = true;
           }
         }
 
-        if (m_videoSettings != CMediaSettings::Get().GetDefaultVideoSettings())
+        if (m_videoSettings != CMediaSettings::GetInstance().GetDefaultVideoSettings())
         {
           videodatabase.SetVideoSettings(progressTrackingFile, m_videoSettings);
         }
@@ -168,26 +177,53 @@ bool CSaveFileStateJob::DoWork()
 
       if (m_updatePlayCount)
       {
-#if 0
-        // Can't write to the musicdatabase while scanning for music info
-        CGUIDialogMusicScan *dialog = (CGUIDialogMusicScan *)g_windowManager.GetWindow(WINDOW_DIALOG_MUSIC_SCAN);
-        if (dialog && !dialog->IsDialogRunning())
-#endif
+        CMusicDatabase musicdatabase;
+        if (!musicdatabase.Open())
         {
-          CMusicDatabase musicdatabase;
-          if (!musicdatabase.Open())
-          {
-            CLog::Log(LOGWARNING, "%s - Unable to open music database. Can not save file state!", __FUNCTION__);
-          }
-          else
-          {
-            // consider this item as played
-            CLog::Log(LOGDEBUG, "%s - Marking audio item %s as listened", __FUNCTION__, redactPath.c_str());
+          CLog::Log(LOGWARNING, "%s - Unable to open music database. Can not save file state!", __FUNCTION__);
+        }
+        else
+        {
+          // consider this item as played
+          CLog::Log(LOGDEBUG, "%s - Marking audio item %s as listened", __FUNCTION__, redactPath.c_str());
 
-            musicdatabase.IncrementPlayCount(m_item);
-            musicdatabase.Close();
+          musicdatabase.IncrementPlayCount(m_item);
+          musicdatabase.Close();
+
+          // UPnP announce resume point changes to clients
+          // however not if playcount is modified as that already announces
+          if (m_item.IsMusicDb())
+          {
+            CVariant data;
+            data["id"] = m_item.GetMusicInfoTag()->GetDatabaseId();
+            data["type"] = m_item.GetMusicInfoTag()->GetType();
+            ANNOUNCEMENT::CAnnouncementManager::GetInstance().Announce(ANNOUNCEMENT::AudioLibrary, "xbmc", "OnUpdate", data);
           }
         }
+      }
+    }
+
+    if (ActiveAE::CActiveAEDSP::GetInstance().IsProcessing())
+    {
+      std::string redactPath = CURL::GetRedacted(progressTrackingFile);
+      CLog::Log(LOGDEBUG, "%s - Saving file state for dsp audio item %s", __FUNCTION__, redactPath.c_str());
+
+      ActiveAE::CActiveAEDSPDatabase audiodatabase;
+      if (!audiodatabase.Open())
+      {
+        CLog::Log(LOGWARNING, "%s - Unable to open dsp audio database. Can not save file state!", __FUNCTION__);
+      }
+      else
+      {
+        if (m_audioSettings != CMediaSettings::GetInstance().GetDefaultAudioSettings())
+        {
+          audiodatabase.SetActiveDSPSettings(m_item, m_audioSettings);
+        }
+        else
+        {
+          audiodatabase.DeleteActiveDSPSettings(m_item);
+        }
+        audiodatabase.Close();
       }
     }
   }

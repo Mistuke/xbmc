@@ -22,6 +22,7 @@
 #include "system.h"
 
 #ifdef HAS_WEB_SERVER
+#include <memory>
 #include <vector>
 
 #include "interfaces/json-rpc/ITransportLayer.h"
@@ -33,6 +34,7 @@ namespace XFILE
   class CFile;
 }
 class CDateTime;
+class CVariant;
 
 class CWebServer : public JSONRPC::ITransportLayer
 {
@@ -94,14 +96,14 @@ private:
                              const char *transfer_encoding, const char *data, uint64_t off,
                              unsigned int size);
 #endif
-  static int HandleRequest(IHTTPRequestHandler *handler);
-  static int FinalizeRequest(IHTTPRequestHandler *handler, int responseStatus, struct MHD_Response *response);
+  static int HandleRequest(const std::shared_ptr<IHTTPRequestHandler>& handler);
+  static int FinalizeRequest(const std::shared_ptr<IHTTPRequestHandler>& handler, int responseStatus, struct MHD_Response *response);
 
-  static int CreateMemoryDownloadResponse(IHTTPRequestHandler *handler, struct MHD_Response *&response);
-  static int CreateRangedMemoryDownloadResponse(IHTTPRequestHandler *handler, struct MHD_Response *&response);
+  static int CreateMemoryDownloadResponse(const std::shared_ptr<IHTTPRequestHandler>& handler, struct MHD_Response *&response);
+  static int CreateRangedMemoryDownloadResponse(const std::shared_ptr<IHTTPRequestHandler>& handler, struct MHD_Response *&response);
 
   static int CreateRedirect(struct MHD_Connection *connection, const std::string &strURL, struct MHD_Response *&response);
-  static int CreateFileDownloadResponse(IHTTPRequestHandler *handler, struct MHD_Response *&response);
+  static int CreateFileDownloadResponse(const std::shared_ptr<IHTTPRequestHandler>& handler, struct MHD_Response *&response);
   static int CreateErrorResponse(struct MHD_Connection *connection, int responseType, HTTPMethod method, struct MHD_Response *&response);
   static int CreateMemoryDownloadResponse(struct MHD_Connection *connection, const void *data, size_t size, bool free, bool copy, struct MHD_Response *&response);
 
@@ -120,6 +122,7 @@ private:
   struct MHD_Daemon *m_daemon_ip4;
   bool m_running;
   bool m_needcredentials;
+  size_t m_thread_stacksize;
   std::string m_Credentials64Encoded;
   CCriticalSection m_critSection;
   static std::vector<IHTTPRequestHandler *> m_requestHandlers;

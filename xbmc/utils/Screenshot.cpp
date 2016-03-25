@@ -33,17 +33,14 @@
 #include "xbmc/linux/RBP.h"
 #endif
 
-#ifdef HAS_VIDEO_PLAYBACK
-#include "cores/VideoRenderers/RenderManager.h"
-#endif
-
 #ifdef HAS_IMXVPU
 // This has to go into another header file
-#include "cores/dvdplayer/DVDCodecs/Video/DVDVideoCodecIMX.h"
+#include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.h"
 #endif
 
 #include "filesystem/File.h"
 #include "guilib/GraphicContext.h"
+#include "guilib/GUIWindowManager.h"
 
 #include "utils/JobManager.h"
 #include "utils/URIUtils.h"
@@ -56,7 +53,6 @@
 #include "utils/ScreenshotAML.h"
 #endif
 
-using namespace std;
 using namespace XFILE;
 
 CScreenshotSurface::CScreenshotSurface()
@@ -80,61 +76,64 @@ bool CScreenshotSurface::capture()
   if (!m_buffer)
     return false;
 #elif defined(HAS_DX)
-  LPDIRECT3DSURFACE9 lpSurface = NULL, lpBackbuffer = NULL;
-  g_graphicsContext.Lock();
-  if (g_application.m_pPlayer->IsPlayingVideo())
-  {
-#ifdef HAS_VIDEO_PLAYBACK
-    g_renderManager.SetupScreenshot();
-#endif
-  }
-  g_application.RenderNoPresent();
 
-  if (FAILED(g_Windowing.Get3DDevice()->CreateOffscreenPlainSurface(g_Windowing.GetWidth(), g_Windowing.GetHeight(), D3DFMT_X8R8G8B8, D3DPOOL_SYSTEMMEM, &lpSurface, NULL)))
+  CSingleLock lock(g_graphicsContext);
+
+  g_windowManager.Render();
+  g_Windowing.FinishCommandList();
+
+  ID3D11DeviceContext* pImdContext = g_Windowing.GetImmediateContext();
+  ID3D11DeviceContext* pContext = g_Windowing.Get3D11Context();
+  ID3D11Device* pDevice = g_Windowing.Get3D11Device();
+
+  ID3D11RenderTargetView* pRTView = nullptr;
+  pContext->OMGetRenderTargets(1, &pRTView, nullptr);
+  if (pRTView == nullptr)
     return false;
 
-  if (FAILED(g_Windowing.Get3DDevice()->GetRenderTarget(0, &lpBackbuffer)))
+  ID3D11Resource *pRTResource = nullptr;
+  pRTView->GetResource(&pRTResource);
+  SAFE_RELEASE(pRTView);
+
+  ID3D11Texture2D* pCopyTexture = nullptr;
+  ID3D11Texture2D* pRTTexture = nullptr;
+  HRESULT hr = pRTResource->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pRTTexture));
+  SAFE_RELEASE(pRTResource);
+  if (FAILED(hr))
     return false;
 
-  // now take screenshot
-  if (SUCCEEDED(g_Windowing.Get3DDevice()->GetRenderTargetData(lpBackbuffer, lpSurface)))
+  D3D11_TEXTURE2D_DESC desc;
+  pRTTexture->GetDesc(&desc);
+  desc.Usage = D3D11_USAGE_STAGING;
+  desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+  desc.BindFlags = 0;
+
+  if (SUCCEEDED(pDevice->CreateTexture2D(&desc, nullptr, &pCopyTexture)))
   {
-    D3DLOCKED_RECT lr;
-    D3DSURFACE_DESC desc;
-    lpSurface->GetDesc(&desc);
-    if (SUCCEEDED(lpSurface->LockRect(&lr, NULL, D3DLOCK_READONLY)))
+    // take copy
+    pImdContext->CopyResource(pCopyTexture, pRTTexture);
+
+    D3D11_MAPPED_SUBRESOURCE res;
+    if (SUCCEEDED(pImdContext->Map(pCopyTexture, 0, D3D11_MAP_READ, 0, &res)))
     {
       m_width = desc.Width;
       m_height = desc.Height;
-      m_stride = lr.Pitch;
+      m_stride = res.RowPitch;
       m_buffer = new unsigned char[m_height * m_stride];
-      memcpy(m_buffer, lr.pBits, m_height * m_stride);
-      lpSurface->UnlockRect();
+      memcpy(m_buffer, res.pData, m_height * m_stride);
+      pImdContext->Unmap(pCopyTexture, 0);
     }
     else
-    {
-      CLog::Log(LOGERROR, "%s LockRect failed", __FUNCTION__);
-    }
-  }
-  else
-  {
-    CLog::Log(LOGERROR, "%s GetBackBuffer failed", __FUNCTION__);
-  }
-  lpSurface->Release();
-  lpBackbuffer->Release();
+      CLog::Log(LOGERROR, "%s: MAP_READ failed.", __FUNCTION__);
 
-  g_graphicsContext.Unlock();
+    SAFE_RELEASE(pCopyTexture);
+  }
+  SAFE_RELEASE(pRTTexture);
 
 #elif defined(HAS_GL) || defined(HAS_GLES)
 
-  g_graphicsContext.BeginPaint();
-  if (g_application.m_pPlayer->IsPlayingVideo())
-  {
-#ifdef HAS_VIDEO_PLAYBACK
-    g_renderManager.SetupScreenshot();
-#endif
-  }
-  g_application.RenderNoPresent();
+  CSingleLock lock(g_graphicsContext);
+  g_windowManager.Render();
 #ifndef HAS_GLES
   glReadBuffer(GL_BACK);
 #endif
@@ -153,7 +152,6 @@ bool CScreenshotSurface::capture()
 #else
   glReadPixels(viewport[0], viewport[1], viewport[2], viewport[3], GL_BGRA, GL_UNSIGNED_BYTE, (GLvoid*)surface);
 #endif
-  g_graphicsContext.EndPaint();
 
   //make a new buffer and copy the read image to it with the Y axis inverted
   m_buffer = new unsigned char[m_stride * m_height];
@@ -240,12 +238,12 @@ void CScreenShot::TakeScreenshot(const std::string &filename, bool sync)
 void CScreenShot::TakeScreenshot()
 {
   static bool savingScreenshots = false;
-  static vector<std::string> screenShots;
+  static std::vector<std::string> screenShots;
   bool promptUser = false;
   std::string strDir;
 
   // check to see if we have a screenshot folder yet
-  CSettingPath *screenshotSetting = (CSettingPath*)CSettings::Get().GetSetting("debug.screenshotpath");
+  CSettingPath *screenshotSetting = (CSettingPath*)CSettings::GetInstance().GetSetting(CSettings::SETTING_DEBUG_SCREENSHOTPATH);
   if (screenshotSetting != NULL)
   {
     strDir = screenshotSetting->GetValue();

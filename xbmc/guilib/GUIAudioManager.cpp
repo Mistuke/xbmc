@@ -27,10 +27,10 @@
 #include "utils/URIUtils.h"
 #include "utils/XBMCTinyXML.h"
 #include "filesystem/Directory.h"
+#include "addons/AddonManager.h"
 #include "addons/Skin.h"
 #include "cores/AudioEngine/AEFactory.h"
-
-using namespace std;
+#include "utils/log.h"
 
 CGUIAudioManager g_audioManager;
 
@@ -49,12 +49,29 @@ void CGUIAudioManager::OnSettingChanged(const CSetting *setting)
     return;
 
   const std::string &settingId = setting->GetId();
-  if (settingId == "lookandfeel.soundskin")
+  if (settingId == CSettings::SETTING_LOOKANDFEEL_SOUNDSKIN)
   {
     Enable(true);
     Load();
   }
 }
+
+bool CGUIAudioManager::OnSettingUpdate(CSetting* &setting, const char *oldSettingId, const TiXmlNode *oldSettingNode)
+{
+  if (setting == NULL)
+    return false;
+
+  if (setting->GetId() == CSettings::SETTING_LOOKANDFEEL_SOUNDSKIN)
+  {
+    //Migrate the old settings
+    if (((CSettingString*)setting)->GetValue() == "SKINDEFAULT")
+      ((CSettingString*)setting)->Reset();
+    else if (((CSettingString*)setting)->GetValue() == "OFF")
+      ((CSettingString*)setting)->SetValue("");
+  }
+  return true;
+}
+
 
 void CGUIAudioManager::Initialize()
 {
@@ -161,7 +178,7 @@ void CGUIAudioManager::PlayPythonSound(const std::string& strFileName, bool useC
   if (!sound)
     return;
 
-  m_pythonSounds.insert(pair<const std::string, IAESound*>(strFileName, sound));
+  m_pythonSounds.insert(std::pair<const std::string, IAESound*>(strFileName, sound));
   sound->Play();
 }
 
@@ -201,35 +218,35 @@ void CGUIAudioManager::UnLoad()
   }
 }
 
+
+std::string GetSoundSkinPath()
+{
+  auto setting = static_cast<CSettingString*>(CSettings::GetInstance().GetSetting(CSettings::SETTING_LOOKANDFEEL_SOUNDSKIN));
+  auto value = setting->GetValue();
+  if (value.empty())
+    return "";
+
+  ADDON::AddonPtr addon;
+  if (!ADDON::CAddonMgr::GetInstance().GetAddon(value, addon, ADDON::ADDON_RESOURCE_UISOUNDS))
+  {
+    CLog::Log(LOGNOTICE, "Unknown sounds addon '%s'. Setting default sounds.", value.c_str());
+    setting->Reset();
+  }
+  return URIUtils::AddFileToFolder("resource://", setting->GetValue());
+}
+
+
 // \brief Load the config file (sounds.xml) for nav sounds
-// Can be located in a folder "sounds" in the skin or from a
-// subfolder of the folder "sounds" in the root directory of
-// xbmc
 bool CGUIAudioManager::Load()
 {
   CSingleLock lock(m_cs);
-
   UnLoad();
 
-  if (CSettings::Get().GetString("lookandfeel.soundskin")=="OFF")
+  m_strMediaDir = GetSoundSkinPath();
+  if (m_strMediaDir.empty())
     return true;
-  else
-    Enable(true);
 
-  std::string soundSkin = CSettings::Get().GetString("lookandfeel.soundskin");
-
-  if (soundSkin == "SKINDEFAULT")
-  {
-    m_strMediaDir = URIUtils::AddFileToFolder(g_SkinInfo->Path(), "sounds");
-  }
-  else
-  {
-    //check if sound skin is located in home, otherwise fallback to built-ins
-    m_strMediaDir = URIUtils::AddFileToFolder("special://home/sounds", soundSkin);
-    if (!XFILE::CDirectory::Exists(m_strMediaDir))
-      m_strMediaDir = URIUtils::AddFileToFolder("special://xbmc/sounds", soundSkin);
-  }
-
+  Enable(true);
   std::string strSoundsXml = URIUtils::AddFileToFolder(m_strMediaDir, "sounds.xml");
 
   //  Load our xml file
@@ -277,7 +294,7 @@ bool CGUIAudioManager::Load()
         std::string filename = URIUtils::AddFileToFolder(m_strMediaDir, strFile);
         IAESound *sound = LoadSound(filename);
         if (sound)
-          m_actionSoundMap.insert(pair<int, IAESound *>(id, sound));
+          m_actionSoundMap.insert(std::pair<int, IAESound *>(id, sound));
       }
 
       pAction = pAction->NextSibling();
@@ -306,7 +323,7 @@ bool CGUIAudioManager::Load()
       sounds.deInitSound = LoadWindowSound(pWindow, "deactivate");
 
       if (id > 0)
-        m_windowSoundMap.insert(pair<int, CWindowSounds>(id, sounds));
+        m_windowSoundMap.insert(std::pair<int, CWindowSounds>(id, sounds));
 
       pWindow = pWindow->NextSibling();
     }
@@ -380,7 +397,7 @@ IAESound* CGUIAudioManager::LoadWindowSound(TiXmlNode* pWindowNode, const std::s
 void CGUIAudioManager::Enable(bool bEnable)
 {
   // always deinit audio when we don't want gui sounds
-  if (CSettings::Get().GetString("lookandfeel.soundskin")=="OFF")
+  if (CSettings::GetInstance().GetString(CSettings::SETTING_LOOKANDFEEL_SOUNDSKIN).empty())
     bEnable = false;
 
   CSingleLock lock(m_cs);

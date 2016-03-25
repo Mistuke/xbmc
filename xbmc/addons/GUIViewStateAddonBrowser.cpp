@@ -19,31 +19,37 @@
  */
 
 #include "GUIViewStateAddonBrowser.h"
+#include "addons/Addon.h"
+#include "addons/AddonManager.h"
 #include "FileItem.h"
 #include "filesystem/File.h"
 #include "guilib/GraphicContext.h"
 #include "guilib/WindowIDs.h"
 #include "view/ViewState.h"
-#include "addons/Addon.h"
-#include "addons/AddonManager.h"
-#include "addons/AddonInstaller.h"
-#include "AddonDatabase.h"
-#include "utils/StringUtils.h"
+#include "utils/URIUtils.h"
 
 using namespace XFILE;
 using namespace ADDON;
 
 CGUIViewStateAddonBrowser::CGUIViewStateAddonBrowser(const CFileItemList& items) : CGUIViewState(items)
 {
-  if (items.IsVirtualDirectoryRoot())
+  if (URIUtils::PathEquals(items.GetPath(), "addons://"))
   {
     AddSortMethod(SortByNone, 551, LABEL_MASKS("%F", "", "%L", ""));
     SetSortMethod(SortByNone);
   }
   else
   {
-    AddSortMethod(SortByLabel, SortAttributeIgnoreFolders, 551, LABEL_MASKS("%L", "%I", "%L", ""));  // Filename, Size | Foldername, empty
-    AddSortMethod(SortByDate, 552, LABEL_MASKS("%L", "%J", "%L", "%J"));  // Filename, Date | Foldername, Date
+    AddSortMethod(SortByLabel, SortAttributeIgnoreFolders, 551, LABEL_MASKS("%L", "%s", "%L", "%s"));
+
+    if (URIUtils::PathStarts(items.GetPath(), "addons://sources/"))
+      AddSortMethod(SortByLastUsed, 12012, LABEL_MASKS("%L", "%u", "%L", "%u"),
+          SortAttributeIgnoreFolders, SortOrderDescending); //Label, Last used
+
+    if (URIUtils::PathStarts(items.GetPath(), "addons://user/") && items.GetContent() == "addons")
+      AddSortMethod(SortByInstallDate, 12013, LABEL_MASKS("%L", "%i", "%L", "%i"),
+          SortAttributeIgnoreFolders, SortOrderDescending);
+
     SetSortMethod(SortByLabel);
   }
   SetViewAsControl(DEFAULT_VIEW_AUTO);
@@ -61,72 +67,3 @@ std::string CGUIViewStateAddonBrowser::GetExtensions()
 {
   return "";
 }
-
-VECSOURCES& CGUIViewStateAddonBrowser::GetSources()
-{
-  m_sources.clear();
-
-  { // check for updates
-    CMediaSource share;
-    share.strPath = "addons://check/";
-    share.m_iDriveType = CMediaSource::SOURCE_TYPE_REMOTE; // hack for sorting
-    share.strName = g_localizeStrings.Get(24055); // "Check for updates"
-    CDateTime lastChecked = CAddonInstaller::Get().LastRepoUpdate();
-    if (lastChecked.IsValid())
-      share.strStatus = StringUtils::Format(g_localizeStrings.Get(24056).c_str(),
-                                            lastChecked.GetAsLocalizedDateTime(false, false).c_str());
-    m_sources.push_back(share);
-  }
-  if (CAddonMgr::Get().HasOutdatedAddons())
-  {
-    CMediaSource share;
-    share.strPath = "addons://outdated/";
-    share.m_iDriveType = CMediaSource::SOURCE_TYPE_LOCAL;
-    share.strName = g_localizeStrings.Get(24043); // "Available updates"
-    m_sources.push_back(share);
-  }
-  CAddonDatabase db;
-  if (db.Open() && db.HasDisabledAddons())
-  {
-    CMediaSource share;
-    share.strPath = "addons://disabled/";
-    share.m_iDriveType = CMediaSource::SOURCE_TYPE_LOCAL;
-    share.strName = g_localizeStrings.Get(24039);
-    m_sources.push_back(share);
-  }
-  // we always have some enabled addons
-  {
-    CMediaSource share;
-    share.strPath = "addons://enabled/";
-    share.m_iDriveType = CMediaSource::SOURCE_TYPE_LOCAL;
-    share.strName = g_localizeStrings.Get(24062);
-    m_sources.push_back(share);
-  }
-  if (CAddonMgr::Get().HasAddons(ADDON_REPOSITORY,true))
-  {
-    CMediaSource share;
-    share.strPath = "addons://repos/";
-    share.m_iDriveType = CMediaSource::SOURCE_TYPE_LOCAL;
-    share.strName = g_localizeStrings.Get(24033);
-    m_sources.push_back(share);
-  }
-  // add "install from zip"
-  {
-    CMediaSource share;
-    share.strPath = "addons://install/";
-    share.m_iDriveType = CMediaSource::SOURCE_TYPE_LOCAL;
-    share.strName = g_localizeStrings.Get(24041);
-    m_sources.push_back(share);
-  }
-  // add "search"
-  {
-    CMediaSource share;
-    share.strPath = "addons://search/";
-    share.m_iDriveType = CMediaSource::SOURCE_TYPE_LOCAL;
-    share.strName = g_localizeStrings.Get(137);
-    m_sources.push_back(share);
-  }
-
-  return CGUIViewState::GetSources();
-}
-

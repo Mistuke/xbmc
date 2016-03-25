@@ -25,8 +25,9 @@
 #include "network/WebServer.h"
 #include "utils/JSONVariantWriter.h"
 #include "utils/log.h"
+#include "utils/Variant.h"
 
-#define MAX_STRING_POST_SIZE 20000
+#define MAX_HTTP_POST_SIZE 65536
 
 bool CHTTPJsonRpcHandler::CanHandleRequest(const HTTPRequest &request)
 {
@@ -126,9 +127,9 @@ bool CHTTPJsonRpcHandler::appendPostData(const char *data, size_t size)
 bool CHTTPJsonRpcHandler::appendPostData(const char *data, unsigned int size)
 #endif
 {
-  if (m_requestData.size() + size > MAX_STRING_POST_SIZE)
+  if (m_requestData.size() + size > MAX_HTTP_POST_SIZE)
   {
-    CLog::Log(LOGERROR, "WebServer: Stopped uploading post since it exceeded size limitations");
+    CLog::Log(LOGERROR, "WebServer: Stopped uploading POST data since it exceeded size limitations (%d)", MAX_HTTP_POST_SIZE);
     return false;
   }
 

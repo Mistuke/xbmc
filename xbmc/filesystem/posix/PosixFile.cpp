@@ -24,6 +24,7 @@
 #include "utils/AliasShortcutUtils.h"
 #include "URL.h"
 #include "utils/log.h"
+#include "filesystem/File.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h" // for HAVE_POSIX_FADVISE
@@ -55,7 +56,7 @@ CPosixFile::~CPosixFile()
 static std::string getFilename(const CURL& url)
 {
   std::string filename(url.GetFileName());
-  if (IsAliasShortcut(filename))
+  if (IsAliasShortcut(filename, false))
     TranslateAliasShortcut(filename);
   
   return filename;
@@ -316,6 +317,19 @@ bool CPosixFile::Rename(const CURL& url, const CURL& urlnew)
   
   if (errno == EACCES || errno == EPERM)
     CLog::LogF(LOGWARNING, "Can't access file \"%s\" for rename to \"%s\"", name.c_str(), newName.c_str());
+
+  // rename across mount points - need to copy/delete
+  if (errno == EXDEV)
+  {
+    CLog::LogF(LOGDEBUG, "Source file \"%s\" and target file \"%s\" are located on different filesystems, copy&delete will be used instead of rename", name.c_str(), newName.c_str());
+    if (XFILE::CFile::Copy(name, newName))
+    {
+      if (XFILE::CFile::Delete(name))
+        return true;
+      else
+        XFILE::CFile::Delete(newName);
+    }
+  }
 
   return false;
 }

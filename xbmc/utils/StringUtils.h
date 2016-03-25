@@ -59,11 +59,14 @@ public:
   static void ToUpper(std::wstring &str);
   static void ToLower(std::string &str);
   static void ToLower(std::wstring &str);
+  static void ToCapitalize(std::string &str);
+  static void ToCapitalize(std::wstring &str);
   static bool EqualsNoCase(const std::string &str1, const std::string &str2);
   static bool EqualsNoCase(const std::string &str1, const char *s2);
   static bool EqualsNoCase(const char *s1, const char *s2);
   static int  CompareNoCase(const std::string &str1, const std::string &str2);
   static int  CompareNoCase(const char *s1, const char *s2);
+  static int ReturnDigits(const std::string &str);
   static std::string Left(const std::string &str, size_t count);
   static std::string Mid(const std::string &str, size_t first, size_t count = std::string::npos);
   static std::string Right(const std::string &str, size_t count);
@@ -100,6 +103,7 @@ public:
    */
   static std::vector<std::string> Split(const std::string& input, const std::string& delimiter, unsigned int iMaxStrings = 0);
   static std::vector<std::string> Split(const std::string& input, const char delimiter, size_t iMaxStrings = 0);
+  static std::vector<std::string> SplitMulti(const std::string& input, const char* delimiters, size_t iMaxStrings = 0);
   static int FindNumber(const std::string& strInput, const std::string &strFind);
   static int64_t AlphaNumericCompare(const wchar_t *left, const wchar_t *right);
   static long TimeStringToSeconds(const std::string &timeString);
@@ -191,8 +195,6 @@ public:
   static void Tokenize(const std::string& input, std::vector<std::string>& tokens, const std::string& delimiters);
   static std::vector<std::string> Tokenize(const std::string& input, const char delimiter);
   static void Tokenize(const std::string& input, std::vector<std::string>& tokens, const char delimiter);
-private:
-  static std::string m_lastUUID;
 };
 
 struct sortstringbyname

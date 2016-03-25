@@ -19,25 +19,25 @@
  */
 
 #include "RSSDirectory.h"
-#include "FileItem.h"
+
+#include <climits>
+#include <utility>
+
 #include "CurlFile.h"
+#include "FileItem.h"
 #include "settings/AdvancedSettings.h"
-#include "settings/MediaSettings.h"
 #include "settings/Settings.h"
+#include "threads/SingleLock.h"
+#include "URL.h"
+#include "utils/HTMLUtil.h"
+#include "utils/log.h"
+#include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "utils/XBMCTinyXML.h"
 #include "utils/XMLUtils.h"
-#include "utils/HTMLUtil.h"
-#include "utils/StringUtils.h"
 #include "video/VideoInfoTag.h"
-#include "music/tags/MusicInfoTag.h"
-#include "utils/log.h"
-#include "URL.h"
-#include "climits"
-#include "threads/SingleLock.h"
 
 using namespace XFILE;
-using namespace std;
 using namespace MUSIC_INFO;
 
 namespace {
@@ -208,7 +208,7 @@ static void ParseItemMRSS(CFileItem* item, SResources& resources, TiXmlElement* 
   {
     std::string scheme = XMLUtils::GetAttribute(item_child, "scheme");
     if(scheme == "urn:user")
-      vtag->m_fRating = (float)atof(text.c_str());
+      vtag->SetRating((float)atof(text.c_str()));
     else
       vtag->m_strMPAARating = text;
   }
@@ -328,7 +328,7 @@ static void ParseItemVoddler(CFileItem* item, SResources& resources, TiXmlElemen
   else if(name == "year")
     vtag->m_iYear = atoi(text.c_str());
   else if(name == "rating")
-    vtag->m_fRating = (float)atof(text.c_str());
+    vtag->SetRating((float)atof(text.c_str()));
   else if(name == "tagline")
     vtag->m_strTagLine = text;
   else if(name == "posterwall")
@@ -379,7 +379,7 @@ static void ParseItemZink(CFileItem* item, SResources& resources, TiXmlElement* 
   else if(name == "airdate")
     vtag->m_firstAired.SetFromDateString(text);
   else if(name == "userrating")
-    vtag->m_fRating = (float)atof(text.c_str());
+    vtag->SetRating((float)atof(text.c_str()));
   else if(name == "duration")
     vtag->m_duration = atoi(text.c_str());
   else if(name == "durationstr")
@@ -468,7 +468,7 @@ static void ParseItem(CFileItem* item, TiXmlElement* root, const std::string& pa
   else if(FindMime(resources, "image/"))
     mime = "image/";
 
-  int maxrate = CSettings::Get().GetInt("network.bandwidth");
+  int maxrate = CSettings::GetInstance().GetInt(CSettings::SETTING_NETWORK_BANDWIDTH);
   if(maxrate == 0)
     maxrate = INT_MAX;
 

@@ -2,8 +2,8 @@ SRCS=GUIWindowMusicBase.cpp \
      GUIWindowMusicNav.cpp \
      GUIWindowMusicPlaylist.cpp \
      GUIWindowMusicPlaylistEditor.cpp \
-     GUIWindowMusicSongs.cpp \
      GUIWindowVisualisation.cpp \
+     MusicFileItemListModifier.cpp \
 
 LIB=musicwindows.a
 

@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2005-2015 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
@@ -32,6 +32,10 @@
 #include "storage/MediaManager.h"
 #include "utils/LabelFormatter.h"
 #include "utils/StringUtils.h"
+#include "settings/Settings.h"
+#include "utils/Variant.h"
+
+#include <utility>
 
 #define CONTROL_FIELD           15
 #define CONTROL_OPERATOR        16
@@ -39,8 +43,6 @@
 #define CONTROL_OK              18
 #define CONTROL_CANCEL          19
 #define CONTROL_BROWSE          20
-
-using namespace std;
 
 CGUIDialogSmartPlaylistRule::CGUIDialogSmartPlaylistRule(void)
     : CGUIDialog(WINDOW_DIALOG_SMART_PLAYLIST_RULE, "SmartPlaylistRule.xml")
@@ -156,6 +158,14 @@ void CGUIDialogSmartPlaylistRule::OnBrowse()
       items.Append(items2);
     }
     iLabel = 515;
+  }
+  else if (m_rule.m_field == FieldRole)
+  {
+    if (m_type == "artists" || m_type == "mixed")
+    {
+      database.GetRolesNav("musicdb://songs/", items);
+      iLabel = 38027;
+    }
   }
   else if (m_rule.m_field == FieldCountry)
   {
@@ -294,20 +304,20 @@ void CGUIDialogSmartPlaylistRule::OnBrowse()
   {
     VECSOURCES sources;
     if (m_type == "songs" || m_type == "mixed")
-      sources = *CMediaSourceSettings::Get().GetSources("music");
+      sources = *CMediaSourceSettings::GetInstance().GetSources("music");
     if (CSmartPlaylist::IsVideoType(m_type))
     {
-      VECSOURCES sources2 = *CMediaSourceSettings::Get().GetSources("video");
+      VECSOURCES sources2 = *CMediaSourceSettings::GetInstance().GetSources("video");
       sources.insert(sources.end(),sources2.begin(),sources2.end());
     }
     g_mediaManager.GetLocalDrives(sources);
     
     std::string path = m_rule.GetParameter();
     CGUIDialogFileBrowser::ShowAndGetDirectory(sources, g_localizeStrings.Get(657), path, false);
-    if (m_rule.m_parameter.size() > 0)
+    if (!m_rule.m_parameter.empty())
       m_rule.m_parameter.clear();
     if (!path.empty())
-      m_rule.m_parameter.push_back(path);
+      m_rule.m_parameter.emplace_back(std::move(path));
 
     UpdateButtons();
     return;
@@ -320,7 +330,8 @@ void CGUIDialogSmartPlaylistRule::OnBrowse()
   else if (m_rule.m_field == FieldTag)
   {
     VIDEODB_CONTENT_TYPE type = VIDEODB_CONTENT_MOVIES;
-    if (m_type == "tvshows")
+    if (m_type == "tvshows" ||
+        m_type == "episodes")
       type = VIDEODB_CONTENT_TVSHOWS;
     else if (m_type == "musicvideos")
       type = VIDEODB_CONTENT_MUSICVIDEOS;
@@ -336,25 +347,24 @@ void CGUIDialogSmartPlaylistRule::OnBrowse()
   }
 
   // sort the items
-  items.Sort(SortByLabel, SortOrderAscending, SortAttributeIgnoreArticle);
+  items.Sort(SortByLabel, SortOrderAscending, CSettings::GetInstance().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
 
   CGUIDialogSelect* pDialog = (CGUIDialogSelect*)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
   pDialog->Reset();
-  pDialog->SetItems(&items);
+  pDialog->SetItems(items);
   std::string strHeading = StringUtils::Format(g_localizeStrings.Get(13401).c_str(), g_localizeStrings.Get(iLabel).c_str());
-  pDialog->SetHeading(strHeading);
+  pDialog->SetHeading(CVariant{std::move(strHeading)});
   pDialog->SetMultiSelection(m_rule.m_field != FieldPlaylist && m_rule.m_field != FieldVirtualFolder);
 
   if (!m_rule.m_parameter.empty())
     pDialog->SetSelected(m_rule.m_parameter);
 
-  pDialog->DoModal();
+  pDialog->Open();
   if (pDialog->IsConfirmed())
   {
-    const CFileItemList &items = pDialog->GetSelectedItems();
     m_rule.m_parameter.clear();
-    for (int index = 0; index < items.Size(); index++)
-      m_rule.m_parameter.push_back(items[index]->GetLabel());
+    for (int i : pDialog->GetSelectedItems())
+      m_rule.m_parameter.push_back(items.Get(i)->GetLabel());
 
     UpdateButtons();
   }
@@ -387,7 +397,7 @@ void CGUIDialogSmartPlaylistRule::OnOperator()
 
 std::pair<std::string, int> OperatorLabel(CDatabaseQueryRule::SEARCH_OPERATOR op)
 {
-  return make_pair(CSmartPlaylistRule::GetLocalizedOperator(op), op);
+  return std::make_pair(CSmartPlaylistRule::GetLocalizedOperator(op), op);
 }
 
 void CGUIDialogSmartPlaylistRule::UpdateButtons()
@@ -497,9 +507,9 @@ void CGUIDialogSmartPlaylistRule::OnInitWindow()
 
   // add the fields to the field spincontrol
   std::vector< std::pair<std::string, int> > labels;
-  vector<Field> fields = CSmartPlaylistRule::GetFields(m_type);
+  std::vector<Field> fields = CSmartPlaylistRule::GetFields(m_type);
   for (unsigned int i = 0; i < fields.size(); i++)
-    labels.push_back(make_pair(CSmartPlaylistRule::GetLocalizedField(fields[i]), fields[i]));
+    labels.emplace_back(CSmartPlaylistRule::GetLocalizedField(fields[i]), fields[i]);
 
   SET_CONTROL_LABELS(CONTROL_FIELD, 0, &labels);
 
@@ -527,7 +537,7 @@ bool CGUIDialogSmartPlaylistRule::EditRule(CSmartPlaylistRule &rule, const std::
 
   editor->m_rule = rule;
   editor->m_type = type;
-  editor->DoModal(g_windowManager.GetActiveWindow());
+  editor->Open();
   rule = editor->m_rule;
   return !editor->m_cancelled;
 }

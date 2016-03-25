@@ -28,17 +28,16 @@
 #include "GUIControlFactory.h"
 #include "filesystem/Directory.h"
 #include "filesystem/File.h"
-#include "filesystem/SpecialProtocol.h"
 #include "settings/lib/Setting.h"
 #include "utils/log.h"
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
-#include "windowing/WindowingFactory.h"
 #include "FileItem.h"
 #include "URL.h"
-#include "Util.h"
 
-using namespace std;
+#ifdef TARGET_POSIX
+#include "filesystem/SpecialProtocol.h"
+#endif
 
 GUIFontManager::GUIFontManager(void)
 {
@@ -241,7 +240,7 @@ void GUIFontManager::ReloadTTFFonts(void)
 
 void GUIFontManager::Unload(const std::string& strFontName)
 {
-  for (vector<CGUIFont*>::iterator iFont = m_vecFonts.begin(); iFont != m_vecFonts.end(); ++iFont)
+  for (std::vector<CGUIFont*>::iterator iFont = m_vecFonts.begin(); iFont != m_vecFonts.end(); ++iFont)
   {
     if (StringUtils::EqualsNoCase((*iFont)->GetFontName(), strFontName))
     {
@@ -254,7 +253,7 @@ void GUIFontManager::Unload(const std::string& strFontName)
 
 void GUIFontManager::FreeFontFile(CGUIFontTTFBase *pFont)
 {
-  for (vector<CGUIFontTTFBase*>::iterator it = m_vecFontFiles.begin(); it != m_vecFontFiles.end(); ++it)
+  for (std::vector<CGUIFontTTFBase*>::iterator it = m_vecFontFiles.begin(); it != m_vecFontFiles.end(); ++it)
   {
     if (pFont == *it)
     {
@@ -427,8 +426,8 @@ void GUIFontManager::GetStyle(const TiXmlNode *fontNode, int &iStyle)
   iStyle = FONT_STYLE_NORMAL;
   if (XMLUtils::GetString(fontNode, "style", style))
   {
-    vector<string> styles = StringUtils::Tokenize(style, " ");
-    for (vector<string>::const_iterator i = styles.begin(); i != styles.end(); ++i)
+    std::vector<std::string> styles = StringUtils::Tokenize(style, " ");
+    for (std::vector<std::string>::const_iterator i = styles.begin(); i != styles.end(); ++i)
     {
       if (*i == "bold")
         iStyle |= FONT_STYLE_BOLD;
@@ -440,6 +439,10 @@ void GUIFontManager::GetStyle(const TiXmlNode *fontNode, int &iStyle)
         iStyle |= FONT_STYLE_UPPERCASE;
       else if (*i == "lowercase")
         iStyle |= FONT_STYLE_LOWERCASE;
+      else if (*i == "capitalize")
+        iStyle |= FONT_STYLE_CAPITALIZE;
+      else if (*i == "lighten")
+        iStyle |= FONT_STYLE_LIGHT;
     }
   }
 }

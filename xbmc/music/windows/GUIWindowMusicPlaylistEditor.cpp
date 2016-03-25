@@ -23,21 +23,17 @@
 #include "Util.h"
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
+#include "utils/Variant.h"
 #include "Autorun.h"
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "filesystem/PlaylistFileDirectory.h"
-#include "filesystem/File.h"
-#include "filesystem/SpecialProtocol.h"
-#include "filesystem/Directory.h"
 #include "playlists/PlayListM3U.h"
-#include "guilib/GUIWindowManager.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "FileItem.h"
 #include "settings/Settings.h"
 #include "GUIUserMessages.h"
 #include "input/Key.h"
 #include "guilib/LocalizeStrings.h"
-#include "ContextMenuManager.h"
 
 #define CONTROL_LABELFILES        12
 
@@ -51,7 +47,6 @@
 CGUIWindowMusicPlaylistEditor::CGUIWindowMusicPlaylistEditor(void)
     : CGUIWindowMusicBase(WINDOW_MUSIC_PLAYLIST_EDITOR, "MyMusicPlaylistEditor.xml")
 {
-  m_thumbLoader.SetObserver(this);
   m_playlistThumbLoader.SetObserver(this);
   m_playlist = new CFileItemList;
 }
@@ -149,12 +144,21 @@ bool CGUIWindowMusicPlaylistEditor::GetDirectory(const std::string &strDirectory
     files->SetLabelPreformated(true);
     files->m_bIsShareOrDrive = true;
     items.Add(files);
-    CFileItemPtr db(new CFileItem("musicdb://", true));
-    db->SetLabel(g_localizeStrings.Get(14022));
-    db->SetLabelPreformated(true);
-    db->m_bIsShareOrDrive = true;
+
+    CFileItemPtr mdb(new CFileItem("musicdb://", true));
+    mdb->SetLabel(g_localizeStrings.Get(14022));
+    mdb->SetLabelPreformated(true);
+    mdb->m_bIsShareOrDrive = true;
     items.SetPath("");
-    items.Add(db);
+    items.Add(mdb);
+
+    CFileItemPtr vdb(new CFileItem("videodb://musicvideos/", true));
+    vdb->SetLabel(g_localizeStrings.Get(20389));
+    vdb->SetLabelPreformated(true);
+    vdb->m_bIsShareOrDrive = true;
+    items.SetPath("");
+    items.Add(vdb);
+
     return true;
   }
 
@@ -319,8 +323,6 @@ void CGUIWindowMusicPlaylistEditor::GetContextButtons(int itemNumber, CContextBu
     buttons.Add(CONTEXT_BUTTON_CLEAR, 192);
   }
   buttons.Add(CONTEXT_BUTTON_LOAD, 21385);
-
-  CContextMenuManager::Get().AddVisibleItems(item, buttons);
 }
 
 bool CGUIWindowMusicPlaylistEditor::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
@@ -397,11 +399,11 @@ void CGUIWindowMusicPlaylistEditor::OnSavePlaylist()
   std::string name = URIUtils::GetFileName(m_strLoadedPlaylist);
   URIUtils::RemoveExtension(name);
 
-  if (CGUIKeyboardFactory::ShowAndGetInput(name, g_localizeStrings.Get(16012), false))
+  if (CGUIKeyboardFactory::ShowAndGetInput(name, CVariant{g_localizeStrings.Get(16012)}, false))
   { // save playlist as an .m3u
     PLAYLIST::CPlayListM3U playlist;
     playlist.Add(*m_playlist);
-    std::string strBase = URIUtils::AddFileToFolder(CSettings::Get().GetString("system.playlistspath"), "music");
+    std::string strBase = URIUtils::AddFileToFolder(CSettings::GetInstance().GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH), "music");
     std::string path = URIUtils::AddFileToFolder(strBase, name + ".m3u");
     playlist.Save(path);
     m_strLoadedPlaylist = name;
@@ -411,7 +413,7 @@ void CGUIWindowMusicPlaylistEditor::OnSavePlaylist()
 void CGUIWindowMusicPlaylistEditor::AppendToPlaylist(CFileItemList &newItems)
 {
   OnRetrieveMusicInfo(newItems);
-  FormatItemLabels(newItems, LABEL_MASKS(CSettings::Get().GetString("musicfiles.trackformat"), CSettings::Get().GetString("musicfiles.trackformatright"), "%L", ""));
+  FormatItemLabels(newItems, LABEL_MASKS(CSettings::GetInstance().GetString(CSettings::SETTING_MUSICFILES_TRACKFORMAT), "%D", "%L", ""));
   m_playlist->Append(newItems);
   UpdatePlaylist();
 }

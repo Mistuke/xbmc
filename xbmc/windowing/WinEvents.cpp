@@ -46,10 +46,6 @@
 #include "WinEventsX11.h"
 #define WinEventsType CWinEventsX11
 
-#elif defined(HAVE_WAYLAND)
-#include "WinEventsWayland.h"
-#define WinEventsType CWinEventsWayland
-
 #elif defined(TARGET_LINUX) && defined(HAS_LINUX_EVENTS)
 #include "WinEventsLinux.h"
 #define WinEventsType CWinEventsLinux
@@ -64,7 +60,7 @@ void Init()
   CSingleLock lock(g_lock);
   if (!g_init)
   {
-    PERIPHERALS::CPeripherals::Get().RegisterObserver(&g_imp);
+    PERIPHERALS::CPeripherals::GetInstance().RegisterObserver(&g_imp);
     g_init = true;
   }
 }

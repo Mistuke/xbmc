@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2012-2015 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
@@ -25,17 +25,14 @@
 #include "HTMLUtil.h"
 #include "addons/Scraper.h"
 #include "URL.h"
-#include "Util.h"
 #include "utils/StringUtils.h"
 #include "log.h"
 #include "CharsetConverter.h"
-#include "utils/StringUtils.h"
 #include "utils/XSLTUtils.h"
 #include "utils/XMLUtils.h"
 #include <sstream>
 #include <cstring>
 
-using namespace std;
 using namespace ADDON;
 using namespace XFILE;
 
@@ -183,7 +180,7 @@ void CScraperParser::ReplaceBuffers(std::string& strDest)
     std::string strInfo = strDest.substr(iIndex+10, iEnd - iIndex - 10);
     std::string strReplace;
     if (m_scraper)
-      strReplace = m_scraper->GetString(strtol(strInfo.c_str(),NULL,10));
+      strReplace = g_localizeStrings.GetAddonString(m_scraper->ID(), strtol(strInfo.c_str(),NULL,10));
     strDest.replace(strDest.begin()+iIndex,strDest.begin()+iEnd+1,strReplace);
     iIndex += strReplace.length();
   }
@@ -274,7 +271,7 @@ void CScraperParser::ParseExpression(const std::string& input, std::string& dest
         InsertToken(strOutput,iBuf+1,"!!!ENCODE!!!");
     }
     int i = reg.RegFind(curInput.c_str());
-    while (i > -1 && (i < (int)curInput.size() || curInput.size() == 0))
+    while (i > -1 && (i < (int)curInput.size() || curInput.empty()))
     {
       if (!bAppend)
       {
@@ -577,10 +574,10 @@ void CScraperParser::ClearBuffers()
 void CScraperParser::GetBufferParams(bool* result, const char* attribute, bool defvalue)
 {
   for (int iBuf=0;iBuf<MAX_SCRAPER_BUFFERS;++iBuf)
-    result[iBuf] = defvalue;;
+    result[iBuf] = defvalue;
   if (attribute)
   {
-    vector<std::string> vecBufs;
+    std::vector<std::string> vecBufs;
     StringUtils::Tokenize(attribute,vecBufs,",");
     for (size_t nToken=0; nToken < vecBufs.size(); nToken++)
     {

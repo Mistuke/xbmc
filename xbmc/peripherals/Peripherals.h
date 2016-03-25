@@ -19,10 +19,12 @@
  *
  */
 
-#include "system.h"
+#include "EventScanner.h"
 #include "bus/PeripheralBus.h"
 #include "devices/Peripheral.h"
+#include "messaging/IMessageTarget.h"
 #include "settings/lib/ISettingCallback.h"
+#include "system.h"
 #include "threads/CriticalSection.h"
 #include "threads/Thread.h"
 #include "utils/Observer.h"
@@ -34,26 +36,33 @@ class TiXmlElement;
 class CAction;
 class CKey;
 
+namespace JOYSTICK
+{
+  class IButtonMapper;
+}
+
 namespace PERIPHERALS
 {
-  #define g_peripherals CPeripherals::Get()
+  #define g_peripherals CPeripherals::GetInstance()
 
   class CPeripherals :  public ISettingCallback,
-                        public Observable
+                        public Observable,
+                        public KODI::MESSAGING::IMessageTarget,
+                        public IEventScannerCallback
   {
   public:
-    static CPeripherals &Get(void);
-    virtual ~CPeripherals(void);
+    static CPeripherals &GetInstance();
+    virtual ~CPeripherals();
 
     /*!
      * @brief Initialise the peripherals manager.
      */
-    virtual void Initialise(void);
+    virtual void Initialise();
 
     /*!
      * @brief Clear all data known by the peripherals manager.
      */
-    virtual void Clear(void);
+    virtual void Clear();
 
     /*!
      * @brief Get the instance of the peripheral at the given location.
@@ -76,7 +85,7 @@ namespace PERIPHERALS
      * @param strLocation The location.
      * @return The bus or NULL if no device was found.
      */
-    virtual CPeripheralBus *GetBusWithDevice(const std::string &strLocation) const;
+    virtual PeripheralBusPtr GetBusWithDevice(const std::string &strLocation) const;
 
     /*!
      * @brief Get all peripheral instances that have the given feature.
@@ -135,7 +144,7 @@ namespace PERIPHERALS
      * @param type The bus type.
      * @return The bus or NULL if it wasn't found.
      */
-    virtual CPeripheralBus *GetBusByType(const PeripheralBusType type) const;
+    virtual PeripheralBusPtr GetBusByType(const PeripheralBusType type) const;
 
     /*!
      * @brief Get all fileitems for a path.
@@ -162,13 +171,13 @@ namespace PERIPHERALS
      * @brief Check whether there's a peripheral that reports to be muted.
      * @return True when at least one peripheral reports to be muted, false otherwise.
      */
-    virtual bool IsMuted(void);
+    virtual bool IsMuted();
 
     /*!
      * @brief Try to toggle the mute status via a peripheral.
      * @return True when this change was handled by a peripheral (and should not be handled by anything else), false otherwise.
      */
-    virtual bool ToggleMute(void);
+    virtual bool ToggleMute();
 
     /*!
      * @brief Try to toggle the playing device state via a peripheral.
@@ -182,13 +191,13 @@ namespace PERIPHERALS
      * @brief Try to mute the audio via a peripheral.
      * @return True when this change was handled by a peripheral (and should not be handled by anything else), false otherwise.
      */
-    virtual bool Mute(void) { return ToggleMute(); } // TODO CEC only supports toggling the mute status at this time
+    virtual bool Mute() { return ToggleMute(); } // TODO CEC only supports toggling the mute status at this time
 
     /*!
      * @brief Try to unmute the audio via a peripheral.
      * @return True when this change was handled by a peripheral (and should not be handled by anything else), false otherwise.
      */
-    virtual bool UnMute(void) { return ToggleMute(); } // TODO CEC only supports toggling the mute status at this time
+    virtual bool UnMute() { return ToggleMute(); } // TODO CEC only supports toggling the mute status at this time
 
     /*!
      * @brief Try to get a keypress from a peripheral.
@@ -198,7 +207,14 @@ namespace PERIPHERALS
      */
     virtual bool GetNextKeypress(float frameTime, CKey &key);
 
-    bool SupportsCEC(void) const
+    /*!
+     * @brief Request event scan rate
+     * @brief rateHz The rate in Hz
+     * @return A handle that unsets its rate when expired
+     */
+    EventRateHandle SetEventScanRate(float rateHz) { return m_eventScanner.SetRate(rateHz); }
+
+    bool SupportsCEC() const
     {
 #if defined(HAVE_LIBCEC)
       return true;
@@ -206,24 +222,41 @@ namespace PERIPHERALS
       return false;
 #endif
     }
-    
-    virtual void OnSettingChanged(const CSetting *setting);
-    virtual void OnSettingAction(const CSetting *setting);
+
+    // implementation of IEventScannerCallback
+    virtual void ProcessEvents(void) override;
+
+    virtual PeripheralAddonPtr GetAddon(const CPeripheral* device);
+
+    virtual void ResetButtonMaps(const std::string& controllerId);
+
+    void RegisterJoystickButtonMapper(JOYSTICK::IButtonMapper* mapper);
+    void UnregisterJoystickButtonMapper(JOYSTICK::IButtonMapper* mapper);
+
+    virtual void OnSettingChanged(const CSetting *setting) override;
+    virtual void OnSettingAction(const CSetting *setting) override;
+
+    virtual void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
+    virtual int GetMessageMask() override;
 
   private:
-    CPeripherals(void);
-    bool LoadMappings(void);
+    CPeripherals();
+    bool LoadMappings();
     bool GetMappingForDevice(const CPeripheralBus &bus, PeripheralScanResult& result) const;
     static void GetSettingsFromMappingsFile(TiXmlElement *xmlNode, std::map<std::string, PeripheralDeviceSetting> &m_settings);
+
+    void OnDeviceChanged();
 
     bool                                 m_bInitialised;
     bool                                 m_bIsStarted;
 #if !defined(HAVE_LIBCEC)
     bool                                 m_bMissingLibCecWarningDisplayed;
 #endif
-    std::vector<CPeripheralBus *>        m_busses;
+    std::vector<PeripheralBusPtr>        m_busses;
     std::vector<PeripheralDeviceMapping> m_mappings;
-    CSettingsCategory *                  m_settings;
+    CEventScanner                        m_eventScanner;
     CCriticalSection                     m_critSection;
+    CCriticalSection                     m_critSectionBusses;
+    CCriticalSection                     m_critSectionMappings;
   };
 }

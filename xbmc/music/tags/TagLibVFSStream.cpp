@@ -20,15 +20,13 @@
 #include "limits.h"
 #include "TagLibVFSStream.h"
 #include "filesystem/File.h"
-#include "utils/log.h"
 #include <taglib/tiostream.h>
 
 using namespace XFILE;
 using namespace TagLib;
 using namespace MUSIC_INFO;
-using namespace std;
 
-#ifdef TARGET_WINDOWS
+#if defined(TARGET_WINDOWS) && !defined(BUILDING_WITH_CMAKE)
 #pragma comment(lib, "tag.lib")
 #endif
 
@@ -36,7 +34,7 @@ using namespace std;
  * Construct a File object and opens the \a file.  \a file should be a
  * be an XBMC Vfile.
  */
-TagLibVFSStream::TagLibVFSStream(const string& strFileName, bool readOnly)
+TagLibVFSStream::TagLibVFSStream(const std::string& strFileName, bool readOnly)
 {
   m_bIsOpen = true;
   if (readOnly)
@@ -218,7 +216,7 @@ void TagLibVFSStream::removeBlock(TagLib::ulong start, TagLib::ulong length)
       clear();
 
     seek(writePosition);
-    if (m_file.Write(buffer.data(), bytesRead) != bytesRead)
+    if (m_file.Write(buffer.data(), bytesRead) != static_cast<ssize_t>(bytesRead))
       return; // error
     writePosition += bytesRead;
   }
@@ -262,7 +260,7 @@ void TagLibVFSStream::seek(long offset, Position p)
       startPos = fileLen;
     else
       return; // wrong Position value
-    
+
     // When parsing some broken files, taglib may try to seek above end of file.
     // If underlying VFS does not move I/O pointer in this case, taglib will parse
     // same part of file several times and ends with error. To prevent this

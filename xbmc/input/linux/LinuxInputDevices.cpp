@@ -43,6 +43,10 @@ typedef unsigned long kernel_ulong_t;
 
 #include <linux/input.h>
 
+#if defined(HAVE_LIBUDEV)
+#include <libudev.h>
+#endif
+
 #ifndef EV_CNT
 #define EV_CNT (EV_MAX+1)
 #define KEY_CNT (KEY_MAX+1)
@@ -96,6 +100,9 @@ typedef unsigned long kernel_ulong_t;
 #include "LinuxInputDevices.h"
 #include "input/MouseStat.h"
 #include "utils/log.h"
+#include "input/touch/generic/GenericTouchActionHandler.h"
+#include "input/touch/generic/GenericTouchInputHandler.h"
+#include "settings/AdvancedSettings.h"
 
 #ifndef BITS_PER_LONG
 #define BITS_PER_LONG        (sizeof(long) * 8)
@@ -227,11 +234,13 @@ KeyMap keyMap[] = {
   { KEY_POWER         , XBMCK_POWER       },
   { KEY_KPEQUAL       , XBMCK_KP_EQUALS   },
   { KEY_PAUSE         , XBMCK_PAUSE       },
+  { KEY_PAUSECD       , XBMCK_PAUSE       },
   { KEY_LEFTMETA      , XBMCK_LMETA       },
   { KEY_RIGHTMETA     , XBMCK_RMETA       },
   { KEY_COMPOSE       , XBMCK_LSUPER      },
   { KEY_STOP          , XBMCK_MEDIA_STOP  },
   { KEY_HELP          , XBMCK_HELP        },
+  { KEY_MENU          , XBMCK_MENU        },
   { KEY_CLOSECD       , XBMCK_EJECT       },
   { KEY_EJECTCD       , XBMCK_EJECT       },
   { KEY_EJECTCLOSECD  , XBMCK_EJECT       },
@@ -246,10 +255,24 @@ KeyMap keyMap[] = {
   { KEY_SCROLLUP      , XBMCK_PAGEUP      },
   { KEY_SCROLLDOWN    , XBMCK_PAGEDOWN    },
   { KEY_PLAY          , XBMCK_PLAY        },
+  { KEY_PLAYCD        , XBMCK_PLAY        },
   { KEY_FASTFORWARD   , XBMCK_FASTFORWARD },
   { KEY_PRINT         , XBMCK_PRINT       },
   { KEY_QUESTION      , XBMCK_HELP        },
   { KEY_BACK          , XBMCK_BACKSPACE   },
+  { KEY_ZOOM          , XBMCK_ZOOM        },
+  { KEY_TEXT          , XBMCK_TEXT        },
+  { KEY_FAVORITES     , XBMCK_FAVORITES   },
+  { KEY_RED           , XBMCK_RED         },
+  { KEY_GREEN         , XBMCK_GREEN       },
+  { KEY_YELLOW        , XBMCK_YELLOW      },
+  { KEY_BLUE          , XBMCK_BLUE        },
+  { KEY_HOMEPAGE      , XBMCK_HOMEPAGE    },
+  { KEY_MAIL          , XBMCK_LAUNCH_MAIL },
+  { KEY_SEARCH        , XBMCK_BROWSER_SEARCH},
+  { KEY_FILE          , XBMCK_LAUNCH_FILE_BROWSER},
+  { KEY_SELECT        , XBMCK_RETURN      },
+  { KEY_CONFIG        , XBMCK_CONFIG      },
   // The Little Black Box Remote Additions
   { 384               , XBMCK_LEFT        }, // Red
   { 378               , XBMCK_RIGHT       }, // Green
@@ -263,7 +286,8 @@ typedef enum
   LI_DEVICE_MOUSE    = 1,
   LI_DEVICE_JOYSTICK = 2,
   LI_DEVICE_KEYBOARD = 4,
-  LI_DEVICE_REMOTE   = 8
+  LI_DEVICE_REMOTE   = 8,
+  LI_DEVICE_MULTITOUCH = 16
 } LinuxInputDeviceType;
 
 typedef enum
@@ -297,6 +321,10 @@ CLinuxInputDevice::CLinuxInputDevice(const std::string& fileName, int index):
   m_deviceMaxKeyCode = 0;
   m_deviceMaxAxis = 0;
   m_bUnplugged = false;
+  m_mt_currentSlot = 0;
+  memset(&m_mt_x, 0, sizeof(m_mt_x));
+  memset(&m_mt_y, 0, sizeof(m_mt_y));
+  memset(&m_mt_event, 0, sizeof(m_mt_event));
 
   Open();
 }
@@ -554,22 +582,27 @@ bool CLinuxInputDevice::KeyEvent(const struct input_event& levt, XBMC_Event& dev
  */
 bool CLinuxInputDevice::RelEvent(const struct input_event& levt, XBMC_Event& devt)
 {
+  bool motion = false;
+  bool wheel  = false;
+
   switch (levt.code)
   {
   case REL_X:
     m_mouseX += levt.value;
     devt.motion.xrel = levt.value;
     devt.motion.yrel = 0;
+    motion = true;
     break;
-
   case REL_Y:
     m_mouseY += levt.value;
     devt.motion.xrel = 0;
     devt.motion.yrel = levt.value;
+    motion = true;
     break;
-
-  case REL_Z:
   case REL_WHEEL:
+    wheel = (levt.value != 0); // process wheel event only when there was some delta
+    break;
+  case REL_Z:
   default:
     CLog::Log(LOGWARNING, "CLinuxInputDevice::RelEvent: Unknown rel event code: %d\n", levt.code);
     return false;
@@ -584,13 +617,35 @@ bool CLinuxInputDevice::RelEvent(const struct input_event& levt, XBMC_Event& dev
   m_mouseY = std::max(0, m_mouseY);
 
 
-  devt.type = XBMC_MOUSEMOTION;
-  devt.motion.type = XBMC_MOUSEMOTION;
-  devt.motion.x = m_mouseX;
-  devt.motion.y = m_mouseY;
-  devt.motion.state = 0;
-  devt.motion.which = m_deviceIndex;
+  if (motion)
+  {
+    devt.type = XBMC_MOUSEMOTION;
+    devt.motion.type = XBMC_MOUSEMOTION;
+    devt.motion.x = m_mouseX;
+    devt.motion.y = m_mouseY;
+    devt.motion.state = 0;
+    devt.motion.which = m_deviceIndex;
+  }
+  else if (wheel)
+  {
+     devt.type = XBMC_MOUSEBUTTONUP;
+     devt.button.state = XBMC_RELEASED;
+     devt.button.type = devt.type;
+     devt.button.x = m_mouseX;
+     devt.button.y = m_mouseY;
+     devt.button.button = (levt.value<0) ? XBMC_BUTTON_WHEELDOWN:XBMC_BUTTON_WHEELUP;
 
+     /* but WHEEL up enent to the queue */
+     m_equeue.push_back(devt);
+
+     /* prepare and return WHEEL down event */
+     devt.button.state = XBMC_PRESSED;
+     devt.type = XBMC_MOUSEBUTTONDOWN;
+  }
+  else
+  {
+     return false;
+  }
 
   return true;
 }
@@ -603,13 +658,13 @@ bool CLinuxInputDevice::AbsEvent(const struct input_event& levt, XBMC_Event& dev
   switch (levt.code)
   {
   case ABS_X:
-    m_mouseX = levt.value;
+    m_mouseX = (int)((float)levt.value * g_advancedSettings.m_screenAlign_xStretchFactor) + g_advancedSettings.m_screenAlign_xOffset; // stretch and shift touch x coordinates
     break;
 
   case ABS_Y:
-    m_mouseY = levt.value;
+    m_mouseY = (int)((float)levt.value * g_advancedSettings.m_screenAlign_yStretchFactor) + g_advancedSettings.m_screenAlign_yOffset; // stretch and shift touch y coordinates
     break;
-  
+
   case ABS_MISC:
     remoteStatus = levt.value & 0xFF;
     break;
@@ -632,11 +687,102 @@ bool CLinuxInputDevice::AbsEvent(const struct input_event& levt, XBMC_Event& dev
 }
 
 /*
+ * Process multi-touch absolute events
+ * Only store the information, do not fire event until we receive an EV_SYN
+ */
+bool CLinuxInputDevice::mtAbsEvent(const struct input_event& levt)
+{
+  switch (levt.code)
+  {
+  case ABS_MT_SLOT:
+    m_mt_currentSlot = levt.value;
+    break;
+
+  case ABS_MT_TRACKING_ID:
+    if (m_mt_currentSlot < TOUCH_MAX_POINTERS)
+    {
+      if (levt.value == -1)
+        m_mt_event[m_mt_currentSlot] = TouchInputUp;
+      else
+        m_mt_event[m_mt_currentSlot] = TouchInputDown;
+    }
+    break;
+
+  case ABS_MT_POSITION_X:
+    if (m_mt_currentSlot < TOUCH_MAX_POINTERS)
+    {
+      m_mt_x[m_mt_currentSlot] = (int)((float)levt.value * g_advancedSettings.m_screenAlign_xStretchFactor) + g_advancedSettings.m_screenAlign_xOffset; // stretch and shift touch x coordinates
+      if (m_mt_event[m_mt_currentSlot] == TouchInputUnchanged)
+        m_mt_event[m_mt_currentSlot] = TouchInputMove;
+    }
+    break;
+
+  case ABS_MT_POSITION_Y:
+    if (m_mt_currentSlot < TOUCH_MAX_POINTERS)
+    {
+      m_mt_y[m_mt_currentSlot] = (int)((float)levt.value * g_advancedSettings.m_screenAlign_yStretchFactor) + g_advancedSettings.m_screenAlign_yOffset; // stretch and shift touch y coordinates;
+      if (m_mt_event[m_mt_currentSlot] == TouchInputUnchanged)
+        m_mt_event[m_mt_currentSlot] = TouchInputMove;
+    }
+    break;
+
+  default:
+    return false;
+  }
+
+  return true;
+}
+
+/*
+ * Process stored multi-touch events
+ */
+bool CLinuxInputDevice::mtSynEvent(const struct input_event& levt)
+{
+  float size = 10.0f;
+  int64_t nanotime = levt.time.tv_sec * 1000000000LL + levt.time.tv_usec * 1000LL;
+
+  for (int ptr=0; ptr < TOUCH_MAX_POINTERS; ptr++)
+  {
+    /* While the comments of ITouchInputHandler::UpdateTouchPointer() say
+       "If there's an event for every touch action this method does not need to be called at all"
+       gesture detection currently doesn't work properly without this call. */
+    CGenericTouchInputHandler::GetInstance().UpdateTouchPointer(ptr, m_mt_x[ptr], m_mt_y[ptr], nanotime, size);
+  }
+
+  for (int ptr=0; ptr < TOUCH_MAX_POINTERS; ptr++)
+  {
+    if (m_mt_event[ptr] != TouchInputUnchanged)
+    {
+      CGenericTouchInputHandler::GetInstance().HandleTouchInput(m_mt_event[ptr], m_mt_x[ptr], m_mt_y[ptr], nanotime, ptr, size);
+      m_mt_event[ptr] = TouchInputUnchanged;
+    }
+  }
+
+  return true;
+}
+
+/*
  * Translates a Linux input event into a DirectFB input event.
  */
 bool CLinuxInputDevice::TranslateEvent(const struct input_event& levt,
     XBMC_Event& devt)
 {
+  if (m_devicePreferredId == LI_DEVICE_MULTITOUCH)
+  {
+    switch (levt.type)
+    {
+    case EV_ABS:
+      return mtAbsEvent(levt);
+
+    case EV_SYN:
+      return mtSynEvent(levt);
+
+    default:
+      // Ignore legacy (key) events
+      return false;
+    }
+  }
+
   switch (levt.type)
   {
   case EV_KEY:
@@ -689,56 +835,64 @@ XBMC_Event CLinuxInputDevice::ReadEvent()
 
   XBMC_Event devt;
 
-  while (1)
+  if (m_equeue.empty())
   {
-    bzero(&levt, sizeof(levt));
-
-    bzero(&devt, sizeof(devt));
-    devt.type = XBMC_NOEVENT;
-
-    if(m_devicePreferredId == LI_DEVICE_NONE)
-      return devt;
-
-    readlen = read(m_fd, &levt, sizeof(levt));
-
-    if (readlen <= 0)
+    while (1)
     {
-      if (errno == ENODEV)
+      bzero(&levt, sizeof(levt));
+
+      bzero(&devt, sizeof(devt));
+      devt.type = XBMC_NOEVENT;
+
+      if(m_devicePreferredId == LI_DEVICE_NONE)
+        return devt;
+
+      readlen = read(m_fd, &levt, sizeof(levt));
+
+      if (readlen <= 0)
       {
-        CLog::Log(LOGINFO,"input device was unplugged %s",m_deviceName);
-        m_bUnplugged = true;
+        if (errno == ENODEV)
+        {
+          CLog::Log(LOGINFO,"input device was unplugged %s",m_deviceName);
+          m_bUnplugged = true;
+        }
+
+        break;
       }
 
-      break;
-    }
+      //printf("read event readlen = %d device name %s m_fileName %s\n", readlen, m_deviceName, m_fileName.c_str());
 
-    //printf("read event readlen = %d device name %s m_fileName %s\n", readlen, m_deviceName, m_fileName.c_str());
-
-    // sanity check if we realy read the event
-    if(readlen != sizeof(levt))
-    {
-      printf("CLinuxInputDevice: read error : %s\n", strerror(errno));
-      break;
-    }
-
-    if (!TranslateEvent(levt, devt))
-      continue;
-
-    /* Flush previous event with DIEF_FOLLOW? */
-    if (devt.type != XBMC_NOEVENT)
-    {
-      //printf("new event! type = %d\n", devt.type);
-      //printf("key: %d %d %d %c\n", devt.key.keysym.scancode, devt.key.keysym.sym, devt.key.keysym.mod, devt.key.keysym.unicode);
-
-      if (m_hasLeds && (m_keyMods != m_lastKeyMods))
+      // sanity check if we realy read the event
+      if(readlen != sizeof(levt))
       {
-        SetLed(LED_NUML, m_keyMods & XBMCKMOD_NUM);
-        SetLed(LED_CAPSL, m_keyMods & XBMCKMOD_CAPS);
-        m_lastKeyMods = m_keyMods;
+        CLog::Log(LOGERROR,"CLinuxInputDevice: read error : %s\n", strerror(errno));
+        break;
       }
 
-      break;
+      if (!TranslateEvent(levt, devt))
+        continue;
+
+      /* Flush previous event with DIEF_FOLLOW? */
+      if (devt.type != XBMC_NOEVENT)
+      {
+        //printf("new event! type = %d\n", devt.type);
+        //printf("key: %d %d %d %c\n", devt.key.keysym.scancode, devt.key.keysym.sym, devt.key.keysym.mod, devt.key.keysym.unicode);
+
+        if (m_hasLeds && (m_keyMods != m_lastKeyMods))
+        {
+          SetLed(LED_NUML, m_keyMods & XBMCKMOD_NUM);
+          SetLed(LED_CAPSL, m_keyMods & XBMCKMOD_CAPS);
+          m_lastKeyMods = m_keyMods;
+        }
+
+        break;
+      }
     }
+  }
+  else
+  {
+     devt = m_equeue.front();
+     m_equeue.pop_front();
   }
 
   return devt;
@@ -747,26 +901,6 @@ XBMC_Event CLinuxInputDevice::ReadEvent()
 void CLinuxInputDevice::SetupKeyboardAutoRepeat(int fd)
 {
   bool enable = true;
-
-#if defined(HAS_LIBAMCODEC)
-  if (aml_get_device_type() == AML_DEVICE_TYPE_M1 || aml_get_device_type() == AML_DEVICE_TYPE_M3)
-  {
-    // ignore the native aml driver named 'key_input',
-    //  it is the dedicated power key handler (am_key_input)
-    if (strncmp(m_deviceName, "key_input", strlen("key_input")) == 0)
-      return;
-    // ignore the native aml driver named 'aml_keypad',
-    //  it is the dedicated IR remote handler (amremote)
-    else if (strncmp(m_deviceName, "aml_keypad", strlen("aml_keypad")) == 0)
-      return;
-
-    // turn off any keyboard autorepeat, there is a kernel bug
-    // where if the cpu is max'ed then key up is missed and
-    // we get a flood of EV_REP that never stop until next
-    // key down/up. Very nasty when seeking during video playback.
-    enable = false;
-  }
-#endif
 
   if (enable)
   {
@@ -873,6 +1007,10 @@ void CLinuxInputDevice::GetInfo(int fd)
     for (i = 0; i < ABS_PRESSURE; i++)
       if (test_bit( i, absbit ))
         num_abs++;
+
+    /* test if it is a multi-touch type B device */
+    if (test_bit(ABS_MT_SLOT, absbit))
+      m_deviceType |= LI_DEVICE_MULTITOUCH;
   }
 
   /* Mouse, Touchscreen or Smartpad ? */
@@ -918,6 +1056,11 @@ void CLinuxInputDevice::GetInfo(int fd)
   /* Decide which primary input device to be. */
   if (m_deviceType & LI_DEVICE_KEYBOARD)
     m_devicePreferredId = LI_DEVICE_KEYBOARD;
+  else if (m_deviceType & LI_DEVICE_MULTITOUCH)
+  {
+    m_devicePreferredId = LI_DEVICE_MULTITOUCH;
+    CGenericTouchInputHandler::GetInstance().RegisterHandler(&CGenericTouchActionHandler::GetInstance());
+  }
   else if (m_deviceType & LI_DEVICE_REMOTE)
     m_devicePreferredId = LI_DEVICE_REMOTE;
   else if (m_deviceType & LI_DEVICE_JOYSTICK)
@@ -942,6 +1085,97 @@ bool CLinuxInputDevice::IsUnplugged()
   return m_bUnplugged;
 }
 
+CLinuxInputDevicesCheckHotplugged::CLinuxInputDevicesCheckHotplugged(CLinuxInputDevices &parent) :
+    CThread("CLinuxInputDevicesCheckHotplugged"), m_parent(parent)
+{
+  Create();
+  SetPriority(THREAD_PRIORITY_BELOW_NORMAL);
+}
+
+CLinuxInputDevicesCheckHotplugged::~CLinuxInputDevicesCheckHotplugged()
+{
+  m_bStop = true;
+  m_quitEvent.Set();
+  StopThread(true);
+}
+
+void CLinuxInputDevicesCheckHotplugged::Process()
+{
+  while (!m_bStop)
+  {
+    m_parent.CheckHotplugged();
+    // every ten seconds
+    m_quitEvent.WaitMSec(10000);
+  }
+}
+
+/*
+ * this function is not powerful because it reinitializes a new udev search each
+ * time it would be nicer to call this only one time + one time at each hotplug
+ * but it is already very fast, so, let's keep it simple and non intrusive
+ */
+bool CLinuxInputDevices::IsUdevJoystick(const char *devpath)
+{
+#if defined(HAVE_LIBUDEV)
+  struct udev *udev;
+  struct udev_enumerate *enumerate;
+  struct udev_list_entry *devices, *dev_list_entry;
+  struct udev_device *dev;
+  const char *path;
+  const char *devfoundpath;
+
+  udev = udev_new();
+  if (!udev)
+    return false; // can't create udev
+
+  enumerate = udev_enumerate_new(udev);
+  if (enumerate == NULL)
+  {
+    udev_unref(udev);
+    return false;
+  }
+
+  if (udev_enumerate_add_match_subsystem(enumerate, "input") == 0)
+  {
+    if (udev_enumerate_add_match_property(enumerate, "ID_INPUT_JOYSTICK", "1") == 0)
+    {
+      if (udev_enumerate_scan_devices(enumerate) >= 0)
+      {
+        devices = udev_enumerate_get_list_entry(enumerate);
+
+        udev_list_entry_foreach(dev_list_entry, devices)
+        {
+          path = udev_list_entry_get_name(dev_list_entry);
+          dev = udev_device_new_from_syspath(udev, path);
+          if (dev != NULL)
+          {
+            devfoundpath = udev_device_get_devnode(dev);
+            if (devfoundpath != NULL)
+            {
+              // found (finally !)
+              //printf("=> %s\n", devfoundpath);
+              if (strcmp(devfoundpath, devpath) == 0)
+              {
+                udev_device_unref(dev);
+                udev_enumerate_unref(enumerate);
+                udev_unref(udev);
+                return true;
+              }
+            }
+            udev_device_unref(dev);
+          }
+        }
+      }
+    }
+  }
+
+  udev_enumerate_unref(enumerate);
+  udev_unref(udev);
+#endif
+
+  return false;
+}
+
 bool CLinuxInputDevices::CheckDevice(const char *device)
 {
   int fd;
@@ -955,6 +1189,13 @@ bool CLinuxInputDevices::CheckDevice(const char *device)
   fd = open(device, O_RDWR);
   if (fd < 0)
     return false;
+
+  // let others handle joysticks
+  if (IsUdevJoystick(device))
+  {
+    close(fd);
+    return false;
+  }
 
   if (ioctl(fd, EVIOCGRAB, 1) && errno != EINVAL)
   {
@@ -1008,10 +1249,6 @@ void CLinuxInputDevices::InitAvailable()
  */
 void CLinuxInputDevices::CheckHotplugged()
 {
-  CSingleLock lock(m_devicesListLock);
-
-  int deviceId = m_devices.size();
-
   /* No devices specified. Try to guess some. */
   for (int i = 0; i < MAX_LINUX_INPUT_DEVICES; i++)
   {
@@ -1019,18 +1256,22 @@ void CLinuxInputDevices::CheckHotplugged()
     bool ispresent = false;
 
     snprintf(buf, 32, "/dev/input/event%d", i);
-
-    for (size_t j = 0; j < m_devices.size(); j++)
     {
-      if (m_devices[j]->GetFileName().compare(buf) == 0)
+      CSingleLock lock(m_devicesListLock);
+      for (size_t j = 0; j < m_devices.size(); j++)
       {
-        ispresent = true;
-        break;
+        if (m_devices[j]->GetFileName().compare(buf) == 0)
+        {
+          ispresent = true;
+          break;
+        }
       }
     }
 
     if (!ispresent && CheckDevice(buf))
     {
+      CSingleLock lock(m_devicesListLock);
+      int deviceId = m_devices.size();
       CLog::Log(LOGINFO, "Found input device %s", buf);
       m_devices.push_back(new CLinuxInputDevice(buf, deviceId));
       ++deviceId;
@@ -1221,18 +1462,6 @@ XBMC_Event CLinuxInputDevices::ReadEvent()
     InitAvailable();
     m_bReInitialize = false;
   }
-  else
-  {
-    time_t now;
-    time(&now);
-
-    if ((now - m_lastHotplugCheck) >= 10)
-    {
-      CheckHotplugged();
-      m_lastHotplugCheck = now;
-    }
-  }
-
   CSingleLock lock(m_devicesListLock);
 
   XBMC_Event event;

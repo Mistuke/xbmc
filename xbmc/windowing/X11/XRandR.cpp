@@ -20,7 +20,7 @@
 
 #include "XRandR.h"
 
-#ifdef HAS_XRANDR
+#ifdef HAVE_X11
 
 #include <string.h>
 #include <sys/wait.h>
@@ -36,8 +36,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #endif
-
-using namespace std;
 
 CXRandR::CXRandR(bool query)
 {
@@ -480,7 +478,7 @@ XOutput* CXRandR::GetOutput(const std::string& outputName)
   return result;
 }
 
-int CXRandR::GetCrtc(int x, int y)
+int CXRandR::GetCrtc(int x, int y, float &hz)
 {
   int crtc = 0;
   for (unsigned int i = 0; i < m_outputs.size(); ++i)
@@ -492,6 +490,14 @@ int CXRandR::GetCrtc(int x, int y)
         (m_outputs[i].y <= y && (m_outputs[i].y+m_outputs[i].h) > y))
     {
       crtc = m_outputs[i].crtc;
+      for (auto mode: m_outputs[i].modes)
+      {
+        if (mode.isCurrent)
+        {
+          hz = mode.hz;
+          break;
+        }
+      }
       break;
     }
   }
@@ -500,7 +506,7 @@ int CXRandR::GetCrtc(int x, int y)
 
 CXRandR g_xrandr;
 
-#endif // HAS_XRANDR
+#endif // HAVE_X11
 
 /*
   int main()

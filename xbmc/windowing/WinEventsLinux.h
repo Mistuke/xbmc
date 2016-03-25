@@ -22,6 +22,7 @@
 #define WINDOW_EVENTS_LINUX_H
 
 #pragma once
+#include <memory>
 #include "windowing/WinEvents.h"
 #include "input/linux/LinuxInputDevices.h"
 
@@ -31,6 +32,7 @@ public:
   CWinEventsLinux();
   bool MessagePump();
   size_t GetQueueSize();
+  void MessagePush(XBMC_Event *ev);
   void RefreshDevices();
   void Notify(const Observable &obs, const ObservableMessage msg)
   {
@@ -42,6 +44,7 @@ public:
 private:
   static bool m_initialized;
   static CLinuxInputDevices m_devices;
+  std::unique_ptr<CLinuxInputDevicesCheckHotplugged> m_checkHotplug;
 };
 
 #endif

@@ -24,10 +24,9 @@
 #include "input/ButtonTranslator.h"
 
 using namespace PERIPHERALS;
-using namespace std;
 
-CPeripheralHID::CPeripheralHID(const PeripheralScanResult& scanResult) :
-  CPeripheral(scanResult)
+CPeripheralHID::CPeripheralHID(const PeripheralScanResult& scanResult, CPeripheralBus* bus) :
+  CPeripheral(scanResult, bus)
 {
   m_strDeviceName = scanResult.m_strDeviceName.empty() ? g_localizeStrings.Get(35001) : scanResult.m_strDeviceName;
   m_features.push_back(FEATURE_HID);

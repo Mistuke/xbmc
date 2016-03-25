@@ -24,17 +24,19 @@
  *
  */
 
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "addons/IAddon.h"
 #include "guilib/GUIListItem.h"
+#include "GUIPassword.h"
+#include "threads/CriticalSection.h"
 #include "utils/IArchivable.h"
 #include "utils/ISerializable.h"
 #include "utils/ISortable.h"
-#include "XBDateTime.h"
 #include "utils/SortUtils.h"
-#include "GUIPassword.h"
-#include "threads/CriticalSection.h"
-
-#include <vector>
-#include <memory>
+#include "XBDateTime.h"
 
 namespace MUSIC_INFO
 {
@@ -51,9 +53,11 @@ namespace PVR
   class CPVRChannel;
   class CPVRRecording;
   class CPVRTimerInfoTag;
+  class CPVRRadioRDSInfoTag;
   typedef std::shared_ptr<PVR::CPVRRecording> CPVRRecordingPtr;
   typedef std::shared_ptr<PVR::CPVRChannel> CPVRChannelPtr;
   typedef std::shared_ptr<PVR::CPVRTimerInfoTag> CPVRTimerInfoTagPtr;
+  typedef std::shared_ptr<PVR::CPVRRadioRDSInfoTag> CPVRRadioRDSInfoTagPtr;
 }
 class CPictureInfoTag;
 
@@ -63,6 +67,7 @@ class CSong;
 class CGenre;
 
 class CURL;
+class CVariant;
 
 class CFileItemList;
 class CCueDocument;
@@ -102,6 +107,7 @@ public:
   CFileItem(const CURL& path, bool bIsFolder);
   CFileItem(const std::string& strPath, bool bIsFolder);
   CFileItem(const CSong& song);
+  CFileItem(const CSong& song, const MUSIC_INFO::CMusicInfoTag& music);
   CFileItem(const CURL &path, const CAlbum& album);
   CFileItem(const std::string &path, const CAlbum& album);
   CFileItem(const CArtist& artist);
@@ -113,6 +119,7 @@ public:
   CFileItem(const PVR::CPVRRecordingPtr& record);
   CFileItem(const PVR::CPVRTimerInfoTagPtr& timer);
   CFileItem(const CMediaSource& share);
+  CFileItem(std::shared_ptr<const ADDON::IAddon> addonInfo);
   virtual ~CFileItem(void);
   virtual CGUIListItem *Clone() const { return new CFileItem(*this); };
 
@@ -121,7 +128,7 @@ public:
   bool IsURL(const CURL& url) const;
   const std::string &GetPath() const { return m_strPath; };
   void SetPath(const std::string &path) { m_strPath = path; };
-  bool IsPath(const std::string& path) const;
+  bool IsPath(const std::string& path, bool ignoreURLOptions = false) const;
 
   /*! \brief reset class to it's default values as per construction.
    Free's all allocated memory.
@@ -170,7 +177,6 @@ public:
    */
   bool IsAudio() const;
 
-  bool IsKaraoke() const;
   bool IsCUESheet() const;
   bool IsInternetStream(const bool bStrictCheck = false) const;
   bool IsPlayList() const;
@@ -198,11 +204,9 @@ public:
   bool IsOnLAN() const;
   bool IsHD() const;
   bool IsNfs() const;  
-  bool IsAfp() const;    
   bool IsRemote() const;
   bool IsSmb() const;
   bool IsURL() const;
-  bool IsDAAP() const;
   bool IsStack() const;
   bool IsMultiPath() const;
   bool IsMusicDb() const;
@@ -213,6 +217,7 @@ public:
   bool IsUsablePVRRecording() const;
   bool IsDeletedPVRRecording() const;
   bool IsPVRTimer() const;
+  bool IsPVRRadioRDS() const;
   bool IsType(const char *ext) const;
   bool IsVirtualDirectoryRoot() const;
   bool IsReadOnly() const;
@@ -221,11 +226,6 @@ public:
   bool IsParentFolder() const;
   bool IsFileFolder(EFileFolderType types = EFILEFOLDER_MASK_ALL) const;
   bool IsRemovable() const;
-  bool IsTuxBox() const;
-  bool IsMythTV() const;
-  bool IsHDHomeRun() const;
-  bool IsSlingbox() const;
-  bool IsVTP() const;
   bool IsPVR() const;
   bool IsLiveTV() const;
   bool IsRSS() const;
@@ -312,6 +312,21 @@ public:
     return m_pvrTimerInfoTag;
   }
 
+  inline bool HasPVRRadioRDSInfoTag() const
+  {
+    return m_pvrRadioRDSInfoTag.get() != NULL;
+  }
+
+  inline const PVR::CPVRRadioRDSInfoTagPtr GetPVRRadioRDSInfoTag() const
+  {
+    return m_pvrRadioRDSInfoTag;
+  }
+
+  inline void SetPVRRadioRDSInfoTag(const PVR::CPVRRadioRDSInfoTagPtr& tag)
+  {
+    m_pvrRadioRDSInfoTag = tag;
+  }
+
   /*!
    \brief Test if this item has a valid resume point set.
    \return True if this item has a resume point and it is set, false otherwise.
@@ -333,6 +348,9 @@ public:
   {
     return m_pictureInfoTag;
   }
+
+  bool HasAddonInfo() const { return m_addonInfo != nullptr; }
+  const std::shared_ptr<const ADDON::IAddon> GetAddonInfo() const { return m_addonInfo; }
 
   CPictureInfoTag* GetPictureInfoTag();
 
@@ -418,6 +436,18 @@ public:
    */
   void FillInMimeType(bool lookup = true);
 
+  /*!
+   \brief Some sources do not support HTTP HEAD request to determine i.e. mime type
+   \return false if HEAD requests have to be avoided
+   */
+  bool ContentLookup() { return m_doContentLookup; };
+
+  /*! 
+   *\brief Lookup via HTTP HEAD request might not be needed, use this setter to
+   * disable ContentLookup.
+   */
+  void SetContentLookup(bool enable) { m_doContentLookup = enable; };
+
   /* general extra info about the contents of the item, not for display */
   void SetExtraInfo(const std::string& info) { m_extrainfo = info; };
   const std::string& GetExtraInfo() const { return m_extrainfo; };
@@ -441,6 +471,13 @@ public:
    \param video video details to use and set
    */
   void SetFromVideoInfoTag(const CVideoInfoTag &video);
+
+  /*! \brief Sets details using the information from the CMusicInfoTag object
+  Sets the musicinfotag and uses its information to set the label and path.
+  \param music music details to use and set
+  */
+  void SetFromMusicInfoTag(const MUSIC_INFO::CMusicInfoTag &music);
+
   /*! \brief Sets details using the information from the CAlbum object
    Sets the album in the music info tag and uses its information to set the
    label and album-specific properties.
@@ -489,13 +526,16 @@ private:
   bool m_bLabelPreformated;
   std::string m_mimetype;
   std::string m_extrainfo;
+  bool m_doContentLookup;
   MUSIC_INFO::CMusicInfoTag* m_musicInfoTag;
   CVideoInfoTag* m_videoInfoTag;
   EPG::CEpgInfoTagPtr m_epgInfoTag;
   PVR::CPVRChannelPtr m_pvrChannelInfoTag;
   PVR::CPVRRecordingPtr m_pvrRecordingInfoTag;
   PVR::CPVRTimerInfoTagPtr m_pvrTimerInfoTag;
+  PVR::CPVRRadioRDSInfoTagPtr m_pvrRadioRDSInfoTag;
   CPictureInfoTag* m_pictureInfoTag;
+  std::shared_ptr<const ADDON::IAddon> m_addonInfo;
   bool m_bIsAlbum;
 
   CCueDocumentPtr m_cueDocument;
@@ -591,6 +631,7 @@ public:
   int GetObjectCount() const;
   void FilterCueItems();
   void RemoveExtensions();
+  void SetIgnoreURLOptions(bool ignoreURLOptions);
   void SetFastLookup(bool fastLookup);
   bool Contains(const std::string& fileName) const;
   bool GetFastLookup() const { return m_fastLookup; };
@@ -688,6 +729,7 @@ private:
 
   VECFILEITEMS m_items;
   MAPFILEITEMS m_map;
+  bool m_ignoreURLOptions;
   bool m_fastLookup;
   SortDescription m_sortDescription;
   bool m_sortIgnoreFolders;

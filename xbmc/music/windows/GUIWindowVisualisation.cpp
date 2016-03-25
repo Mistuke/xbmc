@@ -20,11 +20,12 @@
 
 #include "GUIWindowVisualisation.h"
 #include "Application.h"
+#include "FileItem.h"
 #include "music/dialogs/GUIDialogMusicOSD.h"
 #include "GUIUserMessages.h"
 #include "GUIInfoManager.h"
-#include "music/dialogs/GUIDialogVisualisationPresetList.h"
 #include "guilib/GUIWindowManager.h"
+#include "input/ButtonTranslator.h"
 #include "input/Key.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
@@ -45,6 +46,17 @@ CGUIWindowVisualisation::CGUIWindowVisualisation(void)
 
 bool CGUIWindowVisualisation::OnAction(const CAction &action)
 {
+  if (CSettings::GetInstance().GetBool(CSettings::SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH) &&
+      g_infoManager.IsPlayerChannelPreviewActive() &&
+      (action.GetID() == ACTION_SELECT_ITEM || CButtonTranslator::GetInstance().GetGlobalAction(action.GetButtonCode()).GetID() == ACTION_SELECT_ITEM))
+  {
+    // If confirm channel switch is active, channel preview is currently shown
+    // and the button that caused this action matches (global) action "Select" (OK)
+    // switch to the channel currently displayed within the preview.
+    g_application.m_pPlayer->SwitchChannel(g_application.CurrentFileItem().GetPVRChannelInfoTag());
+    return true;
+  }
+
   bool passToVis = false;
   switch (action.GetID())
   {
@@ -59,7 +71,7 @@ bool CGUIWindowVisualisation::OnAction(const CAction &action)
   case ACTION_SHOW_INFO:
     {
       m_initTimer.Stop();
-      CSettings::Get().SetBool("mymusic.songthumbinvis", g_infoManager.ToggleShowInfo());
+      CSettings::GetInstance().SetBool(CSettings::SETTING_MYMUSIC_SONGTHUMBINVIS, g_infoManager.ToggleShowInfo());
       return true;
     }
     break;
@@ -70,7 +82,7 @@ bool CGUIWindowVisualisation::OnAction(const CAction &action)
 
   case ACTION_SHOW_GUI:
     // save the settings
-    CSettings::Get().Save();
+    CSettings::GetInstance().Save();
     g_windowManager.PreviousWindow();
     return true;
     break;
@@ -80,7 +92,6 @@ bool CGUIWindowVisualisation::OnAction(const CAction &action)
       if (!m_bShowPreset)
       {
         m_lockedTimer.StartZero();
-        g_infoManager.SetShowCodec(true);
       }
       passToVis = true;
     }
@@ -89,7 +100,6 @@ bool CGUIWindowVisualisation::OnAction(const CAction &action)
     {
       if (!m_lockedTimer.IsRunning() || m_bShowPreset)
         m_bShowPreset = !m_bShowPreset;
-      g_infoManager.SetShowCodec(m_bShowPreset);
       return true;
     }
     break;
@@ -151,12 +161,10 @@ bool CGUIWindowVisualisation::OnMessage(CGUIMessage& message)
   case GUI_MSG_WINDOW_DEINIT:
     {
       if (IsActive()) // save any changed settings from the OSD
-        CSettings::Get().Save();
-      // check and close any OSD windows
-      CGUIDialogMusicOSD *pOSD = (CGUIDialogMusicOSD *)g_windowManager.GetWindow(WINDOW_DIALOG_MUSIC_OSD);
-      if (pOSD && pOSD->IsDialogRunning()) pOSD->Close(true);
-      CGUIDialogVisualisationPresetList *pList = (CGUIDialogVisualisationPresetList *)g_windowManager.GetWindow(WINDOW_DIALOG_VIS_PRESET_LIST);
-      if (pList && pList->IsDialogRunning()) pList->Close(true);
+        CSettings::GetInstance().Save();
+
+      // close all active modal dialogs
+      g_windowManager.CloseInternalModalDialogs(true);
     }
     break;
   case GUI_MSG_WINDOW_INIT:
@@ -170,13 +178,12 @@ bool CGUIWindowVisualisation::OnMessage(CGUIMessage& message)
       }
 
       // hide or show the preset button(s)
-      g_infoManager.SetShowCodec(m_bShowPreset);
       g_infoManager.SetShowInfo(true);  // always show the info initially.
       CGUIWindow::OnMessage(message);
       if (g_infoManager.GetCurrentSongTag())
         m_tag = *g_infoManager.GetCurrentSongTag();
 
-      if (CSettings::Get().GetBool("mymusic.songthumbinvis"))
+      if (CSettings::GetInstance().GetBool(CSettings::SETTING_MYMUSIC_SONGTHUMBINVIS))
       { // always on
         m_initTimer.Stop();
       }
@@ -206,7 +213,7 @@ EVENT_RESULT CGUIWindowVisualisation::OnMouseEvent(const CPoint &point, const CM
     if (pOSD)
     {
       pOSD->SetAutoClose(3000);
-      pOSD->DoModal();
+      pOSD->Open();
     }
     return EVENT_RESULT_HANDLED;
   }
@@ -227,7 +234,7 @@ void CGUIWindowVisualisation::FrameMove()
   if (m_initTimer.IsRunning() && m_initTimer.GetElapsedSeconds() > (float)g_advancedSettings.m_songInfoDuration)
   {
     m_initTimer.Stop();
-    if (!CSettings::Get().GetBool("mymusic.songthumbinvis"))
+    if (!CSettings::GetInstance().GetBool(CSettings::SETTING_MYMUSIC_SONGTHUMBINVIS))
     { // reached end of fade in, fade out again
       g_infoManager.SetShowInfo(false);
     }
@@ -236,10 +243,6 @@ void CGUIWindowVisualisation::FrameMove()
   if (m_lockedTimer.IsRunning() && m_lockedTimer.GetElapsedSeconds() > START_FADE_LENGTH)
   {
     m_lockedTimer.Stop();
-    if (!m_bShowPreset)
-    {
-      g_infoManager.SetShowCodec(false);
-    }
   }
   CGUIWindow::FrameMove();
 }

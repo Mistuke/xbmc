@@ -37,7 +37,7 @@ namespace XBMCAddon
 
     String Addon::getAddonVersion() { return languageHook == NULL ? emptyString : languageHook->GetAddonVersion(); }
 
-    Addon::Addon(const char* cid) throw (AddonException)
+    Addon::Addon(const char* cid)
     {
       String id(cid ? cid : emptyString);
 
@@ -50,20 +50,20 @@ namespace XBMCAddon
       if (id.empty())
         throw AddonException("No valid addon id could be obtained. None was passed and the script wasn't executed in a normal xbmc manner.");
 
-      if (!ADDON::CAddonMgr::Get().GetAddon(id.c_str(), pAddon))
+      if (!ADDON::CAddonMgr::GetInstance().GetAddon(id.c_str(), pAddon))
         throw AddonException("Unknown addon id '%s'.", id.c_str());
 
-      CAddonMgr::Get().AddToUpdateableAddons(pAddon);
+      CAddonMgr::GetInstance().AddToUpdateableAddons(pAddon);
     }
 
     Addon::~Addon()
     {
-      CAddonMgr::Get().RemoveFromUpdateableAddons(pAddon);
+      CAddonMgr::GetInstance().RemoveFromUpdateableAddons(pAddon);
     }
 
     String Addon::getLocalizedString(int id)
     {
-      return pAddon->GetString(id);
+      return g_localizeStrings.GetAddonString(pAddon->ID(), id);
     }
 
     String Addon::getSetting(const char* id)
@@ -105,7 +105,7 @@ namespace XBMCAddon
       CGUIDialogAddonSettings::ShowAndGetInput(addon);
     }
 
-    String Addon::getAddonInfo(const char* id) throw (AddonException)
+    String Addon::getAddonInfo(const char* id)
     {
       if (strcmpi(id, "author") == 0)
         return pAddon->Author();
@@ -128,9 +128,7 @@ namespace XBMCAddon
       else if (strcmpi(id, "profile") == 0)
         return pAddon->Profile();
       else if (strcmpi(id, "stars") == 0)
-      {
-        return StringUtils::Format("%d", pAddon->Stars());
-      }
+        return StringUtils::Format("-1");
       else if (strcmpi(id, "summary") == 0)
         return pAddon->Summary();
       else if (strcmpi(id, "type") == 0)

@@ -90,28 +90,28 @@ protected:
      * Settings here are taken from CGUISettings::Initialize()
      */
     /* TODO
-    CSettingsCategory *loc = CSettings::Get().AddCategory(7, "locale", 14090);
-    CSettings::Get().AddString(loc, "locale.language",248,"english",
+    CSettingsCategory *loc = CSettings::GetInstance().AddCategory(7, "locale", 14090);
+    CSettings::GetInstance().AddString(loc, CSettings::SETTING_LOCALE_LANGUAGE,248,"english",
                             SPIN_CONTROL_TEXT);
-    CSettings::Get().AddString(loc, "locale.country", 20026, "USA",
+    CSettings::GetInstance().AddString(loc, CSettings::SETTING_LOCALE_COUNTRY, 20026, "USA",
                             SPIN_CONTROL_TEXT);
-    CSettings::Get().AddString(loc, "locale.charset", 14091, "DEFAULT",
+    CSettings::GetInstance().AddString(loc, CSettings::SETTING_LOCALE_CHARSET, 14091, "DEFAULT",
                             SPIN_CONTROL_TEXT); // charset is set by the
                                                 // language file
 
     // Add default settings for subtitles
-    CSettingsCategory *sub = CSettings::Get().AddCategory(5, "subtitles", 287);
-    CSettings::Get().AddString(sub, "subtitles.charset", 735, "DEFAULT",
+    CSettingsCategory *sub = CSettings::GetInstance().AddCategory(5, "subtitles", 287);
+    CSettings::GetInstance().AddString(sub, CSettings::SETTING_SUBTITLES_CHARSET, 735, "DEFAULT",
                             SPIN_CONTROL_TEXT);
     */
-
+    CSettings::GetInstance().Initialize();
     g_charsetConverter.reset();
     g_charsetConverter.clear();
   }
 
   ~TestCharsetConverter()
   {
-    CSettings::Get().Unload();
+    CSettings::GetInstance().Unload();
   }
 
   std::string refstra1, refstra2, varstra1;
@@ -124,7 +124,7 @@ TEST_F(TestCharsetConverter, utf8ToW)
   refstra1 = "test utf8ToW";
   refstrw1 = L"test utf8ToW";
   varstrw1.clear();
-  g_charsetConverter.utf8ToW(refstra1, varstrw1, true, false, NULL);
+  g_charsetConverter.utf8ToW(refstra1, varstrw1, true, false, false);
   EXPECT_STREQ(refstrw1.c_str(), varstrw1.c_str());
 }
 

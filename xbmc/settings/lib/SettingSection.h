@@ -47,7 +47,7 @@ public:
   ~CSettingGroup();
 
   // implementation of ISetting
-  virtual bool Deserialize(const TiXmlNode *node, bool update = false);
+  virtual bool Deserialize(const TiXmlNode *node, bool update = false) override;
 
   /*!
    \brief Gets the full list of settings belonging to the setting group.
@@ -68,8 +68,13 @@ public:
   void AddSetting(CSetting *setting);
   void AddSettings(const SettingList &settings);
 
+  const ISettingControl *GetControl() const { return m_control; }
+  ISettingControl *GetControl() { return m_control; }
+  void SetControl(ISettingControl *control) { m_control = control; }
+
 private:
   SettingList m_settings;
+  ISettingControl *m_control;
 };
 
 typedef std::vector<CSettingGroup *> SettingGroupList;
@@ -93,7 +98,7 @@ public:
   ~CSettingCategory();
 
   // implementation of ISetting
-  virtual bool Deserialize(const TiXmlNode *node, bool update = false);
+  virtual bool Deserialize(const TiXmlNode *node, bool update = false) override;
 
   /*!
    \brief Gets the full list of setting groups belonging to the setting
@@ -148,7 +153,7 @@ public:
   ~CSettingSection();
 
   // implementation of ISetting
-  virtual bool Deserialize(const TiXmlNode *node, bool update = false);
+  virtual bool Deserialize(const TiXmlNode *node, bool update = false) override;
 
   /*!
    \brief Gets the full list of setting categories belonging to the setting

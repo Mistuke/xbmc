@@ -20,15 +20,13 @@
 
 #include "PeripheralNyxboard.h"
 #include "PeripheralHID.h"
-#include "input/Key.h"
 #include "utils/log.h"
 #include "Application.h"
 
 using namespace PERIPHERALS;
-using namespace std;
 
-CPeripheralNyxboard::CPeripheralNyxboard(const PeripheralScanResult& scanResult) :
-  CPeripheralHID(scanResult)
+CPeripheralNyxboard::CPeripheralNyxboard(const PeripheralScanResult& scanResult, CPeripheralBus* bus) :
+  CPeripheralHID(scanResult, bus)
 {
   m_features.push_back(FEATURE_NYXBOARD);
 }

@@ -25,6 +25,11 @@
 #include "GUIUserMessages.h"
 #include "settings/Settings.h"
 #include "addons/GUIWindowAddonBrowser.h"
+#include "xbmc/dialogs/GUIDialogSelect.h"
+#include "xbmc/Application.h"
+#include "xbmc/FileItem.h"
+#include "xbmc/music/tags/MusicInfoTag.h"
+#include "xbmc/music/MusicDatabase.h"
 
 #define CONTROL_VIS_BUTTON       500
 #define CONTROL_LOCK_BUTTON      501
@@ -51,8 +56,8 @@ bool CGUIDialogMusicOSD::OnMessage(CGUIMessage &message)
         std::string addonID;
         if (CGUIWindowAddonBrowser::SelectAddonID(ADDON::ADDON_VIZ, addonID, true) == 1)
         {
-          CSettings::Get().SetString("musicplayer.visualisation", addonID);
-          CSettings::Get().Save();
+          CSettings::GetInstance().SetString(CSettings::SETTING_MUSICPLAYER_VISUALISATION, addonID);
+          CSettings::GetInstance().Save();
           g_windowManager.SendMessage(GUI_MSG_VISUALISATION_RELOAD, 0, 0);
         }
       }
@@ -72,12 +77,50 @@ bool CGUIDialogMusicOSD::OnAction(const CAction &action)
 {
   switch (action.GetID())
   {
-  case ACTION_SHOW_OSD:
-    Close();
-    return true;
+    case ACTION_SHOW_OSD:
+      Close();
+      return true;
+  
+    case ACTION_SET_RATING:
+    {
+      CGUIDialogSelect *dialog = static_cast<CGUIDialogSelect *>(g_windowManager.GetWindow(WINDOW_DIALOG_SELECT));
+      if (dialog)
+      {
+        dialog->SetHeading(CVariant{ 38023 });
+        dialog->Add(g_localizeStrings.Get(38022));
+        for (int i = 1; i <= 10; i++)
+          dialog->Add(StringUtils::Format("%s: %i", g_localizeStrings.Get(563).c_str(), i));
 
-  default:
-    break;
+        auto track = std::make_shared<CFileItem>(g_application.CurrentFileItem());
+        dialog->SetSelected(track->GetMusicInfoTag()->GetUserrating());
+
+        dialog->Open();
+
+        int userrating = dialog->GetSelectedItem();
+
+        if (userrating < 0) userrating = 0;
+        if (userrating > 10) userrating = 10;
+        if (userrating != track->GetMusicInfoTag()->GetUserrating())
+        {
+          track->GetMusicInfoTag()->SetUserrating(userrating);
+          // send a message to all windows to tell them to update the fileitem (eg playlistplayer, media windows)
+          CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_ITEM, 0, track);
+          g_windowManager.SendMessage(msg);
+
+          CMusicDatabase db;
+          if (db.Open())
+          {
+            db.SetSongUserrating(track->GetMusicInfoTag()->GetURL(), userrating);
+            db.Close();
+          }
+        }
+
+      }
+      return true;
+    }
+
+    default:
+      break;
   }
 
   return CGUIDialog::OnAction(action);
@@ -88,9 +131,11 @@ void CGUIDialogMusicOSD::FrameMove()
   if (m_autoClosing)
   {
     // check for movement of mouse or a submenu open
-    if (CInputManager::Get().IsMouseActive() ||
+    if (CInputManager::GetInstance().IsMouseActive() ||
         g_windowManager.IsWindowActive(WINDOW_DIALOG_VIS_SETTINGS) ||
-        g_windowManager.IsWindowActive(WINDOW_DIALOG_VIS_PRESET_LIST))
+        g_windowManager.IsWindowActive(WINDOW_DIALOG_VIS_PRESET_LIST) ||
+        g_windowManager.IsWindowActive(WINDOW_DIALOG_AUDIO_DSP_OSD_SETTINGS) ||
+        g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_RADIO_RDS_INFO))
       // extend show time by original value
       SetAutoClose(m_showDuration);
   }

@@ -31,6 +31,8 @@
 #ifdef HAS_DVD_DRIVE
 #ifndef TARGET_WINDOWS
 // TODO: switch all ports to use auto sources
+#include <map>
+#include <utility>
 #include "DetectDVDType.h"
 #include "filesystem/iso9660.h"
 #endif
@@ -47,12 +49,9 @@
 #include "utils/StringUtils.h"
 #include "AutorunMediaJob.h"
 
-#include "FileItem.h"
 #include "filesystem/File.h"
-#include "filesystem/DirectoryFactory.h"
-#include "filesystem/Directory.h"
 
-#include "cores/dvdplayer/DVDInputStreams/DVDInputStreamNavigator.h"
+#include "cores/VideoPlayer/DVDInputStreams/DVDInputStreamNavigator.h"
 
 #if defined(TARGET_DARWIN)
 #include "osx/DarwinStorageProvider.h"
@@ -68,7 +67,9 @@
 #include "windows/Win32StorageProvider.h"
 #endif
 
-using namespace std;
+#include <string>
+#include <vector>
+
 using namespace XFILE;
 
 #ifdef HAS_DVD_DRIVE
@@ -87,7 +88,8 @@ CMediaManager::CMediaManager()
 
 void CMediaManager::Stop()
 {
-  m_platformStorage->Stop();
+  if (m_platformStorage)
+    m_platformStorage->Stop();
 
   delete m_platformStorage;
   m_platformStorage = NULL;
@@ -161,7 +163,7 @@ bool CMediaManager::SaveSources()
   TiXmlNode *pNetworkNode = pRoot->InsertEndChild(networkNode);
   if (pNetworkNode)
   {
-    for (vector<CNetworkLocation>::iterator it = m_locations.begin(); it != m_locations.end(); ++it)
+    for (std::vector<CNetworkLocation>::iterator it = m_locations.begin(); it != m_locations.end(); ++it)
     {
       TiXmlElement locationNode("location");
       locationNode.SetAttribute("id", (*it).id);
@@ -280,11 +282,11 @@ bool CMediaManager::SetLocationPath(const std::string& oldPath, const std::strin
 
 void CMediaManager::AddAutoSource(const CMediaSource &share, bool bAutorun)
 {
-  CMediaSourceSettings::Get().AddShare("files", share);
-  CMediaSourceSettings::Get().AddShare("video", share);
-  CMediaSourceSettings::Get().AddShare("pictures", share);
-  CMediaSourceSettings::Get().AddShare("music", share);
-  CMediaSourceSettings::Get().AddShare("programs", share);
+  CMediaSourceSettings::GetInstance().AddShare("files", share);
+  CMediaSourceSettings::GetInstance().AddShare("video", share);
+  CMediaSourceSettings::GetInstance().AddShare("pictures", share);
+  CMediaSourceSettings::GetInstance().AddShare("music", share);
+  CMediaSourceSettings::GetInstance().AddShare("programs", share);
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_SOURCES);
   g_windowManager.SendThreadMessage( msg );
 
@@ -296,11 +298,11 @@ void CMediaManager::AddAutoSource(const CMediaSource &share, bool bAutorun)
 
 void CMediaManager::RemoveAutoSource(const CMediaSource &share)
 {
-  CMediaSourceSettings::Get().DeleteSource("files", share.strName, share.strPath, true);
-  CMediaSourceSettings::Get().DeleteSource("video", share.strName, share.strPath, true);
-  CMediaSourceSettings::Get().DeleteSource("pictures", share.strName, share.strPath, true);
-  CMediaSourceSettings::Get().DeleteSource("music", share.strName, share.strPath, true);
-  CMediaSourceSettings::Get().DeleteSource("programs", share.strName, share.strPath, true);
+  CMediaSourceSettings::GetInstance().DeleteSource("files", share.strName, share.strPath, true);
+  CMediaSourceSettings::GetInstance().DeleteSource("video", share.strName, share.strPath, true);
+  CMediaSourceSettings::GetInstance().DeleteSource("pictures", share.strName, share.strPath, true);
+  CMediaSourceSettings::GetInstance().DeleteSource("music", share.strName, share.strPath, true);
+  CMediaSourceSettings::GetInstance().DeleteSource("programs", share.strName, share.strPath, true);
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_SOURCES);
   g_windowManager.SendThreadMessage( msg );
 
@@ -541,12 +543,11 @@ std::string CMediaManager::GetDiskUniqueId(const std::string& devicePath)
   CLog::Log(LOGDEBUG, "GetDiskUniqueId: Trying to retrieve ID for path %s", pathVideoTS.c_str());
 
 
-  CDVDInputStreamNavigator dvdNavigator(NULL);
-  dvdNavigator.Open(pathVideoTS.c_str(), "");
-  std::string labelString;
-  dvdNavigator.GetDVDTitleString(labelString);
-  std::string serialString;
-  dvdNavigator.GetDVDSerialString(serialString);
+  CFileItem item(pathVideoTS, false);
+  CDVDInputStreamNavigator dvdNavigator(NULL, item);
+  dvdNavigator.Open();
+  std::string labelString = dvdNavigator.GetDVDTitleString();
+  std::string serialString = dvdNavigator.GetDVDSerialString();
 
   std::string strID = StringUtils::Format("removable://%s_%s", labelString.c_str(), serialString.c_str());
   CLog::Log(LOGDEBUG, "GetDiskUniqueId: Got ID %s for DVD disk", strID.c_str());
@@ -678,8 +679,8 @@ std::vector<std::string> CMediaManager::GetDiskUsage()
 void CMediaManager::OnStorageAdded(const std::string &label, const std::string &path)
 {
 #ifdef HAS_DVD_DRIVE
-  if (CSettings::Get().GetInt("audiocds.autoaction") != AUTOCD_NONE || CSettings::Get().GetBool("dvds.autorun"))
-    if (CSettings::Get().GetInt("audiocds.autoaction") == AUTOCD_RIP)
+  if (CSettings::GetInstance().GetInt(CSettings::SETTING_AUDIOCDS_AUTOACTION) != AUTOCD_NONE || CSettings::GetInstance().GetBool(CSettings::SETTING_DVDS_AUTORUN))
+    if (CSettings::GetInstance().GetInt(CSettings::SETTING_AUDIOCDS_AUTOACTION) == AUTOCD_RIP)
       CJobManager::GetInstance().AddJob(new CAutorunMediaJob(label, path), this, CJob::PRIORITY_LOW);
     else
       CJobManager::GetInstance().AddJob(new CAutorunMediaJob(label, path), this, CJob::PRIORITY_HIGH);

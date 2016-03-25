@@ -8,9 +8,7 @@ SOURCE=$(LIBNAME)-$(VERSION)
 ARCHIVE=$(SOURCE).tar.gz
 
 ifeq ($(OS),ios)
-  ifneq (,$(findstring 3.,$(XCODE_VERSION)))
-    CONFIGURE_FLAGS=-disable-assembler
-  endif
+  CONFIGURE_FLAGS=-disable-assembler
 endif
 
 # configuration settings
@@ -29,6 +27,7 @@ $(TARBALLS_LOCATION)/$(ARCHIVE):
 $(PLATFORM): $(TARBALLS_LOCATION)/$(ARCHIVE) $(DEPS)
 	rm -rf $(PLATFORM)/*; mkdir -p $(PLATFORM)
 	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
+	cd $(PLATFORM); patch -p0 < ../01-disable_testsuite.patch
 	cd $(PLATFORM); $(CONFIGURE)
 
 $(LIBDYLIB): $(PLATFORM)

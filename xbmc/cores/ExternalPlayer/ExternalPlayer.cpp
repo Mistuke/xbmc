@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2005-2015 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,15 +13,13 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "threads/SystemClock.h"
 #include "system.h"
-#include "signal.h"
-#include "limits.h"
 #include "CompileInfo.h"
 #include "threads/SingleLock.h"
 #include "ExternalPlayer.h"
@@ -36,8 +34,8 @@
 #include "utils/URIUtils.h"
 #include "URL.h"
 #include "utils/XMLUtils.h"
-#include "utils/TimeUtils.h"
 #include "utils/log.h"
+#include "utils/Variant.h"
 #include "cores/AudioEngine/AEFactory.h"
 #include "input/InputManager.h"
 #if defined(TARGET_WINDOWS)
@@ -45,7 +43,7 @@
   #include "Windows.h"
 #endif
 #if defined(TARGET_ANDROID)
-  #include "android/activity/XBMCApp.h"
+  #include "platform/android/activity/XBMCApp.h"
 #endif
 
 // If the process ends in less than this time (ms), we assume it's a launcher
@@ -168,7 +166,7 @@ void CExternalPlayer::Process()
     }
   }
 
-  if (m_filenameReplacers.size() > 0)
+  if (!m_filenameReplacers.empty())
   {
     for (unsigned int i = 0; i < m_filenameReplacers.size(); i++)
     {
@@ -341,13 +339,14 @@ void CExternalPlayer::Process()
     {
       CSingleLock lock(g_graphicsContext);
       m_dialog = (CGUIDialogOK *)g_windowManager.GetWindow(WINDOW_DIALOG_OK);
-      m_dialog->SetHeading(23100);
-      m_dialog->SetLine(1, 23104);
-      m_dialog->SetLine(2, 23105);
-      m_dialog->SetLine(3, 23106);
+      m_dialog->SetHeading(CVariant{23100});
+      m_dialog->SetLine(1, CVariant{23104});
+      m_dialog->SetLine(2, CVariant{23105});
+      m_dialog->SetLine(3, CVariant{23106});
     }
 
-    if (!m_bAbortRequest) m_dialog->DoModal();
+    if (!m_bAbortRequest)
+      m_dialog->Open();
   }
 
   m_bIsPlaying = false;
@@ -412,8 +411,8 @@ BOOL CExternalPlayer::ExecuteAppW32(const char* strPath, const char* strSwitches
   si.wShowWindow = m_hideconsole ? SW_HIDE : SW_SHOW;
 
   std::wstring WstrPath, WstrSwitches;
-  g_charsetConverter.utf8ToW(strPath, WstrPath);
-  g_charsetConverter.utf8ToW(strSwitches, WstrSwitches);
+  g_charsetConverter.utf8ToW(strPath, WstrPath, false);
+  g_charsetConverter.utf8ToW(strSwitches, WstrSwitches, false);
 
   if (m_bAbortRequest) return false;
 
@@ -462,13 +461,13 @@ BOOL CExternalPlayer::ExecuteAppLinux(const char* strSwitches)
 {
   CLog::Log(LOGNOTICE, "%s: %s", __FUNCTION__, strSwitches);
 
-  bool remoteUsed = CInputManager::Get().IsRemoteControlEnabled();
-  CInputManager::Get().DisableRemoteControl();
+  bool remoteUsed = CInputManager::GetInstance().IsRemoteControlEnabled();
+  CInputManager::GetInstance().DisableRemoteControl();
 
   int ret = system(strSwitches);
 
   if (remoteUsed)
-    CInputManager::Get().EnableRemoteControl();
+    CInputManager::GetInstance().EnableRemoteControl();
 
   if (ret != 0)
   {
@@ -484,14 +483,14 @@ BOOL CExternalPlayer::ExecuteAppAndroid(const char* strSwitches,const char* strP
 {
   CLog::Log(LOGNOTICE, "%s: %s", __FUNCTION__, strSwitches);
 
-  int ret = CXBMCApp::StartActivity(strSwitches, "android.intent.action.VIEW", "video/*", strPath);
+  bool ret = CXBMCApp::StartActivity(strSwitches, "android.intent.action.VIEW", "video/*", strPath);
 
-  if (ret != 0)
+  if (!ret)
   {
-    CLog::Log(LOGNOTICE, "%s: Failure: %d", __FUNCTION__, ret);
+    CLog::Log(LOGNOTICE, "%s: Failure", __FUNCTION__);
   }
 
-  return ret == 0;
+  return ret;
 }
 #endif
 
@@ -529,21 +528,6 @@ bool CExternalPlayer::CanSeek()
 
 void CExternalPlayer::Seek(bool bPlus, bool bLargeStep, bool bChapterOverride)
 {
-}
-
-void CExternalPlayer::GetAudioInfo(std::string& strAudioInfo)
-{
-  strAudioInfo = "CExternalPlayer:GetAudioInfo";
-}
-
-void CExternalPlayer::GetVideoInfo(std::string& strVideoInfo)
-{
-  strVideoInfo = "CExternalPlayer:GetVideoInfo";
-}
-
-void CExternalPlayer::GetGeneralInfo(std::string& strGeneralInfo)
-{
-  strGeneralInfo = "CExternalPlayer:GetGeneralInfo";
 }
 
 void CExternalPlayer::SwitchToNextAudioLanguage()

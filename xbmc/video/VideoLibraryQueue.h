@@ -43,7 +43,7 @@ public:
   /*!
    \brief Gets the singleton instance of the video library queue.
   */
-  static CVideoLibraryQueue& Get();
+  static CVideoLibraryQueue& GetInstance();
 
   /*!
    \brief Enqueue a library scan job.
@@ -83,6 +83,27 @@ public:
   void CleanLibraryModal(const std::set<int>& paths = std::set<int>());
 
   /*!
+   \brief Enqueues a job to refresh the details of the given item.
+
+   \param[inout] item Video item to be refreshed
+   \param[in] ignoreNfo Whether or not to ignore local NFO files
+   \param[in] forceRefresh Whether to force a complete refresh (including NFO or internet lookup)
+   \param[in] refreshAll Whether to refresh all sub-items (in case of a tvshow)
+   \param[in] searchTitle Title to use for the search (instead of determining it from the item's filename/path)
+   */
+  void RefreshItem(CFileItemPtr item, bool ignoreNfo = false, bool forceRefresh = true, bool refreshAll = false, const std::string& searchTitle = "");
+
+  /*!
+   \brief Refreshes the details of the given item with a modal dialog.
+
+   \param[inout] item Video item to be refreshed
+   \param[in] forceRefresh Whether to force a complete refresh (including NFO or internet lookup)
+   \param[in] refreshAll Whether to refresh all sub-items (in case of a tvshow)
+   \return True if the item has been successfully refreshed, false otherwise.
+  */
+  bool RefreshItemModal(CFileItemPtr item, bool forceRefresh = true, bool refreshAll = false);
+
+  /*!
    \brief Queue a watched status update job.
 
    \param[in] item Item to update watched status for
@@ -118,6 +139,11 @@ protected:
   // implementation of IJobCallback
   virtual void OnJobComplete(unsigned int jobID, bool success, CJob *job);
 
+  /*!
+   \brief Notifies all to refresh the current listings.
+   */
+  void Refresh();
+
 private:
   CVideoLibraryQueue();
   CVideoLibraryQueue(const CVideoLibraryQueue&);
@@ -128,5 +154,6 @@ private:
   VideoLibraryJobMap m_jobs;
   CCriticalSection m_critical;
 
+  bool m_modal;
   bool m_cleaning;
 };

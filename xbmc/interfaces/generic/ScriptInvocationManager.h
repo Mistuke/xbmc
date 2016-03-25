@@ -33,7 +33,7 @@ typedef std::shared_ptr<CLanguageInvokerThread> CLanguageInvokerThreadPtr;
 class CScriptInvocationManager
 {
 public:
-  static CScriptInvocationManager& Get();
+  static CScriptInvocationManager& GetInstance();
 
   void Process();
   void Uninitialize();
@@ -103,6 +103,7 @@ public:
   bool Stop(const std::string &scriptPath, bool wait = false);
 
   bool IsRunning(int scriptId) const;
+  bool IsRunning(const std::string& scriptPath) const;
 
 protected:
   friend class CLanguageInvokerThread;

@@ -23,12 +23,12 @@
 #include "WindowInterceptor.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/TextureManager.h"
-#include "settings/Settings.h"
 #include "addons/Skin.h"
 #include "filesystem/File.h"
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
 #include "addons/Addon.h"
+#include "WindowException.h"
 
 // These #defs are for WindowXML
 #define CONTROL_BTNVIEWASICONS  2
@@ -97,7 +97,7 @@ namespace XBMCAddon
     WindowXML::WindowXML(const String& xmlFilename,
                          const String& scriptPath,
                          const String& defaultSkin,
-                         const String& defaultRes) throw(WindowException) :
+                         const String& defaultRes) :
       Window(true)
     {
       XBMC_TRACE;
@@ -107,7 +107,7 @@ namespace XBMCAddon
       if (!XFILE::CFile::Exists(strSkinPath))
       {
         std::string str("none");
-        ADDON::AddonProps props(str, ADDON::ADDON_SKIN, "", "");
+        ADDON::AddonProps props(str, ADDON::ADDON_SKIN);
         ADDON::CSkinInfo::TranslateResolution(defaultRes, res);
 
         // Check for the matching folder for the skin in the fallback skins folder
@@ -142,16 +142,16 @@ namespace XBMCAddon
       m_scriptPath = scriptPath;
 //      sXMLFileName = strSkinPath;
 
-      interceptor = new WindowXMLInterceptor(this, lockingGetNextAvailalbeWindowId(),strSkinPath.c_str());
+      interceptor = new WindowXMLInterceptor(this, lockingGetNextAvailableWindowId(),strSkinPath.c_str());
       setWindow(interceptor);
       interceptor->SetCoordsRes(res);
     }
 
-    int WindowXML::lockingGetNextAvailalbeWindowId() throw (WindowException)
+    int WindowXML::lockingGetNextAvailableWindowId()
     {
       XBMC_TRACE;
       CSingleLock lock(g_graphicsContext);
-      return getNextAvailalbeWindowId();
+      return getNextAvailableWindowId();
     }
 
     void WindowXML::addItem(const Alternative<String, const ListItem*>& item, int position)
@@ -216,7 +216,7 @@ namespace XBMCAddon
       A(m_viewControl).SetSelectedItem(position);
     }
 
-    ListItem* WindowXML::getListItem(int position) throw (WindowException)
+    ListItem* WindowXML::getListItem(int position)
     {
       LOCKGUI;
       //CFileItemPtr fi = pwx->GetListItem(listPos);
@@ -256,7 +256,7 @@ namespace XBMCAddon
       A(UpdateButtons());
     }
 
-    void WindowXML::setProperty(const String& key, const String& value)
+    void WindowXML::setContainerProperty(const String& key, const String& value)
     {
       XBMC_TRACE;
       A(m_vecItems)->SetProperty(key, value);
@@ -462,7 +462,7 @@ namespace XBMCAddon
 
     WindowXMLDialog::WindowXMLDialog(const String& xmlFilename, const String& scriptPath,
                                      const String& defaultSkin,
-                                     const String& defaultRes) throw(WindowException) :
+                                     const String& defaultRes) :
       WindowXML(xmlFilename, scriptPath, defaultSkin, defaultRes),
       WindowDialogMixin(this)
     { XBMC_TRACE; }
@@ -473,12 +473,8 @@ namespace XBMCAddon
     {
       XBMC_TRACE;
       if (message.GetMessage() == GUI_MSG_WINDOW_DEINIT)
-      {
-        CGUIWindow *pWindow = g_windowManager.GetWindow(g_windowManager.GetActiveWindow());
-        if (pWindow)
-          g_windowManager.ShowOverlay(pWindow->GetOverlayState());
         return A(CGUIWindow::OnMessage(message));
-      }
+
       return WindowXML::OnMessage(message);
     }
 
@@ -493,6 +489,21 @@ namespace XBMCAddon
       XBMC_TRACE;
       g_windowManager.RemoveDialog(interceptor->GetID());
       WindowXML::OnDeinitWindow(nextWindowID);
+    }
+
+    bool WindowXMLDialog::LoadXML(const String &strPath, const String &strLowerPath)
+    {
+      XBMC_TRACE;
+      if (WindowXML::LoadXML(strPath, strLowerPath))
+      {
+        // Set the render order to the dialog's default in case it's not specified in the skin xml
+        // because this dialog is mapped to CGUIMediaWindow instead of CGUIDialog.
+        // This must be done here, because the render order will be reset before loading the skin xml.
+        if (ref(window)->GetRenderOrder() == RENDER_ORDER_WINDOW)
+          window->SetRenderOrder(RENDER_ORDER_DIALOG);
+        return true;
+      }
+      return false;
     }
   
   }

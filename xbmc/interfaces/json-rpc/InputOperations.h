@@ -20,8 +20,8 @@
  */
 
 #include "JSONRPC.h"
-#include "input/Key.h"
-#include "threads/CriticalSection.h"
+
+class CVariant;
 
 namespace JSONRPC
 {

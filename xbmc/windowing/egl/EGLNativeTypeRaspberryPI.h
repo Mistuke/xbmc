@@ -59,7 +59,6 @@ private:
   DISPMANX_ELEMENT_HANDLE_T     m_dispman_element;
   TV_GET_STATE_RESP_T           m_tv_state;
   sem_t                         m_tv_synced;
-  bool                          m_fixedMode;
   RESOLUTION_INFO               m_desktopRes;
   int                           m_width;
   int                           m_height;
@@ -70,7 +69,7 @@ private:
   static void CallbackTvServiceCallback(void *userdata, uint32_t reason, uint32_t param1, uint32_t param2);
 
   void DestroyDispmaxWindow();
-  int FindMatchingResolution(const RESOLUTION_INFO &res, const std::vector<RESOLUTION_INFO> &resolutions);
-  int AddUniqueResolution(RESOLUTION_INFO &res, std::vector<RESOLUTION_INFO> &resolutions);
+  int FindMatchingResolution(const RESOLUTION_INFO &res, const std::vector<RESOLUTION_INFO> &resolutions, bool desktop);
+  int AddUniqueResolution(RESOLUTION_INFO &res, std::vector<RESOLUTION_INFO> &resolutions, bool desktop = false);
 #endif
 };

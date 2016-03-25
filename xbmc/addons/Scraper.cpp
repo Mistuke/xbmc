@@ -1,22 +1,23 @@
 /*
-*      Copyright (C) 2005-2013 Team XBMC
-*      http://xbmc.org
-*
-*  This Program is free software; you can redistribute it and/or modify
-*  it under the terms of the GNU General Public License as published by
-*  the Free Software Foundation; either version 2, or (at your option)
-*  any later version.
-*
-*  This Program is distributed in the hope that it will be useful,
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-*  GNU General Public License for more details.
-*
-*  You should have received a copy of the GNU General Public License
-*  along with XBMC; see the file COPYING.  If not, see
-*  <http://www.gnu.org/licenses/>.
-*
-*/
+ *      Copyright (C) 2005-2015 Team Kodi
+ *      http://kodi.tv
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Kodi; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
+ *
+ */
+
 #include "Scraper.h"
 #include "filesystem/File.h"
 #include "filesystem/Directory.h"
@@ -44,7 +45,6 @@
 #include <sstream>
 #include <algorithm>
 
-using namespace std;
 using namespace XFILE;
 using namespace MUSIC_GRABBER;
 using namespace VIDEO;
@@ -126,50 +126,54 @@ static void CheckScraperError(const TiXmlElement *pxeRoot)
   throw CScraperError(sTitle, sMessage);
 }
 
-CScraper::CScraper(const cp_extension_t *ext) : CAddon(ext), m_fLoaded(false)
+std::unique_ptr<CScraper> CScraper::FromExtension(AddonProps props, const cp_extension_t* ext)
 {
-  if (ext)
-  {
-    m_language = CAddonMgr::Get().GetExtValue(ext->configuration, "@language");
-    m_requiressettings = CAddonMgr::Get().GetExtValue(ext->configuration,"@requiressettings") == "true";
-    std::string persistence = CAddonMgr::Get().GetExtValue(ext->configuration, "@cachepersistence");
-    if (!persistence.empty())
-      m_persistence.SetFromTimeString(persistence);
-  }
-  switch (Type())
+  bool requiressettings = CAddonMgr::GetInstance().GetExtValue(ext->configuration,"@requiressettings") == "true";
+
+  CDateTimeSpan persistence;
+  std::string tmp = CAddonMgr::GetInstance().GetExtValue(ext->configuration, "@cachepersistence");
+  if (!tmp.empty())
+    persistence.SetFromTimeString(tmp);
+
+  CONTENT_TYPE pathContent(CONTENT_NONE);
+  switch (props.type)
   {
     case ADDON_SCRAPER_ALBUMS:
-      m_pathContent = CONTENT_ALBUMS;
+      pathContent = CONTENT_ALBUMS;
       break;
     case ADDON_SCRAPER_ARTISTS:
-      m_pathContent = CONTENT_ARTISTS;
+      pathContent = CONTENT_ARTISTS;
       break;
     case ADDON_SCRAPER_MOVIES:
-      m_pathContent = CONTENT_MOVIES;
+      pathContent = CONTENT_MOVIES;
       break;
     case ADDON_SCRAPER_MUSICVIDEOS:
-      m_pathContent = CONTENT_MUSICVIDEOS;
+      pathContent = CONTENT_MUSICVIDEOS;
       break;
     case ADDON_SCRAPER_TVSHOWS:
-      m_pathContent = CONTENT_TVSHOWS;
+      pathContent = CONTENT_TVSHOWS;
       break;
     default:
-      m_pathContent = CONTENT_NONE;
       break;
   }
+
+  return std::unique_ptr<CScraper>(new CScraper(std::move(props), requiressettings, persistence, pathContent));
 }
 
-AddonPtr CScraper::Clone() const
+CScraper::CScraper(AddonProps props)
+  : CAddon(std::move(props)),
+    m_fLoaded(false),
+    m_requiressettings(false),
+    m_pathContent(CONTENT_NONE)
 {
-  return AddonPtr(new CScraper(*this));
 }
 
-CScraper::CScraper(const CScraper &rhs)
-  : CAddon(rhs), m_fLoaded(false),
-    m_language(rhs.m_language),
-    m_requiressettings(rhs.m_requiressettings),
-    m_persistence(rhs.m_persistence),
-    m_pathContent(rhs.m_pathContent)
+CScraper::CScraper(AddonProps props, bool requiressettings, CDateTimeSpan persistence, CONTENT_TYPE pathContent)
+  : CAddon(std::move(props)),
+    m_fLoaded(false),
+    m_requiressettings(requiressettings),
+    m_persistence(persistence),
+    m_pathContent(pathContent)
 {
 }
 
@@ -199,7 +203,7 @@ std::string CScraper::GetPathSettings()
   if (!LoadSettings())
     return "";
 
-  stringstream stream;
+  std::stringstream stream;
   CXBMCTinyXML doc;
   SettingsToXML(doc);
   if (doc.RootElement())
@@ -238,10 +242,10 @@ void CScraper::ClearCache()
 // is XML output by chained functions, possibly recursively
 // the CCurlFile object is passed in so that URL fetches can be canceled from other threads
 // throws CScraperError abort on internal failures (e.g., parse errors)
-vector<string> CScraper::Run(const std::string& function,
-                                 const CScraperUrl& scrURL,
-                                 CCurlFile& http,
-                                 const vector<string>* extras)
+std::vector<std::string> CScraper::Run(const std::string& function,
+                                       const CScraperUrl& scrURL,
+                                       CCurlFile& http,
+                                       const std::vector<std::string>* extras)
 {
   if (!Load())
     throw CScraperError();
@@ -265,7 +269,7 @@ vector<string> CScraper::Run(const std::string& function,
     throw CScraperError();
   }
 
-  vector<string> result;
+  std::vector<std::string> result;
   result.push_back(strXML);
   TiXmlElement* xchain = doc.RootElement()->FirstChildElement();
   // skip children of the root element until <url> or <chain>
@@ -278,7 +282,7 @@ vector<string> CScraper::Run(const std::string& function,
     if (szFunction)
     {
       CScraperUrl scrURL2;
-      vector<string> extras;
+      std::vector<std::string> extras;
       // for <chain>, pass the contained text as a parameter; for <url>, as URL content
       if (strcmp(xchain->Value(),"chain")==0)
       {
@@ -293,7 +297,7 @@ vector<string> CScraper::Run(const std::string& function,
       // url or the parameters to a chain, we can safely clear it here
       // to fix this issue
       m_parser.m_param[0].clear();
-      vector<string> result2 = RunNoThrow(szFunction,scrURL2,http,&extras);
+      std::vector<std::string> result2 = RunNoThrow(szFunction,scrURL2,http,&extras);
       result.insert(result.end(),result2.begin(),result2.end());
     }
     xchain = xchain->NextSiblingElement();
@@ -307,12 +311,12 @@ vector<string> CScraper::Run(const std::string& function,
 
 // just like Run, but returns an empty list instead of throwing in case of error
 // don't use in new code; errors should be handled appropriately
-vector<string> CScraper::RunNoThrow(const std::string& function,
+std::vector<std::string> CScraper::RunNoThrow(const std::string& function,
   const CScraperUrl& url,
   XFILE::CCurlFile& http,
-  const vector<string>* extras)
+  const std::vector<std::string>* extras)
 {
-  vector<string> vcs;
+  std::vector<std::string> vcs;
   try
   {
     vcs = Run(function, url, http, extras);
@@ -327,13 +331,13 @@ vector<string> CScraper::RunNoThrow(const std::string& function,
 std::string CScraper::InternalRun(const std::string& function,
                                  const CScraperUrl& scrURL,
                                  CCurlFile& http,
-                                 const vector<string>* extras)
+                                 const std::vector<std::string>* extras)
 {
   // walk the list of input URLs and fetch each into parser parameters
   unsigned int i;
   for (i=0;i<scrURL.m_url.size();++i)
   {
-    if (!CScraperUrl::Get(scrURL.m_url[i],m_parser.m_param[i],http,ID()) || m_parser.m_param[i].size() == 0)
+    if (!CScraperUrl::Get(scrURL.m_url[i],m_parser.m_param[i],http,ID()) || m_parser.m_param[i].empty())
       return "";
   }
   // put the 'extra' parameterts into the parser parameter list too
@@ -370,7 +374,7 @@ bool CScraper::Load()
 
       bool bOptional = itr->second.second;
 
-      if (CAddonMgr::Get().GetAddon((*itr).first, dep))
+      if (CAddonMgr::GetInstance().GetAddon((*itr).first, dep))
       {
         CXBMCTinyXML doc;
         if (dep->Type() == ADDON_SCRAPER_LIBRARY && doc.LoadFile(dep->LibPath()))
@@ -428,11 +432,11 @@ CScraperUrl CScraper::NfoUrl(const std::string &sNfoContent)
     return scurlRet;
 
   // scraper function takes contents of .nfo file, returns XML (see below)
-  vector<string> vcsIn;
+  std::vector<std::string> vcsIn;
   vcsIn.push_back(sNfoContent);
   CScraperUrl scurl;
   CCurlFile fcurl;
-  vector<string> vcsOut = Run("NfoUrl", scurl, fcurl, &vcsIn);
+  std::vector<std::string> vcsOut = Run("NfoUrl", scurl, fcurl, &vcsIn);
   if (vcsOut.empty() || vcsOut[0].empty())
     return scurlRet;
   if (vcsOut.size() > 1)
@@ -490,11 +494,11 @@ CScraperUrl CScraper::ResolveIDToUrl(const std::string& externalID)
   CScraperUrl scurlRet;
   
   // scraper function takes an external ID, returns XML (see below)
-  vector<string> vcsIn;
+  std::vector<std::string> vcsIn;
   vcsIn.push_back(externalID);
   CScraperUrl scurl;
   CCurlFile fcurl;
-  vector<string> vcsOut = Run("ResolveIDToUrl", scurl, fcurl, &vcsIn);
+  std::vector<std::string> vcsOut = Run("ResolveIDToUrl", scurl, fcurl, &vcsIn);
   if (vcsOut.empty() || vcsOut[0].empty())
     return scurlRet;
   if (vcsOut.size() > 1)
@@ -573,7 +577,7 @@ std::vector<CScraperUrl> CScraper::FindMovie(XFILE::CCurlFile &fcurl, const std:
   if (!fFirst)
     StringUtils::Replace(sTitle, '-',' ');
 
-  vector<string> vcsIn(1);
+  std::vector<std::string> vcsIn(1);
   g_charsetConverter.utf8To(SearchStringEncoding(), sTitle, vcsIn[0]);
   vcsIn[0] = CURL::Encode(vcsIn[0]);
   if (fFirst && !sYear.empty())
@@ -581,7 +585,7 @@ std::vector<CScraperUrl> CScraper::FindMovie(XFILE::CCurlFile &fcurl, const std:
 
   // request a search URL from the title/filename/etc.
   CScraperUrl scurl;
-  vector<string> vcsOut = Run("CreateSearchUrl", scurl, fcurl, &vcsIn);
+  std::vector<std::string> vcsOut = Run("CreateSearchUrl", scurl, fcurl, &vcsIn);
   if (vcsOut.empty())
   {
     CLog::Log(LOGDEBUG, "%s: CreateSearchUrl failed", __FUNCTION__);
@@ -597,7 +601,7 @@ std::vector<CScraperUrl> CScraper::FindMovie(XFILE::CCurlFile &fcurl, const std:
   bool fSort(true);
   std::set<std::string> stsDupeCheck;
   bool fResults(false);
-  for (vector<string>::const_iterator i = vcsOut.begin(); i != vcsOut.end(); ++i)
+  for (std::vector<std::string>::const_iterator i = vcsOut.begin(); i != vcsOut.end(); ++i)
   {
     CXBMCTinyXML doc;
     doc.Parse(*i, TIXML_ENCODING_UTF8);
@@ -698,13 +702,13 @@ std::vector<CMusicAlbumInfo> CScraper::FindAlbum(CCurlFile &fcurl, const std::st
 
   // scraper function is given the album and artist as parameters and
   // returns an XML <url> element parseable by CScraperUrl
-  std::vector<string> extras(2);
+  std::vector<std::string> extras(2);
   g_charsetConverter.utf8To(SearchStringEncoding(), sAlbum, extras[0]);
   g_charsetConverter.utf8To(SearchStringEncoding(), sArtist, extras[1]);
   extras[0] = CURL::Encode(extras[0]);
   extras[1] = CURL::Encode(extras[1]);
   CScraperUrl scurl;
-  vector<string> vcsOut = RunNoThrow("CreateAlbumSearchUrl", scurl, fcurl, &extras);
+  std::vector<std::string> vcsOut = RunNoThrow("CreateAlbumSearchUrl", scurl, fcurl, &extras);
   if (vcsOut.size() > 1)
     CLog::Log(LOGWARNING, "%s: scraper returned multiple results; using first", __FUNCTION__);
 
@@ -727,7 +731,7 @@ std::vector<CMusicAlbumInfo> CScraper::FindAlbum(CCurlFile &fcurl, const std::st
   vcsOut = RunNoThrow("GetAlbumSearchResults", scurl, fcurl);
 
   // parse the returned XML into a vector of album objects
-  for (vector<string>::const_iterator i = vcsOut.begin(); i != vcsOut.end(); ++i)
+  for (std::vector<std::string>::const_iterator i = vcsOut.begin(); i != vcsOut.end(); ++i)
   {
     CXBMCTinyXML doc;
     doc.Parse(*i, TIXML_ENCODING_UTF8);
@@ -795,11 +799,11 @@ std::vector<CMusicArtistInfo> CScraper::FindArtist(CCurlFile &fcurl,
 
   // scraper function is given the artist as parameter and
   // returns an XML <url> element parseable by CScraperUrl
-  std::vector<string> extras(1);
+  std::vector<std::string> extras(1);
   g_charsetConverter.utf8To(SearchStringEncoding(), sArtist, extras[0]);
   extras[0] = CURL::Encode(extras[0]);
   CScraperUrl scurl;
-  vector<string> vcsOut = RunNoThrow("CreateArtistSearchUrl", scurl, fcurl, &extras);
+  std::vector<std::string> vcsOut = RunNoThrow("CreateArtistSearchUrl", scurl, fcurl, &extras);
 
   if (vcsOut.empty() || vcsOut[0].empty())
     return vcari;
@@ -819,7 +823,7 @@ std::vector<CMusicArtistInfo> CScraper::FindArtist(CCurlFile &fcurl,
   vcsOut = RunNoThrow("GetArtistSearchResults", scurl, fcurl);
 
   // parse the returned XML into a vector of artist objects
-  for (vector<string>::const_iterator i = vcsOut.begin(); i != vcsOut.end(); ++i)
+  for (std::vector<std::string>::const_iterator i = vcsOut.begin(); i != vcsOut.end(); ++i)
   {
     CXBMCTinyXML doc;
     doc.Parse(*i, TIXML_ENCODING_UTF8);
@@ -872,12 +876,12 @@ EPISODELIST CScraper::GetEpisodeList(XFILE::CCurlFile &fcurl, const CScraperUrl 
     scurl.m_url[0].m_url.c_str(), Name().c_str(), Path().c_str(),
     ADDON::TranslateContent(Content()).c_str(), Version().asString().c_str());
 
-  vector<string> vcsIn;
+  std::vector<std::string> vcsIn;
   vcsIn.push_back(scurl.m_url[0].m_url);
-  vector<string> vcsOut = RunNoThrow("GetEpisodeList", scurl, fcurl, &vcsIn);
+  std::vector<std::string> vcsOut = RunNoThrow("GetEpisodeList", scurl, fcurl, &vcsIn);
 
   // parse the XML response
-  for (vector<string>::const_iterator i = vcsOut.begin(); i != vcsOut.end(); ++i)
+  for (std::vector<std::string>::const_iterator i = vcsOut.begin(); i != vcsOut.end(); ++i)
   {
     CXBMCTinyXML doc;
     doc.Parse(*i);
@@ -936,14 +940,14 @@ bool CScraper::GetVideoDetails(XFILE::CCurlFile &fcurl, const CScraperUrl &scurl
 
   video.Reset();
   std::string sFunc = fMovie ? "GetDetails" : "GetEpisodeDetails";
-  vector<string> vcsIn;
+  std::vector<std::string> vcsIn;
   vcsIn.push_back(scurl.strId);
   vcsIn.push_back(scurl.m_url[0].m_url);
-  vector<string> vcsOut = RunNoThrow(sFunc, scurl, fcurl, &vcsIn);
+  std::vector<std::string> vcsOut = RunNoThrow(sFunc, scurl, fcurl, &vcsIn);
 
   // parse XML output
   bool fRet(false);
-  for (vector<string>::const_iterator i = vcsOut.begin(); i != vcsOut.end(); ++i)
+  for (std::vector<std::string>::const_iterator i = vcsOut.begin(); i != vcsOut.end(); ++i)
   {
     CXBMCTinyXML doc;
     doc.Parse(*i, TIXML_ENCODING_UTF8);
@@ -974,11 +978,11 @@ bool CScraper::GetAlbumDetails(CCurlFile &fcurl, const CScraperUrl &scurl, CAlbu
     scurl.m_url[0].m_url.c_str(), Name().c_str(), Path().c_str(),
     ADDON::TranslateContent(Content()).c_str(), Version().asString().c_str());
 
-  vector<string> vcsOut = RunNoThrow("GetAlbumDetails", scurl, fcurl);
+  std::vector<std::string> vcsOut = RunNoThrow("GetAlbumDetails", scurl, fcurl);
 
   // parse the returned XML into an album object (see CAlbum::Load for details)
   bool fRet(false);
-  for (vector<string>::const_iterator i = vcsOut.begin(); i != vcsOut.end(); ++i)
+  for (std::vector<std::string>::const_iterator i = vcsOut.begin(); i != vcsOut.end(); ++i)
   {
     CXBMCTinyXML doc;
     doc.Parse(*i, TIXML_ENCODING_UTF8);
@@ -1006,15 +1010,15 @@ bool CScraper::GetArtistDetails(CCurlFile &fcurl, const CScraperUrl &scurl,
     ADDON::TranslateContent(Content()).c_str(), Version().asString().c_str());
 
   // pass in the original search string for chaining to search other sites
-  vector<string> vcIn;
+  std::vector<std::string> vcIn;
   vcIn.push_back(sSearch);
   vcIn[0] = CURL::Encode(vcIn[0]);
 
-  vector<string> vcsOut = RunNoThrow("GetArtistDetails", scurl, fcurl, &vcIn);
+  std::vector<std::string> vcsOut = RunNoThrow("GetArtistDetails", scurl, fcurl, &vcIn);
 
   // ok, now parse the xml file
   bool fRet(false);
-  for (vector<string>::const_iterator i = vcsOut.begin(); i != vcsOut.end(); ++i)
+  for (std::vector<std::string>::const_iterator i = vcsOut.begin(); i != vcsOut.end(); ++i)
   {
     CXBMCTinyXML doc;
     doc.Parse(*i, TIXML_ENCODING_UTF8);
@@ -1025,6 +1029,35 @@ bool CScraper::GetArtistDetails(CCurlFile &fcurl, const CScraperUrl &scurl,
     }
 
     fRet = artist.Load(doc.RootElement(), i != vcsOut.begin());
+  }
+  return fRet;
+}
+
+bool CScraper::GetArtwork(XFILE::CCurlFile &fcurl, CVideoInfoTag &details)
+{
+  if (details.m_strIMDBNumber.empty())
+    return false;
+
+  CLog::Log(LOGDEBUG, "%s: Reading artwork for '%s' using %s scraper "
+    "(file: '%s', content: '%s', version: '%s')", __FUNCTION__, details.m_strIMDBNumber.c_str(),
+    Name().c_str(), Path().c_str(), ADDON::TranslateContent(Content()).c_str(), Version().asString().c_str());
+
+  std::vector<std::string> vcsIn;
+  CScraperUrl scurl;
+  vcsIn.push_back(details.m_strIMDBNumber);
+  std::vector<std::string> vcsOut = RunNoThrow("GetArt", scurl, fcurl, &vcsIn);
+
+  bool fRet(false);
+  for (std::vector<std::string>::const_iterator it = vcsOut.begin(); it != vcsOut.end(); ++it)
+  {
+    CXBMCTinyXML doc;
+    doc.Parse(*it, TIXML_ENCODING_UTF8);
+    if (!doc.RootElement())
+    {
+      CLog::Log(LOGERROR, "%s: Unable to parse XML", __FUNCTION__);
+      return false;
+    }
+    fRet = details.Load(doc.RootElement(), it != vcsOut.begin());
   }
   return fRet;
 }

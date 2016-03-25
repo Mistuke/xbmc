@@ -19,11 +19,12 @@
  *
  */
 
-#include "guilib/GUIDialog.h"
 #include "dialogs/GUIDialogContextMenu.h"
+#include "guilib/GUIDialog.h"
 #include "view/GUIViewControl.h"
+
 #include "pvr/channels/PVRChannelGroup.h"
-#include "pvr/addons/PVRClient.h"
+#include "addons/PVRClient.h"
 
 namespace PVR
 {

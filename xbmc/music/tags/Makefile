@@ -1,16 +1,13 @@
 SRCS=\
      MusicInfoTag.cpp \
-     MusicInfoTagLoaderASAP.cpp \
      MusicInfoTagLoaderCDDA.cpp \
      MusicInfoTagLoaderDatabase.cpp \
      MusicInfoTagLoaderFactory.cpp \
-     MusicInfoTagLoaderMidi.cpp \
-     MusicInfoTagLoaderNSF.cpp \
+     MusicInfoTagLoaderFFmpeg.cpp \
      MusicInfoTagLoaderShn.cpp \
-     MusicInfoTagLoaderSPC.cpp \
-     MusicInfoTagLoaderYM.cpp \
      TagLoaderTagLib.cpp \
      TagLibVFSStream.cpp \
+     ReplayGain.cpp \
 
 LIB=musictags.a
 

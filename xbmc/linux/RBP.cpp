@@ -21,10 +21,21 @@
 #include "RBP.h"
 #if defined(TARGET_RASPBERRY_PI)
 
+#include <assert.h>
 #include "settings/Settings.h"
 #include "utils/log.h"
 
 #include "cores/omxplayer/OMXImage.h"
+
+#include <sys/ioctl.h>
+#include "rpi/rpi_user_vcsm.h"
+
+#define MAJOR_NUM 100
+#define IOCTL_MBOX_PROPERTY _IOWR(MAJOR_NUM, 0, char *)
+#define DEVICE_FILE_NAME "/dev/vcio"
+
+static int mbox_open();
+static void mbox_close(int file_desc);
 
 CRBP::CRBP()
 {
@@ -32,7 +43,9 @@ CRBP::CRBP()
   m_omx_initialized = false;
   m_DllBcmHost      = new DllBcmHost();
   m_OMX             = new COMXCore();
-  m_element = 0;
+  m_display = DISPMANX_NO_HANDLE;
+  m_mb = mbox_open();
+  vcsm_init();
 }
 
 CRBP::~CRBP()
@@ -53,9 +66,6 @@ bool CRBP::Initialize()
     return false;
 
   m_DllBcmHost->bcm_host_init();
-
-  uint32_t vc_image_ptr;
-  m_resource = vc_dispmanx_resource_create( VC_IMAGE_RGB565, 1, 1, &vc_image_ptr );
 
   m_omx_initialized = m_OMX->Initialize();
   if(!m_omx_initialized)
@@ -80,7 +90,7 @@ bool CRBP::Initialize()
   if (m_gpu_mem < 128)
     setenv("V3D_DOUBLE_BUFFER", "1", 1);
 
-  m_gui_resolution_limit = CSettings::Get().GetInt("videoscreen.limitgui");
+  m_gui_resolution_limit = CSettings::GetInstance().GetInt("videoscreen.limitgui");
   if (!m_gui_resolution_limit)
     m_gui_resolution_limit = m_gpu_mem < 128 ? 720:1080;
 
@@ -104,13 +114,24 @@ void CRBP::LogFirmwareVerison()
   CLog::Log(LOGNOTICE, "Config:\n%s", response);
 }
 
+DISPMANX_DISPLAY_HANDLE_T CRBP::OpenDisplay(uint32_t device)
+{
+  if (m_display == DISPMANX_NO_HANDLE)
+    m_display = vc_dispmanx_display_open( 0 /*screen*/ );
+  return m_display;
+}
+
+void CRBP::CloseDisplay(DISPMANX_DISPLAY_HANDLE_T display)
+{
+  assert(display == m_display);
+  vc_dispmanx_display_close(m_display);
+  m_display = DISPMANX_NO_HANDLE;
+}
+
 void CRBP::GetDisplaySize(int &width, int &height)
 {
-  DISPMANX_DISPLAY_HANDLE_T display;
   DISPMANX_MODEINFO_T info;
-
-  display = vc_dispmanx_display_open( 0 /*screen*/ );
-  if (vc_dispmanx_display_get_info(display, &info) == 0)
+  if (vc_dispmanx_display_get_info(m_display, &info) == 0)
   {
     width = info.width;
     height = info.height;
@@ -120,12 +141,10 @@ void CRBP::GetDisplaySize(int &width, int &height)
     width = 0;
     height = 0;
   }
-  vc_dispmanx_display_close(display );
 }
 
 unsigned char *CRBP::CaptureDisplay(int width, int height, int *pstride, bool swap_red_blue, bool video_only)
 {
-  DISPMANX_DISPLAY_HANDLE_T display;
   DISPMANX_RESOURCE_HANDLE_T resource;
   VC_RECT_T rect;
   unsigned char *image = NULL;
@@ -140,7 +159,6 @@ unsigned char *CRBP::CaptureDisplay(int width, int height, int *pstride, bool sw
   if (!pstride)
     flags |= DISPMANX_SNAPSHOT_PACK;
 
-  display = vc_dispmanx_display_open( 0 /*screen*/ );
   stride = ((width + 15) & ~15) * 4;
   image = new unsigned char [height * stride];
 
@@ -148,45 +166,44 @@ unsigned char *CRBP::CaptureDisplay(int width, int height, int *pstride, bool sw
   {
     resource = vc_dispmanx_resource_create( VC_IMAGE_RGBA32, width, height, &vc_image_ptr );
 
-    vc_dispmanx_snapshot(display, resource, (DISPMANX_TRANSFORM_T)flags);
+    assert(m_display != DISPMANX_NO_HANDLE);
+    vc_dispmanx_snapshot(m_display, resource, (DISPMANX_TRANSFORM_T)flags);
 
     vc_dispmanx_rect_set(&rect, 0, 0, width, height);
     vc_dispmanx_resource_read_data(resource, &rect, image, stride);
     vc_dispmanx_resource_delete( resource );
-    vc_dispmanx_display_close(display );
   }
   if (pstride)
     *pstride = stride;
   return image;
 }
 
-void CRBP::WaitVsync(void)
+
+static void vsync_callback(DISPMANX_UPDATE_HANDLE_T u, void *arg)
 {
-  DISPMANX_DISPLAY_HANDLE_T display = vc_dispmanx_display_open( 0 /*screen*/ );
-  DISPMANX_UPDATE_HANDLE_T update = vc_dispmanx_update_start(0);
+  CEvent *sync = (CEvent *)arg;
+  sync->Set();
+}
 
-  VC_DISPMANX_ALPHA_T alpha = { (DISPMANX_FLAGS_ALPHA_T)(DISPMANX_FLAGS_ALPHA_FROM_SOURCE | DISPMANX_FLAGS_ALPHA_FIXED_ALL_PIXELS), 120, /*alpha 0->255*/ 0 };
-  VC_RECT_T       src_rect;
-  VC_RECT_T       dst_rect;
-  vc_dispmanx_rect_set( &src_rect, 0, 0, 1 << 16, 1 << 16 );
-  vc_dispmanx_rect_set( &dst_rect, 0, 0, 1, 1 );
-
-  if (m_element)
-    vc_dispmanx_element_remove( update, m_element );
-
-  m_element = vc_dispmanx_element_add( update,
-                                            display,
-                                            2000,               // layer
-                                            &dst_rect,
-                                            m_resource,
-                                            &src_rect,
-                                            DISPMANX_PROTECTION_NONE,
-                                            &alpha,
-                                            NULL,             // clamp
-                                            (DISPMANX_TRANSFORM_T)0 );
-
-  vc_dispmanx_update_submit_sync(update);
-  vc_dispmanx_display_close( display );
+void CRBP::WaitVsync()
+{
+  int s;
+  DISPMANX_DISPLAY_HANDLE_T m_display = vc_dispmanx_display_open( 0 /*screen*/ );
+  if (m_display == DISPMANX_NO_HANDLE)
+  {
+    CLog::Log(LOGDEBUG, "CRBP::%s skipping while display closed", __func__);
+    return;
+  }
+  m_vsync.Reset();
+  s = vc_dispmanx_vsync_callback(m_display, vsync_callback, (void *)&m_vsync);
+  if (s == 0)
+  {
+    m_vsync.WaitMSec(1000);
+  }
+  else assert(0);
+  s = vc_dispmanx_vsync_callback(m_display, NULL, NULL);
+  assert(s == 0);
+  vc_dispmanx_display_close( m_display );
 }
 
 
@@ -198,6 +215,9 @@ void CRBP::Deinitialize()
   if(m_omx_initialized)
     m_OMX->Deinitialize();
 
+  if (m_display)
+    CloseDisplay(m_display);
+
   m_DllBcmHost->bcm_host_deinit();
 
   if(m_initialized)
@@ -206,5 +226,107 @@ void CRBP::Deinitialize()
   m_omx_image_init  = false;
   m_initialized     = false;
   m_omx_initialized = false;
+  if (m_mb)
+    mbox_close(m_mb);
+  m_mb = 0;
+  vcsm_exit();
 }
+
+static int mbox_property(int file_desc, void *buf)
+{
+   int ret_val = ioctl(file_desc, IOCTL_MBOX_PROPERTY, buf);
+
+   if (ret_val < 0)
+   {
+     CLog::Log(LOGERROR, "%s: ioctl_set_msg failed:%d", __FUNCTION__, ret_val);
+   }
+   return ret_val;
+}
+
+static int mbox_open()
+{
+   int file_desc;
+
+   // open a char device file used for communicating with kernel mbox driver
+   file_desc = open(DEVICE_FILE_NAME, 0);
+   if (file_desc < 0)
+     CLog::Log(LOGERROR, "%s: Can't open device file: %s (%d)", __FUNCTION__, DEVICE_FILE_NAME, file_desc);
+
+   return file_desc;
+}
+
+static void mbox_close(int file_desc)
+{
+  close(file_desc);
+}
+
+static unsigned mem_lock(int file_desc, unsigned handle)
+{
+   int i=0;
+   unsigned p[32];
+   p[i++] = 0; // size
+   p[i++] = 0x00000000; // process request
+
+   p[i++] = 0x3000d; // (the tag id)
+   p[i++] = 4; // (size of the buffer)
+   p[i++] = 4; // (size of the data)
+   p[i++] = handle;
+
+   p[i++] = 0x00000000; // end tag
+   p[0] = i*sizeof *p; // actual size
+
+   mbox_property(file_desc, p);
+   return p[5];
+}
+
+unsigned mem_unlock(int file_desc, unsigned handle)
+{
+   int i=0;
+   unsigned p[32];
+   p[i++] = 0; // size
+   p[i++] = 0x00000000; // process request
+
+   p[i++] = 0x3000e; // (the tag id)
+   p[i++] = 4; // (size of the buffer)
+   p[i++] = 4; // (size of the data)
+   p[i++] = handle;
+
+   p[i++] = 0x00000000; // end tag
+   p[0] = i*sizeof *p; // actual size
+
+   mbox_property(file_desc, p);
+   return p[5];
+}
+
+CGPUMEM::CGPUMEM(unsigned int numbytes, bool cached)
+{
+  m_numbytes = numbytes;
+  m_vcsm_handle = vcsm_malloc_cache(numbytes, cached ? VCSM_CACHE_TYPE_HOST : VCSM_CACHE_TYPE_NONE, (char *)"CGPUMEM");
+  assert(m_vcsm_handle);
+  m_vc_handle = vcsm_vc_hdl_from_hdl(m_vcsm_handle);
+  assert(m_vc_handle);
+  m_arm = vcsm_lock(m_vcsm_handle);
+  assert(m_arm);
+  m_vc = mem_lock(g_RBP.GetMBox(), m_vc_handle);
+  assert(m_vc);
+}
+
+CGPUMEM::~CGPUMEM()
+{
+  mem_unlock(g_RBP.GetMBox(), m_vc_handle);
+  vcsm_unlock_ptr(m_arm);
+  vcsm_free(m_vcsm_handle);
+}
+
+// Call this to clean and invalidate a region of memory
+void CGPUMEM::Flush()
+{
+  struct vcsm_user_clean_invalid_s iocache = {};
+  iocache.s[0].handle = m_vcsm_handle;
+  iocache.s[0].cmd = 3; // clean+invalidate
+  iocache.s[0].addr = (int) m_arm;
+  iocache.s[0].size  = m_numbytes;
+  vcsm_clean_invalid( &iocache );
+}
+
 #endif

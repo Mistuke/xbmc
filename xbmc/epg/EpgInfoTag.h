@@ -1,5 +1,4 @@
 #pragma once
-
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://xbmc.org
@@ -20,18 +19,18 @@
  *
  */
 
-#include "addons/include/xbmc_pvr_types.h"
-#include "XBDateTime.h"
-#include "utils/ISerializable.h"
-#include "pvr/channels/PVRChannel.h"
-#include "pvr/timers/PVRTimerInfoTag.h"
-#include "pvr/recordings/PVRRecording.h"
-
 #include <memory>
 #include <string>
 
+#include "XBDateTime.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
+#include "pvr/channels/PVRChannel.h"
+#include "pvr/timers/PVRTimerInfoTag.h"
+#include "utils/ISerializable.h"
+
 #define EPG_DEBUGGING 0
 
+class CVariant;
 /** an EPG info tag */
 namespace EPG
 {
@@ -51,6 +50,12 @@ namespace EPG
      */
     static CEpgInfoTagPtr CreateDefaultTag();
 
+    /*!
+     * @brief Create a new EPG infotag with 'data' as content.
+     * @param data The tag's content.
+     */
+    CEpgInfoTag(const EPG_TAG &data);
+
   private:
     /*!
      * @brief Create a new empty event.
@@ -62,21 +67,15 @@ namespace EPG
      */
     CEpgInfoTag(CEpg *epg, PVR::CPVRChannelPtr pvrChannel, const std::string &strTableName = "", const std::string &strIconPath = "");
 
-    /*!
-     * @brief Create a new EPG infotag with 'data' as content.
-     * @param data The tag's content.
-     */
-    CEpgInfoTag(const EPG_TAG &data);
-
     // Prevent copy construction, even for CEpgInfoTag instances and friends.
     // Note: Only declared, but intentionally not implemented
-    //       to prevent compiler generated copy ctor and to force 
+    //       to prevent compiler generated copy ctor and to force
     //       a linker error in case somebody tries to call it.
     CEpgInfoTag(const CEpgInfoTag &tag);
 
     // Prevent copy by assignment, even for CEpgInfoTag instances and friends.
     // Note: Only declared, but intentionally not implemented
-    //       to prevent compiler generated assignment operator and to force 
+    //       to prevent compiler generated assignment operator and to force
     //       a linker error in case somebody tries to call it.
     CEpgInfoTag &operator =(const CEpgInfoTag &other);
 
@@ -144,13 +143,13 @@ namespace EPG
      * @brief Change the unique broadcast ID of this event.
      * @param iUniqueBroadcastId The new unique broadcast ID.
      */
-    void SetUniqueBroadcastID(int iUniqueBroadcastID);
+    void SetUniqueBroadcastID(unsigned int iUniqueBroadcastID);
 
     /*!
      * @brief Get the unique broadcast ID.
      * @return The unique broadcast ID.
      */
-    int UniqueBroadcastID(void) const;
+    unsigned int UniqueBroadcastID(void) const;
 
     /*!
      * @brief Get the event's database ID.
@@ -204,6 +203,42 @@ namespace EPG
      * @return The plot.
      */
     std::string Plot(bool bOverrideParental = false) const;
+
+    /*!
+     * @brief Get the originaltitle of this event.
+     * @return The originaltitle.
+     */
+    std::string OriginalTitle(bool bOverrideParental = false) const;
+
+    /*!
+     * @brief Get the cast of this event.
+     * @return The cast.
+     */
+    std::string Cast() const;
+
+    /*!
+     * @brief Get the director of this event.
+     * @return The director.
+     */
+    std::string Director() const;
+
+    /*!
+     * @brief Get the writer of this event.
+     * @return The writer.
+     */
+    std::string Writer() const;
+
+    /*!
+     * @brief Get the year of this event.
+     * @return The year.
+     */
+    int Year() const;
+
+    /*!
+     * @brief Get the imdbnumber of this event.
+     * @return The imdbnumber.
+     */
+    std::string IMDBNumber() const;
 
     /*!
      * @brief Get the genre type ID of this event.
@@ -285,22 +320,14 @@ namespace EPG
     std::string Path(void) const;
 
     /*!
-     * @brief The recording ID to this event.
-     * @return The recording ID.
+     * @brief Set a timer for this event.
+     * @param iTimerId The id of the new timer.
      */
-    const std::string& RecordingId(void) const;
+    void SetTimer(unsigned int iTimerId);
 
     /*!
-     * @brief Check whether this event has a recording ID.
-     * @return True if it has a recording ID, false if not.
+     * @brief Clear the timer for this event.
      */
-    bool HasRecordingId(void) const;
-
-    /*!
-     * @brief Set a timer for this event or NULL to clear it.
-     * @param newTimer The new timer value.
-     */
-    void SetTimer(PVR::CPVRTimerInfoTagPtr newTimer);
     void ClearTimer(void);
 
     /*!
@@ -308,6 +335,12 @@ namespace EPG
      * @return True if it has an active timer tag, false if not.
      */
     bool HasTimer(void) const;
+
+    /*!
+     * @brief Check whether this event has an active timer rule.
+     * @return True if it has an active timer rule, false if not.
+     */
+    bool HasTimerRule(void) const;
 
     /*!
      * @brief Get a pointer to the timer for event or NULL if there is none.
@@ -374,6 +407,11 @@ namespace EPG
      */
     bool Update(const CEpgInfoTag &tag, bool bUpdateBroadcastId = true);
 
+    /*!
+     * @brief status function to extract IsSeries boolean from EPG iFlags bitfield
+     */
+    bool IsSeries() const { return (m_iFlags & EPG_TAG_FLAG_IS_SERIES) > 0; }
+
   private:
 
     /*!
@@ -393,6 +431,11 @@ namespace EPG
      */
     CDateTime GetCurrentPlayingTime(void) const;
 
+    /*!
+     *  @brief Return the m_iFlags as an unsigned int bitfield (for database use).
+     */
+    unsigned int Flags() const { return m_iFlags; }
+
     bool                     m_bNotify;            /*!< notify on start */
 
     int                      m_iBroadcastId;       /*!< database ID */
@@ -403,10 +446,16 @@ namespace EPG
     int                      m_iSeriesNumber;      /*!< series number */
     int                      m_iEpisodeNumber;     /*!< episode number */
     int                      m_iEpisodePart;       /*!< episode part number */
-    int                      m_iUniqueBroadcastID; /*!< unique broadcast ID */
+    unsigned int             m_iUniqueBroadcastID; /*!< unique broadcast ID */
     std::string              m_strTitle;           /*!< title */
     std::string              m_strPlotOutline;     /*!< plot outline */
     std::string              m_strPlot;            /*!< plot */
+    std::string              m_strOriginalTitle;   /*!< original title */
+    std::string              m_strCast;            /*!< cast */
+    std::string              m_strDirector;        /*!< director */
+    std::string              m_strWriter;          /*!< writer */
+    int                      m_iYear;              /*!< year */
+    std::string              m_strIMDBNumber;      /*!< imdb number */
     std::vector<std::string> m_genre;              /*!< genre */
     std::string              m_strEpisodeName;     /*!< episode name */
     std::string              m_strIconPath;        /*!< the path to the icon */
@@ -414,13 +463,15 @@ namespace EPG
     CDateTime                m_startTime;          /*!< event start time */
     CDateTime                m_endTime;            /*!< event end time */
     CDateTime                m_firstAired;         /*!< first airdate */
-    std::string              m_strRecordingId;     /*!< linked recording ID */
 
     PVR::CPVRTimerInfoTagPtr m_timer;
-    PVR::CPVRRecordingPtr    m_recording;
 
     CEpg *                   m_epg;                /*!< the schedule that this event belongs to */
 
+    unsigned int             m_iFlags;             /*!< the flags applicable to this EPG entry */
+
+    CCriticalSection         m_critSection;
     PVR::CPVRChannelPtr      m_pvrChannel;
+    PVR::CPVRRecordingPtr    m_recording;
   };
 }

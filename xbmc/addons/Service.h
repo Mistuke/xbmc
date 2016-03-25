@@ -39,19 +39,15 @@ namespace ADDON
       LOGIN
     };
 
-    CService(const cp_extension_t *ext);
-    CService(const AddonProps &props);
-    virtual AddonPtr Clone() const;
+    static std::unique_ptr<CService> FromExtension(AddonProps props, const cp_extension_t* ext);
+
+    explicit CService(AddonProps props) : CAddon(std::move(props)), m_type(UNKNOWN), m_startOption(LOGIN) {}
+    CService(AddonProps props, TYPE type, START_OPTION startOption);
 
     bool Start();
     bool Stop();
     TYPE GetServiceType() { return m_type; }
     START_OPTION GetStartOption() { return m_startOption; }
-    virtual void OnDisabled();
-    virtual void OnEnabled();
-    virtual bool OnPreInstall();
-    virtual void OnPostInstall(bool restart, bool update, bool modal);
-    virtual void OnPreUnInstall();
 
   protected:
     void BuildServiceType();

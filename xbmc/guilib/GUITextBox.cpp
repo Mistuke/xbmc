@@ -23,8 +23,9 @@
 #include "utils/XBMCTinyXML.h"
 #include "utils/MathUtils.h"
 #include "utils/StringUtils.h"
+#include "guiinfo/GUIInfoLabels.h"
 
-using namespace std;
+#include <algorithm>
 
 CGUITextBox::CGUITextBox(int parentID, int controlID, float posX, float posY, float width, float height,
                          const CLabelInfo& labelInfo, int scrollTime)
@@ -212,19 +213,39 @@ void CGUITextBox::Render()
     float posX = m_posX;
     float posY = m_posY + offset * m_itemHeight - m_scrollOffset;
 
+    uint32_t alignment = m_label.align;
+
+    if (alignment & XBFONT_CENTER_Y)
+    {
+      if (m_font)
+      {
+        float textHeight = m_font->GetTextHeight(std::min((unsigned int)m_lines.size(), m_itemsPerPage));
+
+        if (textHeight <= m_renderHeight)
+          posY += (m_renderHeight - textHeight) * 0.5f;
+      }
+
+      alignment &= ~XBFONT_CENTER_Y;
+    }
+
     // alignment correction
-    if (m_label.align & XBFONT_CENTER_X)
+    if (alignment & XBFONT_CENTER_X)
       posX += m_width * 0.5f;
-    if (m_label.align & XBFONT_RIGHT)
+    if (alignment & XBFONT_RIGHT)
       posX += m_width;
 
     if (m_font)
     {
       m_font->Begin();
       int current = offset;
+
+      // set the main text color
+      if (m_colors.size())
+        m_colors[0] = m_label.textColor;
+
       while (posY < m_posY + m_renderHeight && current < (int)m_lines.size())
       {
-        uint32_t align = m_label.align;
+        uint32_t align = alignment;
         if (m_lines[current].m_text.size() && m_lines[current].m_carriageReturn)
           align &= ~XBFONT_JUSTIFIED; // last line of a paragraph shouldn't be justified
         m_font->DrawText(posX, posY, m_colors, m_label.shadowColor, m_lines[current].m_text, align, m_width);
@@ -260,11 +281,8 @@ bool CGUITextBox::OnMessage(CGUIMessage& message)
       m_scrollOffset = 0;
       ResetAutoScrolling();
       CGUITextLayout::Reset();
-      if (m_pageControl)
-      {
-        CGUIMessage msg(GUI_MSG_LABEL_RESET, GetID(), m_pageControl, m_itemsPerPage, m_lines.size());
-        SendWindowMessage(msg);
-      }
+      UpdatePageControl();
+      SetInvalid();
     }
 
     if (message.GetMessage() == GUI_MSG_PAGE_CHANGE)
@@ -372,10 +390,15 @@ unsigned int CGUITextBox::GetRows() const
   return m_lines.size();
 }
 
+int CGUITextBox::GetNumPages() const
+{
+  return (GetRows() + m_itemsPerPage - 1) / m_itemsPerPage;
+}
+
 int CGUITextBox::GetCurrentPage() const
 {
   if (m_offset + m_itemsPerPage >= GetRows())  // last page
-    return (GetRows() + m_itemsPerPage - 1) / m_itemsPerPage;
+    return GetNumPages();
   return m_offset / m_itemsPerPage + 1;
 }
 
@@ -385,7 +408,7 @@ std::string CGUITextBox::GetLabel(int info) const
   switch (info)
   {
   case CONTAINER_NUM_PAGES:
-    label = StringUtils::Format("%u", (GetRows() + m_itemsPerPage - 1) / m_itemsPerPage);
+    label = StringUtils::Format("%u", GetNumPages());
     break;
   case CONTAINER_CURRENT_PAGE:
     label = StringUtils::Format("%u", GetCurrentPage());
@@ -394,6 +417,19 @@ std::string CGUITextBox::GetLabel(int info) const
     break;
   }
   return label;
+}
+
+bool CGUITextBox::GetCondition(int condition, int data) const
+{
+  switch (condition)
+  {
+  case CONTAINER_HAS_NEXT:
+      return (GetCurrentPage() < GetNumPages());
+  case CONTAINER_HAS_PREVIOUS:
+    return (GetCurrentPage() > 1);
+  default:
+    return false;
+  }
 }
 
 std::string CGUITextBox::GetDescription() const

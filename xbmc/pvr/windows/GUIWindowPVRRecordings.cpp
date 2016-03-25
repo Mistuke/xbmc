@@ -18,24 +18,27 @@
  *
  */
 
-#include "GUIWindowPVRRecordings.h"
-
 #include "ContextMenuManager.h"
-#include "guilib/GUIKeyboardFactory.h"
+#include "GUIInfoManager.h"
+#include "cores/AudioEngine/DSPAddons/ActiveAEDSP.h"
 #include "dialogs/GUIDialogYesNo.h"
+#include "guilib/LocalizeStrings.h"
+#include "guilib/GUIKeyboardFactory.h"
 #include "guilib/GUIRadioButtonControl.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
-#include "guilib/LocalizeStrings.h"
-#include "GUIInfoManager.h"
-#include "pvr/PVRManager.h"
-#include "pvr/recordings/PVRRecordings.h"
-#include "pvr/timers/PVRTimers.h"
-#include "utils/log.h"
-#include "utils/StringUtils.h"
 #include "threads/SingleLock.h"
-#include "pvr/addons/PVRClients.h"
+#include "utils/StringUtils.h"
+#include "utils/Variant.h"
 #include "video/windows/GUIWindowVideoNav.h"
+
+#include "pvr/PVRManager.h"
+#include "pvr/addons/PVRClients.h"
+#include "pvr/recordings/PVRRecordings.h"
+#include "pvr/recordings/PVRRecordingsPath.h"
+#include "pvr/timers/PVRTimers.h"
+
+#include "GUIWindowPVRRecordings.h"
 
 using namespace PVR;
 
@@ -43,6 +46,14 @@ CGUIWindowPVRRecordings::CGUIWindowPVRRecordings(bool bRadio) :
   CGUIWindowPVRBase(bRadio, bRadio ? WINDOW_RADIO_RECORDINGS : WINDOW_TV_RECORDINGS, "MyPVRRecordings.xml") ,
   m_bShowDeletedRecordings(false)
 {
+}
+
+void CGUIWindowPVRRecordings::RegisterObservers(void)
+{
+  CSingleLock lock(m_critSection);
+  g_PVRRecordings->RegisterObserver(this);
+  g_PVRTimers->RegisterObserver(this);
+  g_infoManager.RegisterObserver(this);
 }
 
 void CGUIWindowPVRRecordings::UnregisterObservers(void)
@@ -55,15 +66,6 @@ void CGUIWindowPVRRecordings::UnregisterObservers(void)
   g_infoManager.UnregisterObserver(this);
 }
 
-void CGUIWindowPVRRecordings::ResetObservers(void)
-{
-  CSingleLock lock(m_critSection);
-  UnregisterObservers();
-  g_PVRRecordings->RegisterObserver(this);
-  g_PVRTimers->RegisterObserver(this);
-  g_infoManager.RegisterObserver(this);
-}
-
 void CGUIWindowPVRRecordings::OnWindowLoaded()
 {
   CONTROL_SELECT(CONTROL_BTNGROUPITEMS);
@@ -71,12 +73,8 @@ void CGUIWindowPVRRecordings::OnWindowLoaded()
 
 std::string CGUIWindowPVRRecordings::GetDirectoryPath(void)
 {
-  std::string basePath = StringUtils::Format("pvr://recordings/%s/", m_bShowDeletedRecordings ? "deleted" : "active");
-
-  if (StringUtils::StartsWith(m_vecItems->GetPath(), basePath))
-    return m_vecItems->GetPath();
-
-  return basePath;
+  const std::string basePath = CPVRRecordingsPath(m_bShowDeletedRecordings, m_bRadio);
+  return StringUtils::StartsWith(m_vecItems->GetPath(), basePath) ? m_vecItems->GetPath() : basePath;
 }
 
 std::string CGUIWindowPVRRecordings::GetResumeString(const CFileItem& item)
@@ -116,25 +114,24 @@ void CGUIWindowPVRRecordings::GetContextButtons(int itemNumber, CContextButtons 
 
   bool isDeletedRecording = false;
 
-  if (pItem->HasPVRRecordingInfoTag())
+  CPVRRecordingPtr recording(pItem->GetPVRRecordingInfoTag());
+  if (recording)
   {
-    isDeletedRecording = pItem->GetPVRRecordingInfoTag()->IsDeleted();
+    isDeletedRecording = recording->IsDeleted();
 
-    buttons.Add(CONTEXT_BUTTON_INFO, 19053);      /* Get Information of this recording */
+    buttons.Add(CONTEXT_BUTTON_INFO, 19053);        /* Recording Information */
     if (!isDeletedRecording)
     {
-      buttons.Add(CONTEXT_BUTTON_FIND, 19003);      /* Find similar program */
-      buttons.Add(CONTEXT_BUTTON_PLAY_ITEM, 12021); /* Play this recording */
+      buttons.Add(CONTEXT_BUTTON_FIND, 19003);      /* Find similar */
+      buttons.Add(CONTEXT_BUTTON_PLAY_ITEM, 12021); /* Start from beginning */
       std::string resumeString = GetResumeString(*pItem);
       if (!resumeString.empty())
-      {
         buttons.Add(CONTEXT_BUTTON_RESUME_ITEM, resumeString);
-      }
     }
     else
     {
-      buttons.Add(CONTEXT_BUTTON_UNDELETE, 19290);    /* Undelete this recording */
-      buttons.Add(CONTEXT_BUTTON_DELETE, 19291);      /* Delete this permanently */
+      buttons.Add(CONTEXT_BUTTON_UNDELETE, 19290);      /* Undelete */
+      buttons.Add(CONTEXT_BUTTON_DELETE, 19291);        /* Delete permanently */
       if (m_vecItems->GetObjectCount() > 1)
         buttons.Add(CONTEXT_BUTTON_DELETE_ALL, 19292);  /* Delete all permanently */
     }
@@ -143,35 +140,35 @@ void CGUIWindowPVRRecordings::GetContextButtons(int itemNumber, CContextButtons 
   {
     if (pItem->m_bIsFolder)
     {
-      // Have both options for folders since we don't know whether all childs are watched/unwatched
-      buttons.Add(CONTEXT_BUTTON_MARK_UNWATCHED, 16104); /* Mark as UnWatched */
-      buttons.Add(CONTEXT_BUTTON_MARK_WATCHED, 16103);   /* Mark as Watched */
+      // Have both options for folders since we don't know whether all children are watched/unwatched
+      buttons.Add(CONTEXT_BUTTON_MARK_UNWATCHED, 16104); /* Mark as unwatched */
+      buttons.Add(CONTEXT_BUTTON_MARK_WATCHED, 16103);   /* Mark as watched */
     }
-    if (pItem->HasPVRRecordingInfoTag())
+    if (recording)
     {
-      if (pItem->GetPVRRecordingInfoTag()->m_playCount > 0)
-        buttons.Add(CONTEXT_BUTTON_MARK_UNWATCHED, 16104); /* Mark as UnWatched */
+      if (recording->m_playCount > 0)
+        buttons.Add(CONTEXT_BUTTON_MARK_UNWATCHED, 16104); /* Mark as unwatched */
       else
-        buttons.Add(CONTEXT_BUTTON_MARK_WATCHED, 16103);   /* Mark as Watched */
+        buttons.Add(CONTEXT_BUTTON_MARK_WATCHED, 16103);   /* Mark as watched */
 
-      buttons.Add(CONTEXT_BUTTON_RENAME, 118);      /* Rename this recording */
+      buttons.Add(CONTEXT_BUTTON_RENAME, 118);      /* Rename */
     }
 
-    buttons.Add(CONTEXT_BUTTON_DELETE, 117);
+    buttons.Add(CONTEXT_BUTTON_DELETE, 117);        /* Delete */
   }
 
-  if (pItem->HasPVRRecordingInfoTag())
+  if (ActiveAE::CActiveAEDSP::GetInstance().IsProcessing())
+    buttons.Add(CONTEXT_BUTTON_ACTIVE_ADSP_SETTINGS, 15047);  /* Audio DSP settings */
+
+  if (recording)
   {
-    if (!isDeletedRecording && g_PVRClients->HasMenuHooks(pItem->GetPVRRecordingInfoTag()->m_iClientId, PVR_MENUHOOK_RECORDING))
-      buttons.Add(CONTEXT_BUTTON_MENU_HOOKS, 19195);      /* PVR client specific action */
-    else if (isDeletedRecording && g_PVRClients->HasMenuHooks(pItem->GetPVRRecordingInfoTag()->m_iClientId, PVR_MENUHOOK_DELETED_RECORDING))
+    if ((!isDeletedRecording && g_PVRClients->HasMenuHooks(recording->m_iClientId, PVR_MENUHOOK_RECORDING)) ||
+        (isDeletedRecording && g_PVRClients->HasMenuHooks(recording->m_iClientId, PVR_MENUHOOK_DELETED_RECORDING)))
       buttons.Add(CONTEXT_BUTTON_MENU_HOOKS, 19195);      /* PVR client specific action */
   }
 
   if (!isDeletedRecording)
     CGUIWindowPVRBase::GetContextButtons(itemNumber, buttons);
-
-  CContextMenuManager::Get().AddVisibleItems(pItem, buttons);
 }
 
 bool CGUIWindowPVRRecordings::OnAction(const CAction &action)
@@ -179,7 +176,8 @@ bool CGUIWindowPVRRecordings::OnAction(const CAction &action)
   if (action.GetID() == ACTION_PARENT_DIR ||
       action.GetID() == ACTION_NAV_BACK)
   {
-    if (m_vecItems->GetPath() != "pvr://recordings/active/" && m_vecItems->GetPath() != "pvr://recordings/deleted/")
+    CPVRRecordingsPath path(m_vecItems->GetPath());
+    if (path.IsValid() && !path.IsRecordingsRoot())
     {
       GoParentFolder();
       return true;
@@ -201,6 +199,7 @@ bool CGUIWindowPVRRecordings::OnContextButton(int itemNumber, CONTEXT_BUTTON but
       OnContextButtonDeleteAll(pItem.get(), button) ||
       OnContextButtonInfo(pItem.get(), button) ||
       OnContextButtonMarkWatched(pItem, button) ||
+      OnContextButtonActiveAEDSPSettings(pItem.get(), button) ||
       CGUIWindowPVRBase::OnContextButton(itemNumber, button);
 }
 
@@ -226,7 +225,7 @@ void CGUIWindowPVRRecordings::UpdateButtons(void)
   CGUIRadioButtonControl *btnShowDeleted = (CGUIRadioButtonControl*) GetControl(CONTROL_BTNSHOWDELETED);
   if (btnShowDeleted)
   {
-    btnShowDeleted->SetVisible(g_PVRRecordings->HasDeletedRecordings());
+    btnShowDeleted->SetVisible(m_bRadio ? g_PVRRecordings->HasDeletedRadioRecordings() : g_PVRRecordings->HasDeletedTVRecordings());
     btnShowDeleted->SetSelected(m_bShowDeletedRecordings);
   }
 
@@ -236,6 +235,9 @@ void CGUIWindowPVRRecordings::UpdateButtons(void)
 
 bool CGUIWindowPVRRecordings::OnMessage(CGUIMessage &message)
 {
+  if (!IsValidMessage(message))
+    return false;
+  
   bool bReturn = false;
   switch (message.GetMessage())
   {
@@ -251,18 +253,7 @@ bool CGUIWindowPVRRecordings::OnMessage(CGUIMessage &message)
             case ACTION_MOUSE_LEFT_CLICK:
             case ACTION_PLAY:
             {
-              CFileItemPtr pItem = m_vecItems->Get(iItem);
-              std::string resumeString = GetResumeString(*pItem);
-              if (!resumeString.empty())
-              {
-                CContextButtons choices;
-                choices.Add(CONTEXT_BUTTON_RESUME_ITEM, resumeString);
-                choices.Add(CONTEXT_BUTTON_PLAY_ITEM, 12021);
-                int choice = CGUIDialogContextMenu::ShowAndGetChoice(choices);
-                if (choice > 0)
-                  OnContextButtonPlay(pItem.get(), (CONTEXT_BUTTON)choice);
-                bReturn = true;
-              }
+              bReturn = PlayFile(m_vecItems->Get(iItem).get());
               break;
             }
             case ACTION_CONTEXT_MENU:
@@ -305,18 +296,19 @@ bool CGUIWindowPVRRecordings::OnMessage(CGUIMessage &message)
       switch(message.GetParam1())
       {
         case ObservableMessageTimers:
+        case ObservableMessageEpg:
+        case ObservableMessageEpgContainer:
+        case ObservableMessageEpgActiveItem:
         case ObservableMessageCurrentItem:
         {
-          if (IsActive())
-            SetInvalid();
+          SetInvalid();
           bReturn = true;
           break;
         }
         case ObservableMessageRecordings:
         case ObservableMessageTimersReset:
         {
-          if (IsActive())
-            Refresh(true);
+          Refresh(true);
           bReturn = true;
           break;
         }
@@ -339,14 +331,15 @@ bool CGUIWindowPVRRecordings::ActionDeleteRecording(CFileItem *item)
   if (!pDialog)
     return bReturn;
 
-  pDialog->SetHeading(122); // Confirm delete
-  pDialog->SetLine(0, item->m_bIsFolder ? 19113 : item->GetPVRRecordingInfoTag()->IsDeleted() ? 19294 : 19112); // Delete all recordings in this folder? / Delete this recording permanently? / Delete this recording?
-  pDialog->SetLine(1, "");
-  pDialog->SetLine(2, item->GetLabel());
-  pDialog->SetChoice(1, 117); // Delete
+  int iLine0 = item->m_bIsFolder ? 19113 : item->GetPVRRecordingInfoTag()->IsDeleted() ? 19294 : 19112;
+  pDialog->SetHeading(CVariant{122}); // Confirm delete
+  pDialog->SetLine(0, CVariant{iLine0}); // Delete all recordings in this folder? / Delete this recording permanently? / Delete this recording?
+  pDialog->SetLine(1, CVariant{""});
+  pDialog->SetLine(2, CVariant{item->GetLabel()});
+  pDialog->SetChoice(1, CVariant{117}); // Delete
 
   /* prompt for the user's confirmation */
-  pDialog->DoModal();
+  pDialog->Open();
   if (!pDialog->IsConfirmed())
     return bReturn;
 
@@ -361,8 +354,8 @@ bool CGUIWindowPVRRecordings::ActionDeleteRecording(CFileItem *item)
     m_vecItems->Remove(item);
 
     /* go to the parent folder if we're in a subdirectory and just deleted the last item */
-    if (m_vecItems->GetPath() != "pvr://recordings/active/" &&
-        m_vecItems->GetPath() != "pvr://recordings/deleted/" && m_vecItems->GetObjectCount() == 0)
+    CPVRRecordingsPath path(m_vecItems->GetPath());
+    if (path.IsValid() && !path.IsRecordingsRoot() && m_vecItems->GetObjectCount() == 0)
       GoParentFolder();
   }
 
@@ -392,7 +385,8 @@ bool CGUIWindowPVRRecordings::OnContextButtonUndelete(CFileItem *item, CONTEXT_B
     m_vecItems->Remove(item);
 
     /* go to the parent folder if we're in a subdirectory and just deleted the last item */
-    if (m_vecItems->GetPath() != "pvr://recordings/deleted/" && m_vecItems->GetObjectCount() == 0)
+    CPVRRecordingsPath path(m_vecItems->GetPath());
+    if (path.IsValid() && !path.IsRecordingsRoot() && m_vecItems->GetObjectCount() == 0)
       GoParentFolder();
   }
 
@@ -412,14 +406,14 @@ bool CGUIWindowPVRRecordings::OnContextButtonDeleteAll(CFileItem *item, CONTEXT_
     return bReturn;
 
 
-  pDialog->SetHeading(19292); // Delete all permanently
-  pDialog->SetLine(0, 19293); // Delete all recordings permanently?
-  pDialog->SetLine(1, "");
-  pDialog->SetLine(2, "");
-  pDialog->SetChoice(1, 117); // Delete
+  pDialog->SetHeading(CVariant{19292}); // Delete all permanently
+  pDialog->SetLine(0, CVariant{19293}); // Delete all recordings permanently?
+  pDialog->SetLine(1, CVariant{""});
+  pDialog->SetLine(2, CVariant{""});
+  pDialog->SetChoice(1, CVariant{117}); // Delete
 
   /* prompt for the user's confirmation */
-  pDialog->DoModal();
+  pDialog->Open();
   if (!pDialog->IsConfirmed())
     return bReturn;
 
@@ -434,7 +428,8 @@ bool CGUIWindowPVRRecordings::OnContextButtonDeleteAll(CFileItem *item, CONTEXT_
     m_vecItems->Clear();
 
     /* go to the parent folder if we're in a subdirectory and just deleted the last item */
-    if (m_vecItems->GetPath() != "pvr://recordings/deleted/" && m_vecItems->GetObjectCount() == 0)
+    CPVRRecordingsPath path(m_vecItems->GetPath());
+    if (path.IsValid() && !path.IsRecordingsRoot() && m_vecItems->GetObjectCount() == 0)
       GoParentFolder();
   }
   return bReturn;
@@ -479,7 +474,7 @@ bool CGUIWindowPVRRecordings::OnContextButtonRename(CFileItem *item, CONTEXT_BUT
       bReturn = true;
 
       std::string strNewName = recording->m_strTitle;
-      if (CGUIKeyboardFactory::ShowAndGetInput(strNewName, g_localizeStrings.Get(19041), false))
+      if (CGUIKeyboardFactory::ShowAndGetInput(strNewName, CVariant{g_localizeStrings.Get(19041)}, false))
       {
         if (g_PVRRecordings->RenameRecording(*item, strNewName))
           Refresh(true);

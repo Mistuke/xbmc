@@ -18,12 +18,14 @@
  *
  */
 
-#include "utils/URIUtils.h"
-#include "settings/AdvancedSettings.h"
-#include "filesystem/MultiPathDirectory.h"
-#include "URL.h"
+#include <utility>
 
 #include "gtest/gtest.h"
+
+#include "filesystem/MultiPathDirectory.h"
+#include "settings/AdvancedSettings.h"
+#include "URL.h"
+#include "utils/URIUtils.h"
 
 using namespace XFILE;
 
@@ -249,11 +251,6 @@ TEST_F(TestURIUtils, IsCDDA)
   EXPECT_TRUE(URIUtils::IsCDDA("cdda://path/to/cdda"));
 }
 
-TEST_F(TestURIUtils, IsDAAP)
-{
-  EXPECT_TRUE(URIUtils::IsDAAP("daap://path/to/daap"));
-}
-
 TEST_F(TestURIUtils, IsDOSPath)
 {
   EXPECT_TRUE(URIUtils::IsDOSPath("C://path/to/dosfile"));
@@ -284,21 +281,6 @@ TEST_F(TestURIUtils, IsHD)
   EXPECT_TRUE(URIUtils::IsHD("stack://path/to/file"));
   EXPECT_TRUE(URIUtils::IsHD("zip://path/to/file"));
   EXPECT_TRUE(URIUtils::IsHD("rar://path/to/file"));
-}
-
-TEST_F(TestURIUtils, IsHDHomeRun)
-{
-  EXPECT_TRUE(URIUtils::IsHDHomeRun("hdhomerun://path/to/file"));
-}
-
-TEST_F(TestURIUtils, IsSlingbox)
-{
-  EXPECT_TRUE(URIUtils::IsSlingbox("sling://path/to/file"));
-}
-
-TEST_F(TestURIUtils, IsHTSP)
-{
-  EXPECT_TRUE(URIUtils::IsHTSP("htsp://path/to/file"));
 }
 
 TEST_F(TestURIUtils, IsInArchive)
@@ -332,13 +314,7 @@ TEST_F(TestURIUtils, IsISO9660)
 
 TEST_F(TestURIUtils, IsLiveTV)
 {
-  EXPECT_TRUE(URIUtils::IsLiveTV("tuxbox://path/to/file"));
-  EXPECT_TRUE(URIUtils::IsLiveTV("vtp://path/to/file"));
-  EXPECT_TRUE(URIUtils::IsLiveTV("hdhomerun://path/to/file"));
-  EXPECT_TRUE(URIUtils::IsLiveTV("sling://path/to/file"));
-  EXPECT_TRUE(URIUtils::IsLiveTV("htsp://path/to/file"));
-  EXPECT_TRUE(URIUtils::IsLiveTV("sap://path/to/file"));
-  EXPECT_TRUE(URIUtils::IsLiveTV("myth://path/channels/"));
+  EXPECT_TRUE(URIUtils::IsLiveTV("whatever://path/to/file.pvr"));
 }
 
 TEST_F(TestURIUtils, IsMultiPath)
@@ -351,21 +327,10 @@ TEST_F(TestURIUtils, IsMusicDb)
   EXPECT_TRUE(URIUtils::IsMusicDb("musicdb://path/to/file"));
 }
 
-TEST_F(TestURIUtils, IsMythTV)
-{
-  EXPECT_TRUE(URIUtils::IsMythTV("myth://path/to/file"));
-}
-
 TEST_F(TestURIUtils, IsNfs)
 {
   EXPECT_TRUE(URIUtils::IsNfs("nfs://path/to/file"));
   EXPECT_TRUE(URIUtils::IsNfs("stack://nfs://path/to/file"));
-}
-
-TEST_F(TestURIUtils, IsAfp)
-{
-  EXPECT_TRUE(URIUtils::IsAfp("afp://path/to/file"));
-  EXPECT_TRUE(URIUtils::IsAfp("stack://afp://path/to/file"));
 }
 
 TEST_F(TestURIUtils, IsOnDVD)
@@ -379,12 +344,11 @@ TEST_F(TestURIUtils, IsOnDVD)
 TEST_F(TestURIUtils, IsOnLAN)
 {
   std::vector<std::string> multiVec;
-  multiVec.push_back("daap://path/to/file");
+  multiVec.push_back("smb://path/to/file");
   EXPECT_TRUE(URIUtils::IsOnLAN(CMultiPathDirectory::ConstructMultiPath(multiVec)));
-  EXPECT_TRUE(URIUtils::IsOnLAN("stack://daap://path/to/file"));
-  EXPECT_TRUE(URIUtils::IsOnLAN("daap://path/to/file"));
+  EXPECT_TRUE(URIUtils::IsOnLAN("stack://smb://path/to/file"));
+  EXPECT_TRUE(URIUtils::IsOnLAN("smb://path/to/file"));
   EXPECT_FALSE(URIUtils::IsOnLAN("plugin://path/to/file"));
-  EXPECT_TRUE(URIUtils::IsOnLAN("tuxbox://path/to/file"));
   EXPECT_TRUE(URIUtils::IsOnLAN("upnp://path/to/file"));
 }
 
@@ -429,11 +393,6 @@ TEST_F(TestURIUtils, IsStack)
   EXPECT_TRUE(URIUtils::IsStack("stack://path/to/file"));
 }
 
-TEST_F(TestURIUtils, IsTuxBox)
-{
-  EXPECT_TRUE(URIUtils::IsTuxBox("tuxbox://path/to/file"));
-}
-
 TEST_F(TestURIUtils, IsUPnP)
 {
   EXPECT_TRUE(URIUtils::IsUPnP("upnp://path/to/file"));
@@ -448,11 +407,6 @@ TEST_F(TestURIUtils, IsURL)
 TEST_F(TestURIUtils, IsVideoDb)
 {
   EXPECT_TRUE(URIUtils::IsVideoDb("videodb://path/to/file"));
-}
-
-TEST_F(TestURIUtils, IsVTP)
-{
-  EXPECT_TRUE(URIUtils::IsVTP("vtp://path/to/file"));
 }
 
 TEST_F(TestURIUtils, IsZIP)
@@ -498,7 +452,7 @@ TEST_F(TestURIUtils, CreateArchivePath)
 {
   std::string ref, var;
 
-  ref = "zip://%2fpath%2fto%2f/file";
+  ref = "zip://%2Fpath%2Fto%2F/file";
   var = URIUtils::CreateArchivePath("zip", CURL("/path/to/"), "file").Get();
   EXPECT_STREQ(ref.c_str(), var.c_str());
 }
@@ -528,9 +482,7 @@ TEST_F(TestURIUtils, HasEncodedHostname)
 TEST_F(TestURIUtils, HasEncodedFilename)
 {
   EXPECT_TRUE(URIUtils::HasEncodedFilename(CURL("shout://")));
-  EXPECT_TRUE(URIUtils::HasEncodedFilename(CURL("daap://")));
   EXPECT_TRUE(URIUtils::HasEncodedFilename(CURL("dav://")));
-  EXPECT_TRUE(URIUtils::HasEncodedFilename(CURL("tuxbox://")));
   EXPECT_TRUE(URIUtils::HasEncodedFilename(CURL("rss://")));
   EXPECT_TRUE(URIUtils::HasEncodedFilename(CURL("davs://")));
 }

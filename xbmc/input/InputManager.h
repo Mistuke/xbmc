@@ -23,11 +23,6 @@
 #include <string>
 #include <vector>
 
-#if defined(TARGET_WINDOWS)
-#include "input/windows/WINJoystick.h"
-#elif defined(HAS_SDL_JOYSTICK) || defined(HAS_EVENT_SERVER)
-#include "input/SDLJoystick.h"
-#endif
 #if defined(HAS_LIRC)
 #include "input/linux/LIRC.h"
 #endif
@@ -39,8 +34,14 @@
 #include "input/KeyboardStat.h"
 #include "input/MouseStat.h"
 #include "settings/lib/ISettingCallback.h"
+#include "threads/CriticalSection.h"
 
 class CKey;
+
+namespace KEYBOARD
+{
+  class IKeyboardHandler;
+}
 
 class CInputManager : public ISettingCallback
 {
@@ -53,7 +54,7 @@ private:
 public:
   /*! \brief static method to get the current instance of the class. Creates a new instance the first time it's called.
   */
-  static CInputManager& Get();
+  static CInputManager& GetInstance();
 
   /*! \brief decode an input event from remote controls.
 
@@ -69,13 +70,6 @@ public:
   */
   bool ProcessMouse(int windowId);
 
-  /*! \brief decode a gamepad or joystick event, reset idle timers.
-
-  \param windowId Currently active window
-  \return true if event is handled, false otherwise
-  */
-  bool ProcessGamepad(int windowId);
-
   /*! \brief decode an event from the event service, this can be mouse, key, joystick, reset idle timers.
 
   \param windowId Currently active window
@@ -90,6 +84,14 @@ public:
   \return true if event is handled, false otherwise
   */
   bool ProcessPeripherals(float frameTime);
+
+  /*! \brief Dispatch actions queued since the last call to Process()
+   */
+  void ProcessQueuedActions();
+
+  /*! \brief Queue an action to be processed on the next call to Process()
+   */
+  void QueueAction(const CAction& action);
 
   /*! \brief Process all inputs
    *
@@ -110,18 +112,6 @@ public:
    * \return void
    */
   void SetEnabledJoystick(bool enabled = true);
-
-  /*! \brief Run joystick initialization again, e.g. a new device is connected
-  *
-  * \return void
-  */
-  void ReInitializeJoystick();
-
-  bool ProcessJoystickEvent(int windowId, const std::string& joystickName, int wKeyID, short inputType, float fAmount, unsigned int holdTime = 0);
-
-#if defined(HAS_SDL_JOYSTICK) && !defined(TARGET_WINDOWS)
-  void UpdateJoystick(SDL_Event& joyEvent);
-#endif
 
   /*! \brief Handle an input event
    * 
@@ -190,11 +180,22 @@ public:
    */
   void DisableRemoteControl();
 
+  /*! \brief Try to connect to a remote control to listen for commands
+   *
+   */
+  void InitializeRemoteControl();
+
   /*! \brief Check if the remote control is enabled
    *
    * \return true if remote control is enabled, false otherwise 
    */
   bool IsRemoteControlEnabled();
+
+  /*! \brief Check if the remote control is initialized
+   *
+   * \return true if initialized, false otherwise 
+   */
+  bool IsRemoteControlInitialized();
 
   /*! \brief Set the device name to use with LIRC, does nothing 
    *   if IRServerSuite is used
@@ -212,7 +213,10 @@ public:
    */
   int ExecuteBuiltin(const std::string& execute, const std::vector<std::string>& params);
 
-  virtual void OnSettingChanged(const CSetting *setting);
+  virtual void OnSettingChanged(const CSetting *setting) override;
+
+  void RegisterKeyboardHandler(KEYBOARD::IKeyboardHandler* handler);
+  void UnregisterKeyboardHandler(KEYBOARD::IKeyboardHandler* handler);
 
 private:
 
@@ -223,6 +227,13 @@ private:
   * \sa CKey
   */
   bool OnKey(const CKey& key);
+
+  /*! \brief Process key up event
+   *
+   * \param CKey details of released key
+   * \sa CKey
+   */
+  void OnKeyUp(const CKey& key);
 
   /*! \brief Determine if an action should be processed or just
   *   cancel the screensaver
@@ -244,6 +255,7 @@ private:
 
   CKeyboardStat m_Keyboard;
   CMouseStat m_Mouse;
+  CKey m_LastKey;
 
 #if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
   CRemoteControl m_RemoteControl;
@@ -253,7 +265,8 @@ private:
   std::map<std::string, std::map<int, float> > m_lastAxisMap;
 #endif
 
-#if defined(HAS_SDL_JOYSTICK) 
-  CJoystick m_Joystick;
-#endif
+  std::vector<CAction> m_queuedActions;
+  CCriticalSection     m_actionMutex;
+
+  std::vector<KEYBOARD::IKeyboardHandler*> m_keyboardHandlers;
 };

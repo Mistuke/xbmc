@@ -18,11 +18,9 @@
  *
  */
 
-#include "stdio.h"
 #include "Win32DllLoader.h"
 #include "DllLoader.h"
 #include "DllLoaderContainer.h"
-#include "Util.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "filesystem/SpecialProtocol.h"
@@ -32,6 +30,8 @@
 #include "dll_tracker_file.h"
 #include "exports/emu_kernel32.h"
 #include "exports/emu_msvcrt.h"
+
+#include <limits>
 
 extern "C" FILE _iob[];
 extern "C" FARPROC WINAPI dllWin32GetProcAddress(HMODULE hModule, LPCSTR function);
@@ -249,7 +249,7 @@ void Win32DllLoader::OverrideImports(const std::string &dll)
 
   if (!image_base)
   {
-    CLog::Log(LOGERROR, "%s - unable to GetModuleHandle for dll %s", dll.c_str());
+    CLog::Log(LOGERROR, "%s - unable to GetModuleHandle for dll %s", __FUNCTION__, dll.c_str());
     return;
   }
 
@@ -261,7 +261,7 @@ void Win32DllLoader::OverrideImports(const std::string &dll)
 
   if (!imp_desc)
   {
-    CLog::Log(LOGERROR, "%s - unable to get import directory for dll %s", dll.c_str());
+    CLog::Log(LOGERROR, "%s - unable to get import directory for dll %s", __FUNCTION__, dll.c_str());
     return;
   }
 
@@ -426,10 +426,14 @@ bool Win32DllLoader::ResolveOrdinal(const char *dllName, unsigned long ordinal, 
 
 extern "C" FARPROC __stdcall dllWin32GetProcAddress(HMODULE hModule, LPCSTR function)
 {
-  // first check whether this function is one of the ones we need to wrap
-  void *fixup = NULL;
-  if (FunctionNeedsWrapping(win32_exports, function, &fixup))
-    return (FARPROC)fixup;
+  // if the high-order word is zero, then lpProcName is the function's ordinal value
+  if (reinterpret_cast<uintptr_t>(function) > std::numeric_limits<WORD>::max())
+  {
+    // first check whether this function is one of the ones we need to wrap
+    void *fixup = NULL;
+    if (FunctionNeedsWrapping(win32_exports, function, &fixup))
+      return (FARPROC)fixup;
+  }
 
   // Nope
   return GetProcAddress(hModule, function);

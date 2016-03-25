@@ -18,16 +18,12 @@
  *
  */
 
-#include "PVRActionListener.h"
-
 #include "Application.h"
-#include "ApplicationMessenger.h"
-#include "input/Key.h"
-#include "guilib/GUIWindow.h"
+#include "dialogs/GUIDialogNumeric.h"
 #include "guilib/LocalizeStrings.h"
 #include "guilib/GUIWindowManager.h"
-#include "dialogs/GUIDialogNumeric.h"
-#include "dialogs/GUIDialogKaiToast.h"
+#include "input/Key.h"
+#include "messaging/ApplicationMessenger.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "utils/log.h"
@@ -36,13 +32,16 @@
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 
+#include "PVRActionListener.h"
+
 using namespace PVR;
+using namespace KODI::MESSAGING;
 
 CPVRActionListener::CPVRActionListener()
 {
 }
 
-CPVRActionListener &CPVRActionListener::Get()
+CPVRActionListener &CPVRActionListener::GetInstance()
 {
   static CPVRActionListener instance;
   return instance;
@@ -87,15 +86,22 @@ bool CPVRActionListener::OnAction(const CAction &action)
     case REMOTE_8:
     case REMOTE_9:
     {
-      if (g_application.IsFullScreen() && g_application.CurrentFileItem().IsLiveTV())
+      if (g_application.CurrentFileItem().IsLiveTV() &&
+          (g_windowManager.IsWindowActive(WINDOW_FULLSCREEN_VIDEO) ||
+           g_windowManager.IsWindowActive(WINDOW_VISUALISATION)))
       {
+        // do not consume action if a python modal is the top most dialog
+        // as a python modal can't return that it consumed the action.
+        if (g_windowManager.IsPythonWindow(g_windowManager.GetTopMostModalDialogID()))
+          return false;
+
         if(g_PVRManager.IsPlaying())
         {
           // pvr client addon
           CPVRChannelPtr playingChannel(g_PVRManager.GetCurrentChannel());
           if(!playingChannel)
             return false;
-          
+
           if (action.GetID() == REMOTE_0)
           {
             CPVRChannelGroupPtr group = g_PVRChannelGroups->GetPreviousPlayedGroup();
@@ -106,13 +112,14 @@ bool CPVRActionListener::OnAction(const CAction &action)
               if (fileItem && fileItem->HasPVRChannelInfoTag())
               {
                 CLog::Log(LOGDEBUG, "%s - switch to channel number %d", __FUNCTION__, fileItem->GetPVRChannelInfoTag()->ChannelNumber());
-                CApplicationMessenger::Get().SendAction(CAction(ACTION_CHANNEL_SWITCH, (float) fileItem->GetPVRChannelInfoTag()->ChannelNumber()), WINDOW_INVALID, false);
+                CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1,static_cast<void*>(
+                  new CAction(ACTION_CHANNEL_SWITCH, static_cast<float>(fileItem->GetPVRChannelInfoTag()->ChannelNumber()))));
               }
             }
           }
           else
           {
-            int autoCloseTime = CSettings::Get().GetBool("pvrplayback.confirmchannelswitch") ? 0 : g_advancedSettings.m_iPVRNumericChannelSwitchTimeout;
+            int autoCloseTime = CSettings::GetInstance().GetBool(CSettings::SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH) ? 0 : g_advancedSettings.m_iPVRNumericChannelSwitchTimeout;
             std::string strChannel = StringUtils::Format("%i", action.GetID() - REMOTE_0);
             if (CGUIDialogNumeric::ShowAndGetNumber(strChannel, g_localizeStrings.Get(19000), autoCloseTime) || autoCloseTime)
             {
@@ -123,28 +130,17 @@ bool CPVRActionListener::OnAction(const CAction &action)
                 CFileItemPtr channel = selectedGroup->GetByChannelNumber(iChannelNumber);
                 if (!channel || !channel->HasPVRChannelInfoTag())
                   return false;
-                
-                CApplicationMessenger::Get().SendAction(CAction(ACTION_CHANNEL_SWITCH, (float)iChannelNumber), WINDOW_INVALID, false);
+
+                CApplicationMessenger::GetInstance().PostMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(
+                  new CAction(ACTION_CHANNEL_SWITCH, static_cast<float>(iChannelNumber))));
               }
             }
           }
-        }
-        else
-        {
-          // filesystem provider like slingbox, cmyth, etc
-          int iChannelNumber = -1;
-          std::string strChannel = StringUtils::Format("%i", action.GetID() - REMOTE_0);
-          if (CGUIDialogNumeric::ShowAndGetNumber(strChannel, g_localizeStrings.Get(19000)))
-            iChannelNumber = atoi(strChannel.c_str());
-          
-          if (iChannelNumber > 0)
-            CApplicationMessenger::Get().SendAction(CAction(ACTION_CHANNEL_SWITCH, (float)iChannelNumber), WINDOW_INVALID, false);
         }
       }
       return true;
     }
     break;
   }
-  
   return false;
 }

@@ -1,11 +1,8 @@
-#ifndef _KEYBOARD_H
-#define _KEYBOARD_H
-
 #pragma once
 
 /*
- *      Copyright (C) 2007-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2007-2015 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +15,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
@@ -39,7 +36,6 @@
 
 #include <string>
 
-#include "windowing/XBMC_events.h"
 #include "input/Key.h"
 #include "input/XBMC_keyboard.h"
 
@@ -51,16 +47,17 @@ public:
 
   void Initialize();
 
-  const CKey ProcessKeyDown(XBMC_keysym& keysym);
-  void       ProcessKeyUp(void);
+  CKey TranslateKey(XBMC_keysym& keysym) const;
+
+  void ProcessKeyDown(XBMC_keysym& keysym);
+  void ProcessKeyUp(void);
 
   std::string GetKeyName(int KeyID);
 
 private:
-  bool LookupSymAndUnicodePeripherals(XBMC_keysym &keysym, uint8_t *key, char *unicode);
+  static bool LookupSymAndUnicodePeripherals(XBMC_keysym &keysym, uint8_t *key, char *unicode);
 
   XBMC_keysym m_lastKeysym;
   unsigned int m_lastKeyTime;
 };
 
-#endif

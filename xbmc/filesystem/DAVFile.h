@@ -19,7 +19,6 @@
  *
  */
 
-#include "IFile.h"
 #include "CurlFile.h"
 
 namespace XFILE
@@ -35,9 +34,9 @@ namespace XFILE
     virtual bool Delete(const CURL& url);
     virtual bool Rename(const CURL& url, const CURL& urlnew);
 
-    virtual int GetLastResponseCode() { return lastResponseCode; }
+    virtual int GetLastResponseCode() { return m_lastResponseCode; }
 
   private:
-    int lastResponseCode;
+    int m_lastResponseCode;
   };
 }

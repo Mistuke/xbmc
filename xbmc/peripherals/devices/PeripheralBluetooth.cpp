@@ -19,12 +19,11 @@
  */
 
 #include "PeripheralBluetooth.h"
-#include "utils/log.h"
 
 using namespace PERIPHERALS;
 
-CPeripheralBluetooth::CPeripheralBluetooth(const PeripheralScanResult& scanResult) :
-  CPeripheral(scanResult)
+CPeripheralBluetooth::CPeripheralBluetooth(const PeripheralScanResult& scanResult, CPeripheralBus* bus) :
+  CPeripheral(scanResult, bus)
 {
   m_features.push_back(FEATURE_BLUETOOTH);
 }

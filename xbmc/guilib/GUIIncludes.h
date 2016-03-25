@@ -23,7 +23,9 @@
 #include <map>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
+
 #include "interfaces/info/InfoBool.h"
 
 // forward definitions
@@ -52,17 +54,32 @@ public:
   const INFO::CSkinVariableString* CreateSkinVariable(const std::string& name, int context);
 
 private:
+  enum ResolveParamsResult
+  {
+    NO_PARAMS_FOUND,
+    PARAMS_RESOLVED,
+    SINGLE_UNDEFINED_PARAM_RESOLVED
+  };
+
   void ResolveIncludesForNode(TiXmlElement *node, std::map<INFO::InfoPtr, bool>* xmlIncludeConditions = NULL);
+  typedef std::map<std::string, std::string> Params;
+  static bool GetParameters(const TiXmlElement *include, const char *valueAttribute, Params& params);
+  static void ResolveParametersForNode(TiXmlElement *node, const Params& params);
+  static ResolveParamsResult ResolveParameters(const std::string& strInput, std::string& strOutput, const Params& params);
   std::string ResolveConstant(const std::string &constant) const;
+  std::string ResolveExpressions(const std::string &expression) const;
   bool HasIncludeFile(const std::string &includeFile) const;
-  std::map<std::string, TiXmlElement> m_includes;
+  std::map<std::string, std::pair<TiXmlElement, Params>> m_includes;
   std::map<std::string, TiXmlElement> m_defaults;
   std::map<std::string, TiXmlElement> m_skinvariables;
   std::map<std::string, std::string> m_constants;
+  std::map<std::string, std::string> m_expressions;
   std::vector<std::string> m_files;
   typedef std::vector<std::string>::const_iterator iFiles;
 
   std::set<std::string> m_constantAttributes;
   std::set<std::string> m_constantNodes;
-};
 
+  std::set<std::string> m_expressionAttributes;
+  std::set<std::string> m_expressionNodes;
+};

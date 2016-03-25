@@ -20,10 +20,12 @@
 #pragma once
 
 #include "AddonDll.h"
-#include "cores/IAudioCallback.h"
-#include "include/xbmc_vis_types.h"
+#include "cores/AudioEngine/Interfaces/IAudioCallback.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_vis_types.h"
 #include "guilib/IRenderingCallback.h"
+#include "utils/rfft.h"
 
+#include <algorithm>
 #include <map>
 #include <list>
 #include <memory>
@@ -55,10 +57,12 @@ namespace ADDON
                        , public IRenderingCallback
   {
   public:
-    CVisualisation(const ADDON::AddonProps &props) : CAddonDll<DllVisualisation, Visualisation, VIS_PROPS>(props) {}
-    CVisualisation(const cp_extension_t *ext) : CAddonDll<DllVisualisation, Visualisation, VIS_PROPS>(ext) {}
+    explicit CVisualisation(AddonProps props)
+        : CAddonDll<DllVisualisation, Visualisation, VIS_PROPS>(std::move(props)) {}
+
     virtual void OnInitialize(int iChannels, int iSamplesPerSec, int iBitsPerSample);
     virtual void OnAudioData(const float* pAudioData, int iAudioDataLength);
+    virtual bool IsInUse() const;
     bool Create(int x, int y, int w, int h, void *device);
     void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, const std::string &strSongName);
     void AudioData(const float *pAudioData, int iAudioDataLength, float *pFreqData, int iFreqDataLength);
@@ -67,6 +71,7 @@ namespace ADDON
     void GetInfo(VIS_INFO *info);
     bool OnAction(VIS_ACTION action, void *param = NULL);
     bool UpdateTrack();
+    bool HasPresets() { return m_hasPresets; };
     bool HasSubModules() { return !m_submodules.empty(); }
     bool IsLocked();
     unsigned GetPreset();
@@ -83,17 +88,10 @@ namespace ADDON
     bool GetPresets();
     bool GetSubModules();
 
-    // attributes of the viewport we render to
-    int m_xPos;
-    int m_yPos;
-    int m_width;
-    int m_height;
-
     // cached preset list
     std::vector<std::string> m_presets;
     // cached submodule list
     std::vector<std::string> m_submodules;
-    int m_currentModule;
 
     // audio properties
     int m_iChannels;
@@ -102,8 +100,9 @@ namespace ADDON
     std::list<CAudioBuffer*> m_vecBuffers;
     int m_iNumBuffers;        // Number of Audio buffers
     bool m_bWantsFreq;
-    float m_fFreq[2*AUDIO_BUFFER_SIZE];         // Frequency data
-    bool m_bCalculate_Freq;       // True if the vis wants freq data
+    float m_fFreq[AUDIO_BUFFER_SIZE];         // Frequency data
+    bool m_hasPresets;
+    std::unique_ptr<RFFT> m_transform;
 
     // track information
     std::string m_AlbumThumb;

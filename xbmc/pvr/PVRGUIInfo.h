@@ -19,11 +19,14 @@
  *
  */
 
+#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
+#include "pvr/addons/PVRClients.h"
 #include "threads/CriticalSection.h"
 #include "threads/SystemClock.h"
-#include "utils/Observer.h"
 #include "threads/Thread.h"
-#include "addons/include/xbmc_pvr_types.h"
+#include "utils/Observer.h"
+
+#include <atomic>
 
 namespace EPG
 {
@@ -99,8 +102,8 @@ namespace PVR
     void UpdateQualityData(void);
     void UpdateMisc(void);
     void UpdateNextTimer(void);
+    void UpdateTimeshift(void);
 
-    bool AddonInfoToggle(void);
     bool TimerInfoToggle(void);
     void UpdateTimersToggle(void);
     void ToggleShowInfo(void);
@@ -118,9 +121,6 @@ namespace PVR
     void CharInfoNextTimer(std::string &strValue) const;
     void CharInfoBackendNumber(std::string &strValue) const;
     void CharInfoTotalDiskSpace(std::string &strValue) const;
-    void CharInfoVideoBR(std::string &strValue) const;
-    void CharInfoAudioBR(std::string &strValue) const;
-    void CharInfoDolbyBR(std::string &strValue) const;
     void CharInfoSignal(std::string &strValue) const;
     void CharInfoSNR(std::string &strValue) const;
     void CharInfoBER(std::string &strValue) const;
@@ -140,6 +140,9 @@ namespace PVR
     void CharInfoService(std::string &strValue) const;
     void CharInfoMux(std::string &strValue) const;
     void CharInfoProvider(std::string &strValue) const;
+    void CharInfoTimeshiftStartTime(std::string &strValue) const;
+    void CharInfoTimeshiftEndTime(std::string &strValue) const;
+    void CharInfoTimeshiftPlayTime(std::string &strValue) const;
 
     /** @name GUIInfoManager data */
     //@{
@@ -152,10 +155,11 @@ namespace PVR
     std::string                     m_strNextRecordingChannelName;
     std::string                     m_strNextRecordingChannelIcon;
     std::string                     m_strNextRecordingTime;
-    bool                            m_bHasRecordings;
+    bool                            m_bHasTVRecordings;
+    bool                            m_bHasRadioRecordings;
     unsigned int                    m_iTimerAmount;
     unsigned int                    m_iRecordingTimerAmount;
-    int                             m_iActiveClients;
+    unsigned int                    m_iCurrentActiveClient;
     std::string                     m_strPlayingClientName;
     std::string                     m_strBackendName;
     std::string                     m_strBackendVersion;
@@ -164,8 +168,8 @@ namespace PVR
     std::string                     m_strBackendRecordings;
     std::string                     m_strBackendDeletedRecordings;
     std::string                     m_strBackendChannels;
-    long long                       m_iBackendUsedDiskspace;
-    long long                       m_iBackendTotalDiskspace;
+    long long                       m_iBackendDiskTotal;
+    long long                       m_iBackendDiskUsed;
     unsigned int                    m_iDuration;
 
     bool                            m_bHasNonRecordingTimers;
@@ -179,13 +183,28 @@ namespace PVR
     //@}
 
     PVR_SIGNAL_STATUS               m_qualityInfo;       /*!< stream quality information */
-    unsigned int                    m_iAddonInfoToggleStart;
-    unsigned int                    m_iAddonInfoToggleCurrent;
     unsigned int                    m_iTimerInfoToggleStart;
     unsigned int                    m_iTimerInfoToggleCurrent;
     XbmcThreads::EndTime            m_ToggleShowInfo;
     EPG::CEpgInfoTagPtr             m_playingEpgTag;
+    std::vector<SBackend>           m_backendProperties;
+
+    bool                            m_bIsTimeshifting;
+    time_t                          m_iTimeshiftStartTime;
+    time_t                          m_iTimeshiftEndTime;
+    time_t                          m_iTimeshiftPlayTime;
+    std::string                     m_strTimeshiftStartTime;
+    std::string                     m_strTimeshiftEndTime;
+    std::string                     m_strTimeshiftPlayTime;
 
     CCriticalSection                m_critSection;
+
+    /**
+     * The various backend-related fields will only be updated when this
+     * flag is set. This is done to limit the amount of unnecessary
+     * backend querying when we're not displaying any of the queried
+     * information.
+     */
+    mutable std::atomic<bool>       m_updateBackendCacheRequested;
   };
 }

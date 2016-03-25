@@ -24,17 +24,25 @@
 //#define DEBUG_KEYBOARD_GETCHAR
 
 #include "KeyboardStat.h"
-#include "KeyboardLayoutConfiguration.h"
 #include "windowing/XBMC_events.h"
-#include "utils/TimeUtils.h"
 #include "input/XBMC_keytable.h"
 #include "input/XBMC_vkeys.h"
 #include "peripherals/Peripherals.h"
 #include "peripherals/devices/PeripheralHID.h"
+#include "threads/SystemClock.h"
+#include "utils/log.h"
 
-using namespace std;
+#define HOLD_THRESHOLD 250
+
 using namespace PERIPHERALS;
 
+bool operator==(const XBMC_keysym& lhs, const XBMC_keysym& rhs)
+{
+  return lhs.mod      == rhs.mod      &&
+         lhs.scancode == rhs.scancode &&
+         lhs.sym      == rhs.sym      &&
+         lhs.unicode  == rhs.unicode;
+}
 
 CKeyboardStat::CKeyboardStat()
 {
@@ -52,7 +60,7 @@ void CKeyboardStat::Initialize()
 
 bool CKeyboardStat::LookupSymAndUnicodePeripherals(XBMC_keysym &keysym, uint8_t *key, char *unicode)
 {
-  vector<CPeripheral *> hidDevices;
+  std::vector<CPeripheral *> hidDevices;
   if (g_peripherals.GetPeripheralsWithFeature(hidDevices, FEATURE_HID))
   {
     for (unsigned int iDevicePtr = 0; iDevicePtr < hidDevices.size(); iDevicePtr++)
@@ -65,8 +73,9 @@ bool CKeyboardStat::LookupSymAndUnicodePeripherals(XBMC_keysym &keysym, uint8_t 
   return false;
 }
 
-const CKey CKeyboardStat::ProcessKeyDown(XBMC_keysym& keysym)
-{ uint8_t vkey;
+CKey CKeyboardStat::TranslateKey(XBMC_keysym& keysym) const
+{
+  uint8_t vkey;
   wchar_t unicode;
   char ascii;
   uint32_t modifiers;
@@ -148,16 +157,11 @@ const CKey CKeyboardStat::ProcessKeyDown(XBMC_keysym& keysym)
     }
   }
 
-  // At this point update the key hold time
-  if (keysym.mod == m_lastKeysym.mod && keysym.scancode == m_lastKeysym.scancode && keysym.sym == m_lastKeysym.sym && keysym.unicode == m_lastKeysym.unicode)
+  if (keysym == m_lastKeysym)
   {
-    held = CTimeUtils::GetFrameTime() - m_lastKeyTime;
-  }
-  else
-  {
-    m_lastKeysym = keysym;
-    m_lastKeyTime = CTimeUtils::GetFrameTime();
-    held = 0;
+    held = XbmcThreads::SystemClockMillis() - m_lastKeyTime;
+    if (held > HOLD_THRESHOLD)
+      modifiers |= CKey::MODIFIER_LONG;
   }
 
   // For all shift-X keys except shift-A to shift-Z and shift-F1 to shift-F24 the
@@ -175,6 +179,15 @@ const CKey CKeyboardStat::ProcessKeyDown(XBMC_keysym& keysym)
   CKey key(vkey, unicode, ascii, modifiers, held);
 
   return key;
+}
+
+void CKeyboardStat::ProcessKeyDown(XBMC_keysym& keysym)
+{
+  if (!(m_lastKeysym == keysym))
+  {
+    m_lastKeysym = keysym;
+    m_lastKeyTime = XbmcThreads::SystemClockMillis();
+  }
 }
 
 void CKeyboardStat::ProcessKeyUp(void)
@@ -206,6 +219,8 @@ std::string CKeyboardStat::GetKeyName(int KeyID)
     keyname.append("win-");
   if (KeyID & CKey::MODIFIER_META)
     keyname.append("meta-");
+  if (KeyID & CKey::MODIFIER_LONG)
+    keyname.append("long-");
 
 // Now get the key name
 

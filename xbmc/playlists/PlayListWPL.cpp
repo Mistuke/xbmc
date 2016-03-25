@@ -18,10 +18,12 @@
  *
  */
 
+#include <iostream>
+#include <string>
+
 #include "PlayListWPL.h"
 #include "Util.h"
 #include "utils/XBMCTinyXML.h"
-#include "settings/AdvancedSettings.h"
 #include "filesystem/File.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
@@ -30,7 +32,6 @@
 
 using namespace XFILE;
 using namespace PLAYLIST;
-using namespace std;
 
 /* ------------------------ example wpl playlist file ---------------------------------
   <?wpl version="1.0"?>
@@ -58,7 +59,7 @@ CPlayListWPL::~CPlayListWPL(void)
 {}
 
 
-bool CPlayListWPL::LoadData(istream& stream)
+bool CPlayListWPL::LoadData(std::istream& stream)
 {
   CXBMCTinyXML xmlDoc;
 

@@ -1,3 +1,24 @@
+v0.3.17
+- Update version list
+
+v0.3.16
+- Update version list
+
+v0.3.15
+- Update version list
+
+v0.3.14
+- Updated language files from Transifex
+- Cosmetics
+- Update version list
+
+v0.3.12 to 0.3.4
+- Update version list
+
+v0.3.3
+- Updated language files from Transifex
+- Update version list
+
 v0.3.2
 - Don't notify on newer unreleased builds
 

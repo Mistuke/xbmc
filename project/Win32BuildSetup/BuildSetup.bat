@@ -5,11 +5,13 @@ SET cur_dir=%CD%
 SET base_dir=%cur_dir%\..\..
 SET builddeps_dir=%cur_dir%\..\..\project\BuildDependencies
 SET bin_dir=%builddeps_dir%\bin
-SET msys_bin_dir=%builddeps_dir%\msys\bin
+SET msys_dir=%builddeps_dir%\msys64
+IF NOT EXIST %msys_dir% (SET msys_dir=%builddeps_dir%\msys32)
+SET awk_exe=%msys_dir%\usr\bin\awk.exe
 REM read the version values from version.txt
-FOR /f %%i IN ('%msys_bin_dir%\awk.exe "/APP_NAME/ {print $2}" %base_dir%\version.txt') DO SET APP_NAME=%%i
-FOR /f %%i IN ('%msys_bin_dir%\awk.exe "/COMPANY_NAME/ {print $2}" %base_dir%\version.txt') DO SET COMPANY=%%i
-FOR /f %%i IN ('%msys_bin_dir%\awk.exe "/WEBSITE/ {print $2}" %base_dir%\version.txt') DO SET WEBSITE=%%i
+FOR /f %%i IN ('%awk_exe% "/APP_NAME/ {print $2}" %base_dir%\version.txt') DO SET APP_NAME=%%i
+FOR /f %%i IN ('%awk_exe% "/COMPANY_NAME/ {print $2}" %base_dir%\version.txt') DO SET COMPANY=%%i
+FOR /f %%i IN ('%awk_exe% "/WEBSITE/ {print $2}" %base_dir%\version.txt') DO SET WEBSITE=%%i
 
 rem ----Usage----
 rem BuildSetup [clean|noclean]
@@ -64,6 +66,7 @@ set WORKSPACE=%CD%\..\..
   
   set EXE= "..\VS2010Express\XBMC\%buildconfig%\%APP_NAME%.exe"
   set PDB= "..\VS2010Express\XBMC\%buildconfig%\%APP_NAME%.pdb"
+  set D3D= "..\VS2010Express\XBMC\%buildconfig%\D3DCompile*.DLL"
   
   :: sets the BRANCH env var
   call getbranch.bat
@@ -106,9 +109,9 @@ set WORKSPACE=%CD%\..\..
     )
     rem only use sh to please jenkins
     IF %useshell%==sh (
-      call ..\..\tools\buildsteps\win32\make-mingwlibs.bat sh noprompt
+      call ..\..\tools\buildsteps\win32\make-mingwlibs.bat sh noprompt %buildmode%
     ) ELSE (
-      call ..\..\tools\buildsteps\win32\make-mingwlibs.bat noprompt
+      call ..\..\tools\buildsteps\win32\make-mingwlibs.bat noprompt %buildmode%
     )
     IF EXIST errormingw (
       set DIETEXT="failed to build mingw libs"
@@ -187,30 +190,23 @@ set WORKSPACE=%CD%\..\..
   Echo addons\repository.pvr-ios.xbmc.org\>>exclude.txt
   Echo addons\repository.pvr-osx32.xbmc.org\>>exclude.txt
   Echo addons\repository.pvr-osx64.xbmc.org\>>exclude.txt
-  Echo addons\screensaver.rsxs.euphoria\>>exclude.txt
-  Echo addons\screensaver.rsxs.plasma\>>exclude.txt
-  Echo addons\screensaver.rsxs.solarwinds\>>exclude.txt
-  Echo addons\visualization.fishbmc\>>exclude.txt
-  Echo addons\visualization.projectm\>>exclude.txt
-  Echo addons\visualization.glspectrum\>>exclude.txt
   rem Exclude skins as they're copied by their own script
-  Echo addons\skin.re-touched\>>exclude.txt
-  Echo addons\skin.confluence\>>exclude.txt
+  Echo addons\skin.estuary\>>exclude.txt
+  Echo addons\skin.estouchy\>>exclude.txt
   
   md BUILD_WIN32\application
 
   xcopy %EXE% BUILD_WIN32\application > NUL
+  xcopy %D3D% BUILD_WIN32\application > NUL
   xcopy ..\..\userdata BUILD_WIN32\application\userdata /E /Q /I /Y /EXCLUDE:exclude.txt > NUL
   copy ..\..\copying.txt BUILD_WIN32\application > NUL
   copy ..\..\LICENSE.GPL BUILD_WIN32\application > NUL
   copy ..\..\known_issues.txt BUILD_WIN32\application > NUL
   xcopy dependencies\*.* BUILD_WIN32\application /Q /I /Y /EXCLUDE:exclude.txt  > NUL
-  
-  xcopy ..\..\language BUILD_WIN32\application\language /E /Q /I /Y /EXCLUDE:exclude.txt  > NUL
+
   xcopy ..\..\addons BUILD_WIN32\application\addons /E /Q /I /Y /EXCLUDE:exclude.txt > NUL
   xcopy ..\..\system BUILD_WIN32\application\system /E /Q /I /Y /EXCLUDE:exclude.txt  > NUL
   xcopy ..\..\media BUILD_WIN32\application\media /E /Q /I /Y /EXCLUDE:exclude.txt  > NUL
-  xcopy ..\..\sounds BUILD_WIN32\application\sounds /E /Q /I /Y /EXCLUDE:exclude.txt  > NUL
   
   SET build_path=%CD%
   IF %buildbinaryaddons%==true (
@@ -232,17 +228,15 @@ set WORKSPACE=%CD%\..\..
   )
 
   ECHO ------------------------------------------------------------
-  ECHO Building Confluence Skin...
-  cd ..\..\addons\skin.confluence
+  ECHO Building Estuary Skin...
+  cd ..\..\addons\skin.estuary
   call build.bat > NUL
   cd %build_path%
-  
-  IF EXIST  ..\..\addons\skin.re-touched\build.bat (
-    ECHO Building Touch Skin...
-    cd ..\..\addons\skin.re-touched
-    call build.bat > NUL
-    cd %build_path%
-  )
+
+  ECHO Building Estouchy Skin...
+  cd ..\..\addons\skin.estouchy
+  call build.bat > NUL
+  cd %build_path%
   
   rem restore color and title, some scripts mess these up
   COLOR 1B

@@ -28,7 +28,8 @@
 
 #include "system.h"
 #include "AddonPythonInvoker.h"
-#include "addons/AddonVersion.h"
+
+#include <utility>
 
 #define MODULE "xbmc"
 
@@ -37,7 +38,7 @@
         "import " MODULE "\n" \
         "xbmc.abortRequested = False\n" \
         "class xbmcout:\n" \
-        "  def __init__(self, loglevel=" MODULE ".LOGNOTICE):\n" \
+        "  def __init__(self, loglevel=" MODULE ".LOGDEBUG):\n" \
         "    self.ll=loglevel\n" \
         "  def write(self, data):\n" \
         "    " MODULE ".log(data,self.ll)\n" \
@@ -87,7 +88,6 @@ namespace PythonBindings {
   void initModule_xbmcvfs(void);
 }
 
-using namespace std;
 using namespace PythonBindings;
 
 typedef struct
@@ -120,7 +120,7 @@ std::map<std::string, CPythonInvoker::PythonModuleInitialization> CAddonPythonIn
   if (modules.empty())
   {
     for (size_t i = 0; i < PythonModulesSize; i++)
-      modules.insert(make_pair(PythonModules[i].name, PythonModules[i].initialization));
+      modules.insert(std::make_pair(PythonModules[i].name, PythonModules[i].initialization));
   }
 
   return modules;

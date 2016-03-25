@@ -139,8 +139,10 @@ namespace XBMCAddon
         {
           std::string artName = it->first;
           StringUtils::ToLower(artName);
-          const std::string artFilename(it->second.c_str());
-          item->SetArt(artName, artFilename);
+          if (artName == "icon")
+            item->SetIconImage(it->second);
+          else
+            item->SetArt(artName, it->second);
         }
       }
     }
@@ -234,6 +236,12 @@ namespace XBMCAddon
       item->SetMimeType(mimetype);
     }
 
+    void ListItem::setContentLookup(bool enable)
+    {
+      LOCKGUI;
+      item->SetContentLookup(enable);
+    }
+
     String ListItem::getdescription()
     {
       return item->GetLabel();
@@ -262,7 +270,7 @@ namespace XBMCAddon
       return item->GetPath();
     }
 
-    void ListItem::setInfo(const char* type, const InfoLabelDict& infoLabels) throw (WrongTypeException)
+    void ListItem::setInfo(const char* type, const InfoLabelDict& infoLabels)
     {
       LOCKGUI;
 
@@ -289,7 +297,9 @@ namespace XBMCAddon
           else if (key == "count")
             item->m_iprogramCount = strtol(value.c_str(), NULL, 10);
           else if (key == "rating")
-            item->GetVideoInfoTag()->m_fRating = (float)strtod(value.c_str(), NULL);
+            item->GetVideoInfoTag()->SetRating((float)strtod(value.c_str(), NULL));
+          else if (key == "userrating")
+            item->GetVideoInfoTag()->m_iUserRating = strtol(value.c_str(), NULL, 10);
           else if (key == "size")
             item->m_dwSize = (int64_t)strtoll(value.c_str(), NULL, 10);
           else if (key == "watched") // backward compat - do we need it?
@@ -340,6 +350,8 @@ namespace XBMCAddon
           }
           else if (key == "genre")
             item->GetVideoInfoTag()->m_genre = StringUtils::Split(value, g_advancedSettings.m_videoItemSeparator);
+          else if (key == "country")
+            item->GetVideoInfoTag()->m_country = StringUtils::Split(value, g_advancedSettings.m_videoItemSeparator);
           else if (key == "director")
             item->GetVideoInfoTag()->m_director = StringUtils::Split(value, g_advancedSettings.m_videoItemSeparator);
           else if (key == "mpaa")
@@ -379,7 +391,7 @@ namespace XBMCAddon
           else if (key == "album")
             item->GetVideoInfoTag()->m_strAlbum = value;
           else if (key == "votes")
-            item->GetVideoInfoTag()->m_strVotes = value;
+            item->GetVideoInfoTag()->SetVotes(StringUtils::ReturnDigits(value));
           else if (key == "trailer")
             item->GetVideoInfoTag()->m_strTrailer = value;
           else if (key == "date")
@@ -396,24 +408,12 @@ namespace XBMCAddon
           }
           else if (key == "dateadded")
             item->GetVideoInfoTag()->m_dateAdded.SetFromDBDateTime(value.c_str());
-        }
-
-        // For backward compatibility.
-        // FIXME: Remove this behaviour. It should be possible to set only tvshowtitle without
-        // having mediatype implicitly changed.
-        if (item->GetVideoInfoTag()->m_type == MediaTypeNone)
-        {
-          if (!item->GetVideoInfoTag()->m_strShowTitle.empty() && item->GetVideoInfoTag()->m_iSeason == -1)
+          else if (key == "mediatype")
           {
-            item->GetVideoInfoTag()->m_type = MediaTypeTvShow;
-          }
-          else if (item->GetVideoInfoTag()->m_iSeason > -1)
-          {
-            item->GetVideoInfoTag()->m_type = MediaTypeEpisode;
-          }
-          else if (!item->GetVideoInfoTag()->m_artist.empty())
-          {
-            item->GetVideoInfoTag()->m_type = MediaTypeMusicVideo;
+            if (CMediaTypes::IsValidMediaType(value))
+              item->GetVideoInfoTag()->m_type = value;
+            else
+              CLog::Log(LOGWARNING, "Invalid media type \"%s\"", value.c_str());
           }
         }
       }
@@ -453,7 +453,9 @@ namespace XBMCAddon
           else if (key == "title")
             item->GetMusicInfoTag()->SetTitle(value);
           else if (key == "rating")
-            item->GetMusicInfoTag()->SetRating(value[0]);
+            item->GetMusicInfoTag()->SetRating((float)strtod(value.c_str(), NULL));
+          else if (key == "userrating")
+            item->GetMusicInfoTag()->SetUserrating(strtol(value.c_str(), NULL, 10));
           else if (key == "lyrics")
             item->GetMusicInfoTag()->SetLyrics(value);
           else if (key == "lastplayed")
@@ -466,8 +468,6 @@ namespace XBMCAddon
             item->GetMusicInfoTag()->SetMusicBrainzAlbumID(value);
           else if (key == "musicbrainzalbumartistid")
             item->GetMusicInfoTag()->SetMusicBrainzAlbumArtistID(StringUtils::Split(value, g_advancedSettings.m_musicItemSeparator));
-          else if (key == "musicbrainztrmid")
-            item->GetMusicInfoTag()->SetMusicBrainzTRMID(value);
           else if (key == "comment")
             item->GetMusicInfoTag()->SetComment(value);
           else if (key == "date")
@@ -551,6 +551,8 @@ namespace XBMCAddon
             video->m_iDuration = strtol(value.c_str(), NULL, 10);
           else if (key == "stereomode")
             video->m_strStereoMode = value;
+          else if (key == "language")
+            video->m_strLanguage = value;
         }
         item->GetVideoInfoTag()->m_streamDetails.AddStream(video);
       }
@@ -587,7 +589,6 @@ namespace XBMCAddon
     } // end ListItem::addStreamInfo
 
     void ListItem::addContextMenuItems(const std::vector<Tuple<String,String> >& items, bool replaceItems /* = false */)
-      throw (ListItemException)
     {
       int itemCount = 0;
       for (std::vector<Tuple<String,String> >::const_iterator iter = items.begin(); iter < items.end(); ++iter, ++itemCount)

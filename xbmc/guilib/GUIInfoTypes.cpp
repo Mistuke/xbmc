@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2005-2015 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
@@ -28,7 +28,6 @@
 #include "utils/StringUtils.h"
 #include "addons/Skin.h"
 
-using namespace std;
 using ADDON::CAddonMgr;
 
 CGUIInfoBool::CGUIInfoBool(bool value)
@@ -150,7 +149,7 @@ const std::string &CGUIInfoLabel::GetLabel(int contextWindow, bool preferImage, 
   bool needsUpdate = m_dirty;
   if (!m_info.empty())
   {
-    for (vector<CInfoPortion>::const_iterator portion = m_info.begin(); portion != m_info.end(); ++portion)
+    for (std::vector<CInfoPortion>::const_iterator portion = m_info.begin(); portion != m_info.end(); ++portion)
     {
       if (portion->m_info)
       {
@@ -174,7 +173,7 @@ const std::string &CGUIInfoLabel::GetItemLabel(const CGUIListItem *item, bool pr
   bool needsUpdate = m_dirty;
   if (item->IsFileItem() && !m_info.empty())
   {
-    for (vector<CInfoPortion>::const_iterator portion = m_info.begin(); portion != m_info.end(); ++portion)
+    for (std::vector<CInfoPortion>::const_iterator portion = m_info.begin(); portion != m_info.end(); ++portion)
     {
       if (portion->m_info)
       {
@@ -198,7 +197,7 @@ const std::string &CGUIInfoLabel::CacheLabel(bool rebuild) const
   if (rebuild)
   {
     m_label.clear();
-    for (vector<CInfoPortion>::const_iterator portion = m_info.begin(); portion != m_info.end(); ++portion)
+    for (std::vector<CInfoPortion>::const_iterator portion = m_info.begin(); portion != m_info.end(); ++portion)
       m_label += portion->Get();
     m_dirty = false;
   }
@@ -209,38 +208,60 @@ const std::string &CGUIInfoLabel::CacheLabel(bool rebuild) const
 
 bool CGUIInfoLabel::IsEmpty() const
 {
-  return m_info.size() == 0;
+  return m_info.empty();
 }
 
 bool CGUIInfoLabel::IsConstant() const
 {
-  return m_info.size() == 0 || (m_info.size() == 1 && m_info[0].m_info == 0);
+  return m_info.empty() || (m_info.size() == 1 && m_info[0].m_info == 0);
 }
 
-typedef std::string (*StringReplacerFunc) (const std::string &str);
-
-void ReplaceString(std::string &work, const std::string &str, StringReplacerFunc func)
+bool CGUIInfoLabel::ReplaceSpecialKeywordReferences(const std::string &strInput, const std::string &strKeyword, const StringReplacerFunc &func, std::string &strOutput)
 {
-  // Replace all $str[number] with the real string
-  size_t pos1 = work.find("$" + str + "[");
-  while (pos1 != std::string::npos)
+  // replace all $strKeyword[value] with resolved strings
+  std::string dollarStrPrefix = "$" + strKeyword + "[";
+
+  size_t index = 0;
+  size_t startPos;
+
+  while ((startPos = strInput.find(dollarStrPrefix, index)) != std::string::npos)
   {
-    size_t pos2 = pos1 + str.length() + 2;
-    size_t pos3 = StringUtils::FindEndBracket(work, '[', ']', pos2);
-    if (pos3 != std::string::npos)
+    size_t valuePos = startPos + dollarStrPrefix.size();
+    size_t endPos = StringUtils::FindEndBracket(strInput, '[', ']', valuePos);
+    if (endPos != std::string::npos)
     {
-      std::string left = work.substr(0, pos1);
-      std::string right = work.substr(pos3 + 1);
-      std::string replace = func(work.substr(pos2, pos3 - pos2));
-      work = left + replace + right;
+      if (index == 0)  // first occurrence?
+        strOutput.clear();
+      strOutput += strInput.substr(index, startPos - index);            // append part from the left side
+      strOutput += func(strInput.substr(valuePos, endPos - valuePos));  // resolve and append value part
+      index = endPos + 1;
     }
     else
     {
-      CLog::Log(LOGERROR, "Error parsing label - missing ']' in \"%s\"", work.c_str());
-      return;
+      // if closing bracket is missing, report error and leave incomplete reference in
+      CLog::Log(LOGERROR, "Error parsing value - missing ']' in \"%s\"", strInput.c_str());
+      break;
     }
-    pos1 = work.find("$" + str + "[", pos1);
   }
+
+  if (index)  // if we replaced anything
+  {
+    strOutput += strInput.substr(index);  // append leftover from the right side
+    return true;
+  }
+
+  return false;
+}
+
+bool CGUIInfoLabel::ReplaceSpecialKeywordReferences(std::string &work, const std::string &strKeyword, const StringReplacerFunc &func)
+{
+  std::string output;
+  if (ReplaceSpecialKeywordReferences(work, strKeyword, func, output))
+  {
+    work = output;
+    return true;
+  }
+  return false;
 }
 
 std::string LocalizeReplacer(const std::string &str)
@@ -255,9 +276,9 @@ std::string AddonReplacer(const std::string &str)
 {
   // assumes "addon.id #####"
   size_t length = str.find(" ");
-  std::string id = str.substr(0, length);
+  std::string addonid = str.substr(0, length);
   int stringid = atoi(str.substr(length + 1).c_str());
-  return CAddonMgr::Get().GetString(id, stringid);
+  return g_localizeStrings.GetAddonString(addonid, stringid);
 }
 
 std::string NumberReplacer(const std::string &str)
@@ -268,19 +289,19 @@ std::string NumberReplacer(const std::string &str)
 std::string CGUIInfoLabel::ReplaceLocalize(const std::string &label)
 {
   std::string work(label);
-  ReplaceString(work, "LOCALIZE", LocalizeReplacer);
-  ReplaceString(work, "NUMBER", NumberReplacer);
+  ReplaceSpecialKeywordReferences(work, "LOCALIZE", LocalizeReplacer);
+  ReplaceSpecialKeywordReferences(work, "NUMBER", NumberReplacer);
   return work;
 }
 
 std::string CGUIInfoLabel::ReplaceAddonStrings(const std::string &label)
 {
   std::string work(label);
-  ReplaceString(work, "ADDON", AddonReplacer);
+  ReplaceSpecialKeywordReferences(work, "ADDON", AddonReplacer);
   return work;
 }
 
-enum EINFOFORMAT { NONE = 0, FORMATINFO, FORMATESCINFO, FORMATVAR };
+enum EINFOFORMAT { NONE = 0, FORMATINFO, FORMATESCINFO, FORMATVAR, FORMATESCVAR };
 
 typedef struct
 {
@@ -288,9 +309,10 @@ typedef struct
   EINFOFORMAT  val;
 } infoformat;
 
-const static infoformat infoformatmap[] = {{ "$INFO[",    FORMATINFO },
+const static infoformat infoformatmap[] = {{ "$INFO[",    FORMATINFO},
                                            { "$ESCINFO[", FORMATESCINFO},
-                                           { "$VAR[",     FORMATVAR}};
+                                           { "$VAR[",     FORMATVAR},
+                                           { "$ESCVAR[",  FORMATESCVAR}};
 
 void CGUIInfoLabel::Parse(const std::string &label, int context)
 {
@@ -311,7 +333,7 @@ void CGUIInfoLabel::Parse(const std::string &label, int context)
     for (size_t i = 0; i < sizeof(infoformatmap) / sizeof(infoformat); i++)
     {
       pos2 = work.find(infoformatmap[i].str);
-      if (pos2 != string::npos && pos2 < pos1)
+      if (pos2 != std::string::npos && pos2 < pos1)
       {
         pos1 = pos2;
         len = strlen(infoformatmap[i].str);
@@ -329,11 +351,11 @@ void CGUIInfoLabel::Parse(const std::string &label, int context)
       {
         // decipher the block
         std::string block = work.substr(pos1 + len, pos2 - pos1 - len);
-        vector<string> params = StringUtils::Split(block, ",");
+        std::vector<std::string> params = StringUtils::Split(block, ",");
         if (!params.empty())
         {
           int info;
-          if (format == FORMATVAR)
+          if (format == FORMATVAR || format == FORMATESCVAR)
           {
             info = g_infoManager.TranslateSkinVariableString(params[0], context);
             if (info == 0)
@@ -348,7 +370,7 @@ void CGUIInfoLabel::Parse(const std::string &label, int context)
             prefix = params[1];
           if (params.size() > 2)
             postfix = params[2];
-          m_info.push_back(CInfoPortion(info, prefix, postfix, format == FORMATESCINFO));
+          m_info.push_back(CInfoPortion(info, prefix, postfix, format == FORMATESCINFO || format == FORMATESCVAR));
         }
         // and delete it from our work string
         work = work.substr(pos2 + 1);
@@ -409,4 +431,10 @@ std::string CGUIInfoLabel::GetLabel(const std::string &label, int contextWindow 
 { // translate the label
   CGUIInfoLabel info(label, "", contextWindow);
   return info.GetLabel(contextWindow, preferImage);
+}
+
+std::string CGUIInfoLabel::GetItemLabel(const std::string &label, const CGUIListItem *item, bool preferImage /*= false */)
+{ // translate the label
+  CGUIInfoLabel info(label);
+  return info.GetItemLabel(item, preferImage);
 }

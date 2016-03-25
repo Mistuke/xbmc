@@ -19,21 +19,21 @@
  *
  */
 
-#include "PVRRecording.h"
-#include "XBDateTime.h"
-#include "threads/Thread.h"
+#include "FileItem.h"
 #include "utils/Observer.h"
-#include "video/VideoThumbLoader.h"
 #include "video/VideoDatabase.h"
 
-#define PVR_ALL_RECORDINGS_PATH_EXTENSION "-1"
+#include "PVRRecording.h"
 
 namespace PVR
 {
+  class CPVRRecordingsPath;
+
   class CPVRRecordings : public Observable
   {
   private:
     typedef std::map<CPVRRecordingUid, CPVRRecordingPtr> PVR_RECORDINGMAP;
+    typedef PVR_RECORDINGMAP::iterator             PVR_RECORDINGMAP_ITR;
     typedef PVR_RECORDINGMAP::const_iterator             PVR_RECORDINGMAP_CITR;
 
     CCriticalSection             m_critSection;
@@ -42,13 +42,15 @@ namespace PVR
     unsigned int                 m_iLastId;
     bool                         m_bGroupItems;
     CVideoDatabase               m_database;
-    bool                         m_bHasDeleted;
+    bool                         m_bDeletedTVRecordings;
+    bool                         m_bDeletedRadioRecordings;
+    unsigned int                 m_iTVRecordings;
+    unsigned int                 m_iRadioRecordings;
 
     virtual void UpdateFromClients(void);
     virtual std::string TrimSlashes(const std::string &strOrig) const;
-    virtual const std::string GetDirectoryFromPath(const std::string &strPath, const std::string &strBase) const;
     virtual bool IsDirectoryMember(const std::string &strDirectory, const std::string &strEntryDirectory) const;
-    virtual void GetSubDirectories(const std::string &strBase, CFileItemList *results);
+    virtual void GetSubDirectories(const CPVRRecordingsPath &recParentPath, CFileItemList *results);
 
     /**
      * @brief recursively deletes all recordings in the specified directory
@@ -66,16 +68,18 @@ namespace PVR
     void Unload();
     void Clear();
     void UpdateFromClient(const CPVRRecordingPtr &tag);
+    void UpdateEpgTags(void);
 
     /**
      * @brief refresh the recordings list from the clients.
      */
     void Update(void);
 
-    int GetNumRecordings();
-    bool HasDeletedRecordings();
-    int GetRecordings(CFileItemList* results, bool bDeleted = false);
-    
+    int GetNumTVRecordings() const;
+    bool HasDeletedTVRecordings() const;
+    int GetNumRadioRecordings() const;
+    bool HasDeletedRadioRecordings() const;
+
     /**
      * Deletes the item in question, be it a directory or a file
      * @param item the item to delete

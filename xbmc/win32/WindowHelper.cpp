@@ -19,11 +19,8 @@
  */
 
 #include "WindowHelper.h"
-#include "../Util.h"
 
 extern HWND g_hWnd;
-
-using namespace std;
 
 CWHelper g_windowHelper;
 

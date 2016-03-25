@@ -23,19 +23,21 @@
 #include "utils/MathUtils.h"
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
-#include "utils/StringUtils.h"
 #include "threads/SingleLock.h"
 #include "guilib/GraphicContext.h"
 #include "video/videosync/VideoSync.h"
-#include "windowing/WindowingFactory.h"
+#include "settings/Settings.h"
 
 #if defined(HAS_GLX)
 #include "video/videosync/VideoSyncGLX.h"
 #endif
 #if defined(HAVE_X11)
 #include "video/videosync/VideoSyncDRM.h"
+#include "windowing/WindowingFactory.h"
 #elif defined(TARGET_RASPBERRY_PI)
 #include "video/videosync/VideoSyncPi.h"
+#elif defined(HAS_IMXVPU)
+#include "video/videosync/VideoSyncIMX.h"
 #endif
 #if defined(TARGET_WINDOWS)
 #include "video/videosync/VideoSyncD3D.h"
@@ -46,8 +48,6 @@
 #if defined(TARGET_DARWIN_IOS)
 #include "video/videosync/VideoSyncIos.h"
 #endif
-
-using namespace std;
 
 CVideoReferenceClock::CVideoReferenceClock() : CThread("RefClock")
 {
@@ -70,6 +70,13 @@ CVideoReferenceClock::CVideoReferenceClock() : CThread("RefClock")
 
 CVideoReferenceClock::~CVideoReferenceClock()
 {
+}
+
+void CVideoReferenceClock::Start()
+{
+  CSingleExit lock(g_graphicsContext);
+  if(CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK) && !IsRunning())
+    Create();
 }
 
 void CVideoReferenceClock::Stop()
@@ -115,6 +122,8 @@ void CVideoReferenceClock::Process()
     m_pVideoSync = new CVideoSyncIos();
 #elif defined(TARGET_RASPBERRY_PI)
     m_pVideoSync = new CVideoSyncPi();
+#elif defined(HAS_IMXVPU)
+    m_pVideoSync = new CVideoSyncIMX();
 #endif
 
     if (m_pVideoSync)
@@ -230,7 +239,7 @@ int64_t CVideoReferenceClock::GetTime(bool interpolated /* = true*/)
       //interpolate from the last time the clock was updated
       double elapsed = (double)(Now - m_VblankTime) * m_ClockSpeed * m_fineadjust;
       //don't interpolate more than 2 vblank periods
-      elapsed = min(elapsed, UpdateInterval() * 2.0);
+      elapsed = std::min(elapsed, UpdateInterval() * 2.0);
 
       //make sure the clock doesn't go backwards
       int64_t intTime = m_CurrTime + (int64_t)elapsed;
@@ -259,7 +268,7 @@ int64_t CVideoReferenceClock::GetFrequency()
 void CVideoReferenceClock::SetSpeed(double Speed)
 {
   CSingleLock SingleLock(m_CritSection);
-  //dvdplayer can change the speed to fit the rereshrate
+  //VideoPlayer can change the speed to fit the rereshrate
   if (m_UseVblank)
   {
     if (Speed != m_ClockSpeed)
@@ -274,7 +283,7 @@ double CVideoReferenceClock::GetSpeed()
 {
   CSingleLock SingleLock(m_CritSection);
 
-  //dvdplayer needs to know the speed for the resampler
+  //VideoPlayer needs to know the speed for the resampler
   if (m_UseVblank)
     return m_ClockSpeed;
   else
@@ -290,7 +299,7 @@ void CVideoReferenceClock::UpdateRefreshrate()
   CLog::Log(LOGDEBUG, "CVideoReferenceClock: Detected refreshrate: %.3f hertz", m_RefreshRate);
 }
 
-//dvdplayer needs to know the refreshrate for matching the fps of the video playing to it
+//VideoPlayer needs to know the refreshrate for matching the fps of the video playing to it
 double CVideoReferenceClock::GetRefreshRate(double* interval /*= NULL*/)
 {
   CSingleLock SingleLock(m_CritSection);
@@ -307,7 +316,7 @@ double CVideoReferenceClock::GetRefreshRate(double* interval /*= NULL*/)
 }
 
 
-//this is called from CDVDClock::WaitAbsoluteClock, which is called from CXBMCRenderManager::WaitPresentTime
+//this is called from CDVDClock::WaitAbsoluteClock, which is called from CRenderManager::WaitPresentTime
 //it waits until a certain timestamp has passed, used for displaying videoframes at the correct moment
 int64_t CVideoReferenceClock::Wait(int64_t Target)
 {
@@ -356,7 +365,7 @@ int64_t CVideoReferenceClock::Wait(int64_t Target)
     //sleep until the timestamp has passed
     SleepTime = (int)((Target - (Now + ClockOffset)) * 1000 / m_SystemFrequency);
     if (SleepTime > 0)
-      ::Sleep(SleepTime);
+      Sleep(SleepTime);
 
     Now = CurrentHostCounter();
     return Now + ClockOffset;

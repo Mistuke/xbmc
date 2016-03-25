@@ -23,29 +23,27 @@
 #include "PeripheralCecAdapter.h"
 #include "input/XBIRRemote.h"
 #include "Application.h"
-#include "ApplicationMessenger.h"
+#include "messaging/ApplicationMessenger.h"
 #include "DynamicDll.h"
 #include "threads/SingleLock.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
 #include "guilib/LocalizeStrings.h"
-#include "peripherals/Peripherals.h"
-#include "peripherals/bus/PeripheralBus.h"
 #include "pictures/GUIWindowSlideShow.h"
 #include "settings/AdvancedSettings.h"
-#include "settings/Settings.h"
+#include "utils/JobManager.h"
 #include "utils/log.h"
 #include "utils/Variant.h"
 
 #include <libcec/cec.h>
 
+using namespace KODI::MESSAGING;
 using namespace PERIPHERALS;
 using namespace ANNOUNCEMENT;
 using namespace CEC;
-using namespace std;
 
-#define CEC_LIB_SUPPORTED_VERSION 0x2100
+#define CEC_LIB_SUPPORTED_VERSION LIBCEC_VERSION_TO_UINT(3, 0, 0)
 
 /* time in seconds to ignore standby commands from devices after the screensaver has been activated */
 #define SCREENSAVER_TIMEOUT       20
@@ -55,6 +53,9 @@ using namespace std;
 #define LOCALISED_ID_TV           36037
 #define LOCALISED_ID_AVR          36038
 #define LOCALISED_ID_TV_AVR       36039
+#define LOCALISED_ID_STOP         36044
+#define LOCALISED_ID_PAUSE        36045
+
 #define LOCALISED_ID_NONE         231
 
 /* time in seconds to suppress source activation after receiving OnStop */
@@ -81,8 +82,8 @@ class DllLibCEC : public DllDynamic, DllLibCECInterface
   END_METHOD_RESOLVE()
 };
 
-CPeripheralCecAdapter::CPeripheralCecAdapter(const PeripheralScanResult& scanResult) :
-  CPeripheralHID(scanResult),
+CPeripheralCecAdapter::CPeripheralCecAdapter(const PeripheralScanResult& scanResult, CPeripheralBus* bus) :
+  CPeripheralHID(scanResult, bus),
   CThread("CECAdapter"),
   m_dll(NULL),
   m_cecAdapter(NULL)
@@ -96,7 +97,7 @@ CPeripheralCecAdapter::~CPeripheralCecAdapter(void)
 {
   {
     CSingleLock lock(m_critSection);
-    CAnnouncementManager::Get().RemoveAnnouncer(this);
+    CAnnouncementManager::GetInstance().RemoveAnnouncer(this);
     m_bStop = true;
   }
 
@@ -150,7 +151,7 @@ void CPeripheralCecAdapter::Announce(AnnouncementFlag flag, const char *sender, 
   {
     CSingleLock lock(m_critSection);
     m_iExitCode = static_cast<int>(data["exitcode"].asInteger(EXITCODE_QUIT));
-    CAnnouncementManager::Get().RemoveAnnouncer(this);
+    CAnnouncementManager::GetInstance().RemoveAnnouncer(this);
     StopThread(false);
   }
   else if (flag == GUI && !strcmp(sender, "xbmc") && !strcmp(message, "OnScreensaverDeactivated") && m_bIsReady)
@@ -281,7 +282,7 @@ bool CPeripheralCecAdapter::InitialiseFeature(const PeripheralFeature feature)
     }
     else
     {
-      CLog::Log(LOGDEBUG, "%s - using libCEC v%s", __FUNCTION__, m_cecAdapter->ToString((cec_server_version)m_configuration.serverVersion));
+      CLog::Log(LOGDEBUG, "%s - using libCEC v%s", __FUNCTION__, m_cecAdapter->VersionToString(m_configuration.serverVersion).c_str());
       SetVersionInfo(m_configuration);
     }
 
@@ -294,7 +295,7 @@ bool CPeripheralCecAdapter::InitialiseFeature(const PeripheralFeature feature)
 
 void CPeripheralCecAdapter::SetVersionInfo(const libcec_configuration &configuration)
 {
-  m_strVersionInfo = StringUtils::Format("libCEC %s - firmware v%d", m_cecAdapter->ToString((cec_server_version)configuration.serverVersion), configuration.iFirmwareVersion);
+  m_strVersionInfo = StringUtils::Format("libCEC %s - firmware v%d", m_cecAdapter->VersionToString(configuration.serverVersion).c_str(), configuration.iFirmwareVersion);
 
   // append firmware build date
   if (configuration.iFirmwareBuildDate != CEC_FW_BUILD_UNKNOWN)
@@ -368,7 +369,7 @@ void CPeripheralCecAdapter::Process(void)
     m_bActiveSourceBeforeStandby = false;
   }
 
-  CAnnouncementManager::Get().AddAnnouncer(this);
+  CAnnouncementManager::GetInstance().AddAnnouncer(this);
 
   m_queryThread = new CPeripheralCecAdapterUpdateThread(this, &m_configuration);
   m_queryThread->Create(false);
@@ -557,53 +558,54 @@ void CPeripheralCecAdapter::SetMenuLanguage(const char *strLanguage)
   std::string strGuiLanguage;
 
   if (!strcmp(strLanguage, "bul"))
-    strGuiLanguage = "Bulgarian";
+    strGuiLanguage = "bg_bg";
   else if (!strcmp(strLanguage, "hrv"))
-    strGuiLanguage = "Croatian";
+    strGuiLanguage = "hr_hr";
   else if (!strcmp(strLanguage, "cze"))
-    strGuiLanguage = "Czech";
+    strGuiLanguage = "cs_cz";
   else if (!strcmp(strLanguage, "dan"))
-    strGuiLanguage = "Danish";
+    strGuiLanguage = "da_dk";
   else if (!strcmp(strLanguage, "dut"))
-    strGuiLanguage = "Dutch";
+    strGuiLanguage = "nl_nl";
   else if (!strcmp(strLanguage, "eng"))
-    strGuiLanguage = "English";
+    strGuiLanguage = "en_gb";
   else if (!strcmp(strLanguage, "fin"))
-    strGuiLanguage = "Finnish";
+    strGuiLanguage = "fi_fi";
   else if (!strcmp(strLanguage, "fre"))
-    strGuiLanguage = "French";
+    strGuiLanguage = "fr_fr";
   else if (!strcmp(strLanguage, "ger"))
-    strGuiLanguage = "German";
+    strGuiLanguage = "de_de";
   else if (!strcmp(strLanguage, "gre"))
-    strGuiLanguage = "Greek";
+    strGuiLanguage = "el_gr";
   else if (!strcmp(strLanguage, "hun"))
-    strGuiLanguage = "Hungarian";
+    strGuiLanguage = "hu_hu";
   else if (!strcmp(strLanguage, "ita"))
-    strGuiLanguage = "Italian";
+    strGuiLanguage = "it_it";
   else if (!strcmp(strLanguage, "nor"))
-    strGuiLanguage = "Norwegian";
+    strGuiLanguage = "nb_no";
   else if (!strcmp(strLanguage, "pol"))
-    strGuiLanguage = "Polish";
+    strGuiLanguage = "pl_pl";
   else if (!strcmp(strLanguage, "por"))
-    strGuiLanguage = "Portuguese";
+    strGuiLanguage = "pt_pt";
   else if (!strcmp(strLanguage, "rum"))
-    strGuiLanguage = "Romanian";
+    strGuiLanguage = "ro_ro";
   else if (!strcmp(strLanguage, "rus"))
-    strGuiLanguage = "Russian";
+    strGuiLanguage = "ru_ru";
   else if (!strcmp(strLanguage, "srp"))
-    strGuiLanguage = "Serbian";
+    strGuiLanguage = "sr_rs@latin";
   else if (!strcmp(strLanguage, "slo"))
-    strGuiLanguage = "Slovenian";
+    strGuiLanguage = "sl_si";
   else if (!strcmp(strLanguage, "spa"))
-    strGuiLanguage = "Spanish";
+    strGuiLanguage = "es_es";
   else if (!strcmp(strLanguage, "swe"))
-    strGuiLanguage = "Swedish";
+    strGuiLanguage = "sv_se";
   else if (!strcmp(strLanguage, "tur"))
-    strGuiLanguage = "Turkish";
+    strGuiLanguage = "tr_tr";
 
   if (!strGuiLanguage.empty())
   {
-    CApplicationMessenger::Get().SetGUILanguage(strGuiLanguage);
+    strGuiLanguage = "resource.language." + strGuiLanguage;
+    CApplicationMessenger::GetInstance().PostMsg(TMSG_SETLANGUAGE, -1, -1, nullptr, strGuiLanguage);
     CLog::Log(LOGDEBUG, "%s - language set to '%s'", __FUNCTION__, strGuiLanguage.c_str());
   }
   else
@@ -733,7 +735,12 @@ int CPeripheralCecAdapter::CecAlert(void *cbParam, const libcec_alert alert, con
   }
 
   if (bReopenConnection)
-    adapter->ReopenConnection();
+  {
+    // Reopen the connection asynchronously. Otherwise a deadlock may occure.
+    // Reconnect means destruction and recreation of our libcec instance, but libcec
+    // calls this callback function synchronously and must not be destroyed meanwhile.
+    adapter->ReopenConnection(true);
+  }
 
   return 1;
 }
@@ -754,7 +761,7 @@ void CPeripheralCecAdapter::GetNextKey(void)
   m_bHasButton = false;
   if (m_bIsReady)
   {
-    vector<CecButtonPress>::iterator it = m_buttonQueue.begin();
+    std::vector<CecButtonPress>::iterator it = m_buttonQueue.begin();
     if (it != m_buttonQueue.end())
     {
       m_currentButton = (*it);
@@ -780,7 +787,7 @@ void CPeripheralCecAdapter::PushCecKeypress(const CecButtonPress &key)
       return;
     }
     // if we received a keypress with a duration set, try to find the same one without a duration set, and replace it
-    for (vector<CecButtonPress>::reverse_iterator it = m_buttonQueue.rbegin(); it != m_buttonQueue.rend(); ++it)
+    for (std::vector<CecButtonPress>::reverse_iterator it = m_buttonQueue.rbegin(); it != m_buttonQueue.rend(); ++it)
     {
       if ((*it).iButton == key.iButton)
       {
@@ -1153,7 +1160,7 @@ void CPeripheralCecAdapter::CecSourceActivated(void *cbParam, const CEC::cec_log
   if (activated == 1)
     g_application.WakeUpScreenSaverAndDPMS();
 
-  if (adapter->GetSettingBool("pause_playback_on_deactivate"))
+  if (adapter->GetSettingInt("pause_or_stop_playback_on_deactivate") != LOCALISED_ID_NONE)
   {
     bool bShowingSlideshow = (g_windowManager.GetActiveWindow() == WINDOW_SLIDESHOW);
     CGUIWindowSlideShow *pSlideShow = bShowingSlideshow ? (CGUIWindowSlideShow *)g_windowManager.GetWindow(WINDOW_SLIDESHOW) : NULL;
@@ -1166,14 +1173,22 @@ void CPeripheralCecAdapter::CecSourceActivated(void *cbParam, const CEC::cec_log
     else if (bPausedAndActivated)
       adapter->m_bPlaybackPaused = false;
 
-    if (bPlayingAndDeactivated || bPausedAndActivated)
+    if ((bPlayingAndDeactivated || bPausedAndActivated)
+      && adapter->GetSettingInt("pause_or_stop_playback_on_deactivate") == LOCALISED_ID_PAUSE)
     {
       if (pSlideShow)
         // pause/resume slideshow
         pSlideShow->OnAction(CAction(ACTION_PAUSE));
       else
         // pause/resume player
-        CApplicationMessenger::Get().MediaPause();
+        CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_PAUSE);
+    }
+    else if (adapter->GetSettingInt("pause_or_stop_playback_on_deactivate") == LOCALISED_ID_STOP)
+    {
+      if (pSlideShow)
+        pSlideShow->OnAction(CAction(ACTION_STOP));
+      else
+        CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_STOP);
     }
   }
 }
@@ -1282,13 +1297,13 @@ void CPeripheralCecAdapter::SetConfigurationFromLibCEC(const CEC::libcec_configu
              m_configuration.bShutdownOnStandby == 1 ? 13005 : 36028);
 
   if (bChanged)
-    CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(36000), g_localizeStrings.Get(36023));
+    CLog::Log(LOGDEBUG, "SetConfigurationFromLibCEC - settings updated by libCEC");
 }
 
 void CPeripheralCecAdapter::SetConfigurationFromSettings(void)
 {
   // client version matches the version of libCEC that we originally used the API from
-  m_configuration.clientVersion = CEC_CLIENT_VERSION_2_2_0;
+  m_configuration.clientVersion = LIBCEC_VERSION_TO_UINT(3, 0, 0);
 
   // device name 'XBMC'
   snprintf(m_configuration.strDeviceName, 13, "%s", GetSettingString("device_name").c_str());
@@ -1373,6 +1388,12 @@ void CPeripheralCecAdapter::SetConfigurationFromSettings(void)
   // backwards compatibility. will be removed once the next major release of libCEC is out
   m_configuration.iDoubleTapTimeoutMs = GetSettingInt("double_tap_timeout_ms");
 #endif
+
+  if (GetSettingBool("pause_playback_on_deactivate"))
+  {
+    SetSetting("pause_or_stop_playback_on_deactivate", 36045);
+    SetSetting("pause_playback_on_deactivate", false);
+  }
 }
 
 void CPeripheralCecAdapter::ReadLogicalAddresses(const std::string &strString, cec_logical_addresses &addresses)
@@ -1411,7 +1432,7 @@ void CPeripheralCecAdapter::ReadLogicalAddresses(int iLocalisedId, cec_logical_a
   }
 }
 
-bool CPeripheralCecAdapter::WriteLogicalAddresses(const cec_logical_addresses& addresses, const string& strSettingName, const string& strAdvancedSettingName)
+bool CPeripheralCecAdapter::WriteLogicalAddresses(const cec_logical_addresses& addresses, const std::string& strSettingName, const std::string& strAdvancedSettingName)
 {
   bool bChanged(false);
 
@@ -1652,13 +1673,40 @@ void CPeripheralCecAdapter::OnDeviceRemoved(void)
   m_bDeviceRemoved = true;
 }
 
-bool CPeripheralCecAdapter::ReopenConnection(void)
+namespace PERIPHERALS
 {
+
+class CPeripheralCecAdapterReopenJob : public CJob
+{
+public:
+  CPeripheralCecAdapterReopenJob(CPeripheralCecAdapter *adapter)
+    : m_adapter(adapter) {}
+  virtual ~CPeripheralCecAdapterReopenJob() {}
+
+  bool DoWork(void)
+  {
+    return m_adapter->ReopenConnection(false);
+  }
+
+private:
+  CPeripheralCecAdapter *m_adapter;
+};
+
+};
+
+bool CPeripheralCecAdapter::ReopenConnection(bool bAsync /* = false */)
+{
+  if (bAsync)
+  {
+    CJobManager::GetInstance().AddJob(new CPeripheralCecAdapterReopenJob(this), nullptr, CJob::PRIORITY_NORMAL);
+    return true;
+  }
+
   // stop running thread
   {
     CSingleLock lock(m_critSection);
     m_iExitCode = EXITCODE_RESTARTAPP;
-    CAnnouncementManager::Get().RemoveAnnouncer(this);
+    CAnnouncementManager::GetInstance().RemoveAnnouncer(this);
     StopThread(false);
   }
   StopThread();

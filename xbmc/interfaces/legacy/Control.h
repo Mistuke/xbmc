@@ -28,7 +28,6 @@
 #include "Tuple.h"
 #include "ListItem.h"
 #include "swighelper.h"
-#include "WindowException.h"
 
 
 // hardcoded offsets for button controls (and controls that use button controls)
@@ -56,7 +55,7 @@ namespace XBMCAddon
       virtual ~Control();
 
 #ifndef SWIG
-      virtual CGUIControl* Create() throw (WindowException);
+      virtual CGUIControl* Create();
 #endif
 
       // currently we only accept messages from a button or controllist with a select action
@@ -127,7 +126,7 @@ namespace XBMCAddon
       // setVisibleCondition() Method
       /**
        * setVisibleCondition(visible[,allowHiddenFocus]) -- Set's the control's visible condition.
-       *     Allows XBMC to control the visible status of the control.
+       *     Allows Kodi to control the visible status of the control.
        * 
        * visible          : string - Visible condition.\n
        * allowHiddenFocus : bool - True=gains focus even if hidden.
@@ -142,7 +141,7 @@ namespace XBMCAddon
       // setEnableCondition() Method
       /**
        * setEnableCondition(enable) -- Set's the control's enabled condition.
-       *     Allows XBMC to control the enabled status of the control.
+       *     Allows Kodi to control the enabled status of the control.
        * 
        * enable           : string - Enable condition.
        * 
@@ -166,7 +165,7 @@ namespace XBMCAddon
        * example:
        *   - self.button.setAnimations([('focus', 'effect=zoom end=90,247,220,56 time=0',)])
        */
-      virtual void setAnimations(const std::vector< Tuple<String,String> >& eventAttr) throw (WindowException);
+      virtual void setAnimations(const std::vector< Tuple<String,String> >& eventAttr);
 
       // setPosition() Method
       /**
@@ -224,8 +223,7 @@ namespace XBMCAddon
        *   - self.button.setNavigation(self.button1, self.button2, self.button3, self.button4)
        */
       virtual void setNavigation(const Control* up, const Control* down,
-                                 const Control* left, const Control* right) 
-        throw (WindowException);
+                                 const Control* left, const Control* right);
 
       // controlUp() Method
       /**
@@ -242,7 +240,7 @@ namespace XBMCAddon
        * example:
        *   - self.button.controlUp(self.button1)
        */
-      virtual void controlUp(const Control* up) throw (WindowException);
+      virtual void controlUp(const Control* up);
 
       // controlDown() Method
       /**
@@ -259,7 +257,7 @@ namespace XBMCAddon
        * example:
        *   - self.button.controlDown(self.button1)
        */
-      virtual void controlDown(const Control* control) throw (WindowException);
+      virtual void controlDown(const Control* control);
 
       // controlLeft() Method
       /**
@@ -276,7 +274,7 @@ namespace XBMCAddon
        * example:
        *   - self.button.controlLeft(self.button1)
        */
-      virtual void controlLeft(const Control* control) throw (WindowException);
+      virtual void controlLeft(const Control* control);
 
       // controlRight() Method
       /**
@@ -293,7 +291,7 @@ namespace XBMCAddon
        * example:
        *   - self.button.controlRight(self.button1)
        */
-      virtual void controlRight(const Control* control) throw (WindowException);
+      virtual void controlRight(const Control* control);
 
 #ifndef SWIG
       int iControlId;
@@ -330,13 +328,16 @@ namespace XBMCAddon
        */
       virtual void setTextures(const char* up, const char* down, 
                                const char* upFocus, 
-                               const char* downFocus) throw(UnimplementedException);
+                               const char* downFocus,
+                               const char* upDisabled, const char* downDisabled);
 #ifndef SWIG
       color_t color;
       std::string strTextureUp;
       std::string strTextureDown;
       std::string strTextureUpFocus;
       std::string strTextureDownFocus;
+      std::string strTextureUpDisabled;
+      std::string strTextureDownDisabled;
 #endif
 
     private:
@@ -385,7 +386,7 @@ namespace XBMCAddon
        * example:
        *   - label = self.label.getLabel()
        */
-      virtual String getLabel() throw(UnimplementedException);
+      virtual String getLabel();
 
       /**
        * setLabel(label) -- Set's text for this label.
@@ -401,7 +402,7 @@ namespace XBMCAddon
                             const char* disabledColor = NULL,
                             const char* shadowColor = NULL,
                             const char* focusedColor = NULL,
-                            const String& label2 = emptyString) throw(UnimplementedException);
+                            const String& label2 = emptyString);
 #ifndef SWIG
       ControlLabel() : 
         bHasPath(false),
@@ -416,7 +417,7 @@ namespace XBMCAddon
       bool bHasPath;
       int iAngle;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create() throw (WindowException);
+      SWIGHIDDENVIRTUAL CGUIControl* Create();
 
 #endif
     };
@@ -439,7 +440,7 @@ namespace XBMCAddon
      * alignment      : [opt] integer - alignment of label - *Note, see xbfont.h\n
      * focusTexture   : [opt] string - filename for focus texture.\n
      * noFocusTexture : [opt] string - filename for no focus texture.\n
-     * isPassword     : [opt] bool - if true, mask text value.
+     * isPassword     : [opt] bool - True=mask text value with ****.
      * 
      * *Note, You can use the above as keywords for arguments and skip certain optional arguments.\n
      *        Once you use a keyword, all following arguments require the keyword.\n
@@ -473,7 +474,7 @@ namespace XBMCAddon
                             const char* disabledColor = NULL,
                             const char* shadowColor = NULL,
                             const char* focusedColor = NULL,
-                            const String& label2 = emptyString) throw(UnimplementedException);
+                            const String& label2 = emptyString);
 
       // getLabel() Method
       /**
@@ -482,7 +483,7 @@ namespace XBMCAddon
        * example:
        *   - label = self.edit.getLabel()
        */
-      virtual String getLabel() throw(UnimplementedException);
+      virtual String getLabel();
 
       // setText() Method
       /**
@@ -493,7 +494,7 @@ namespace XBMCAddon
        * example:
        *   - self.edit.setText('online')
        */
-      virtual void setText(const String& text) throw(UnimplementedException);
+      virtual void setText(const String& text);
 
       // getText() Method
       /**
@@ -502,7 +503,7 @@ namespace XBMCAddon
        * example:
        *   - value = self.edit.getText()
        */
-      virtual String getText() throw(UnimplementedException);
+      virtual String getText();
 
 #ifndef SWIG
       ControlEdit() :
@@ -518,7 +519,7 @@ namespace XBMCAddon
       uint32_t align;
       bool bIsPassword;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create() throw (WindowException);
+      SWIGHIDDENVIRTUAL CGUIControl* Create();
 #endif
     };
 
@@ -556,7 +557,7 @@ namespace XBMCAddon
      */
     class ControlList : public Control 
     {
-      void internAddListItem(AddonClass::Ref<ListItem> listitem, bool sendMessage) throw(WindowException);
+      void internAddListItem(AddonClass::Ref<ListItem> listitem, bool sendMessage);
 
     public:
       ControlList(long x, long y, long width, long height, const char* font = NULL,
@@ -601,7 +602,7 @@ namespace XBMCAddon
        * example:
        *   - cList.selectItem(12)
        */
-      virtual void selectItem(long item) throw(UnimplementedException);
+      virtual void selectItem(long item);
 
       /**
        * removeItem(index) -- Remove an item by index number.
@@ -611,7 +612,7 @@ namespace XBMCAddon
        * example:
        *   - cList.removeItem(12)
        */
-      virtual void removeItem(int index) throw (UnimplementedException,WindowException);
+      virtual void removeItem(int index);
 
       /**
        * reset() -- Clear all ListItems in this control list.
@@ -619,7 +620,7 @@ namespace XBMCAddon
        * example:
        *   - cList.reset()
        */
-      virtual void reset() throw (UnimplementedException);
+      virtual void reset();
 
       /**
        * getSpinControl() -- returns the associated ControlSpin object.
@@ -631,7 +632,7 @@ namespace XBMCAddon
        * example:
        *   - ctl = cList.getSpinControl()
        */
-      virtual Control* getSpinControl() throw (UnimplementedException);
+      virtual Control* getSpinControl();
 
       /**
        * getSelectedPosition() -- Returns the position of the selected item as an integer.
@@ -641,7 +642,7 @@ namespace XBMCAddon
        * example:
        *   - pos = cList.getSelectedPosition()
        */
-      virtual long getSelectedPosition() throw (UnimplementedException);
+      virtual long getSelectedPosition();
 
       /**
        * getSelectedItem() -- Returns the selected item as a ListItem object.
@@ -653,7 +654,7 @@ namespace XBMCAddon
        * example:
        *   - item = cList.getSelectedItem()
        */
-      virtual XBMCAddon::xbmcgui::ListItem* getSelectedItem() throw (UnimplementedException);
+      virtual XBMCAddon::xbmcgui::ListItem* getSelectedItem();
 
 
       // setImageDimensions() method
@@ -666,7 +667,7 @@ namespace XBMCAddon
        * example:
        *   - cList.setImageDimensions(18, 18)
        */
-      virtual void setImageDimensions(long imageWidth,long imageHeight) throw (UnimplementedException);
+      virtual void setImageDimensions(long imageWidth,long imageHeight);
 
       // setItemHeight() method
       /**
@@ -677,7 +678,7 @@ namespace XBMCAddon
        * example:
        *   - cList.setItemHeight(25)
        */
-      virtual void setItemHeight(long height) throw (UnimplementedException);
+      virtual void setItemHeight(long height);
 
       // setSpace() method
       /**
@@ -688,7 +689,7 @@ namespace XBMCAddon
        * example:
        *   - cList.setSpace(5)
        */
-      virtual void setSpace(int space) throw (UnimplementedException);
+      virtual void setSpace(int space);
 
       // setPageControlVisible() method
       /**
@@ -699,7 +700,7 @@ namespace XBMCAddon
        * example:
        *   - cList.setPageControlVisible(True)
        */
-      virtual void setPageControlVisible(bool visible) throw(UnimplementedException);
+      virtual void setPageControlVisible(bool visible);
 
       // size() method
       /**
@@ -708,7 +709,7 @@ namespace XBMCAddon
        * example:
        *   - cnt = cList.size()
        */
-      virtual long size() throw (UnimplementedException);
+      virtual long size();
 
 
       // getItemHeight() Method
@@ -718,7 +719,7 @@ namespace XBMCAddon
        * example:
        *   - item_height = self.cList.getItemHeight()
        */
-      virtual long getItemHeight() throw(UnimplementedException);
+      virtual long getItemHeight();
 
       // getSpace() Method
       /**
@@ -727,7 +728,7 @@ namespace XBMCAddon
        * example:
        *   - gap = self.cList.getSpace()
        */
-      virtual long getSpace() throw (UnimplementedException);
+      virtual long getSpace();
 
       // getListItem() method
       /**
@@ -740,7 +741,7 @@ namespace XBMCAddon
        * example:
        *   - listitem = cList.getListItem(6)
        */
-      virtual XBMCAddon::xbmcgui::ListItem* getListItem(int index) throw (UnimplementedException,WindowException);
+      virtual XBMCAddon::xbmcgui::ListItem* getListItem(int index);
 
       /**
        * setStaticContent(items) -- Fills a static list with a list of listitems.
@@ -752,7 +753,7 @@ namespace XBMCAddon
        * example:
        *   - cList.setStaticContent(items=listitems)
        */
-      virtual void setStaticContent(const ListItemList* items) throw (UnimplementedException);
+      virtual void setStaticContent(const ListItemList* items);
 
 #ifndef SWIG
       void sendLabelBind(int tail);
@@ -789,7 +790,7 @@ namespace XBMCAddon
       int itemTextOffsetY;
       uint32_t alignmentY;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create() throw (WindowException);
+      SWIGHIDDENVIRTUAL CGUIControl* Create();
 #endif
     };
 
@@ -832,7 +833,17 @@ namespace XBMCAddon
        * example:
        *   - self.fadelabel.addLabel('This is a line of text that can scroll.')
        */
-       virtual void addLabel(const String& label) throw (UnimplementedException);
+       virtual void addLabel(const String& label);
+
+      /**
+       * setScrolling(scroll) -- Set scrolling.
+       *
+       * scroll          : boolean - True = enabled / False = disabled
+       *
+       * example:
+       *   - self.fadelabel.setScrolling(False)
+       */
+      virtual void setScrolling(bool scroll);
 
       /**
        * reset() -- Clear this fade label.
@@ -840,7 +851,7 @@ namespace XBMCAddon
        * example:
        *   - self.fadelabel.reset()
        */
-      virtual void reset() throw (UnimplementedException);
+      virtual void reset();
 
 #ifndef SWIG
       std::string strFont;
@@ -848,7 +859,7 @@ namespace XBMCAddon
       std::vector<std::string> vecLabels;
       uint32_t align;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create() throw (WindowException);
+      SWIGHIDDENVIRTUAL CGUIControl* Create();
 
       ControlFadeLabel() {}
 #endif
@@ -889,7 +900,7 @@ namespace XBMCAddon
        * example:
        *   - self.textbox.setText('This is a line of text that can wrap.')
        */
-      virtual void setText(const String& text) throw(UnimplementedException);
+      virtual void setText(const String& text);
 
       // getText() Method
       /**
@@ -898,7 +909,7 @@ namespace XBMCAddon
        * example:
        *   - text = self.text.getText()
        */
-      virtual String getText() throw(UnimplementedException);
+      virtual String getText();
 
       // reset() Method
       /**
@@ -907,7 +918,7 @@ namespace XBMCAddon
        * example:
        *   - self.textbox.reset()
        */
-      virtual void reset() throw(UnimplementedException);
+      virtual void reset();
 
       // scroll() Method
       /**
@@ -918,7 +929,7 @@ namespace XBMCAddon
        * example:
        *   - self.textbox.scroll(10)
        */
-      virtual void scroll(long id) throw(UnimplementedException);
+      virtual void scroll(long id);
 
       // autoScroll() Method
       /**
@@ -931,13 +942,13 @@ namespace XBMCAddon
        * example:
        *   - self.textbox.autoScroll(1, 2, 1)
        */
-      virtual void autoScroll(int delay, int time, int repeat) throw(UnimplementedException);
+      virtual void autoScroll(int delay, int time, int repeat);
 
 #ifndef SWIG
       std::string strFont;
       color_t textColor;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create() throw (WindowException);
+      SWIGHIDDENVIRTUAL CGUIControl* Create();
 
       ControlTextBox() {}
 #endif
@@ -972,15 +983,16 @@ namespace XBMCAddon
                    const char* colorDiffuse = NULL);
 
       /**
-       * setImage(filename, useCache) -- Changes the image.
+       * setImage(filename[, useCache]) -- Changes the image.
        * 
-       * filename       : string - image filename.
-       * useCache       : [opt] bool - true/use cache, false/don't use cache
+       * filename       : string - image filename.\n
+       * useCache       : [opt] bool - True=use cache (default) / False=don't use cache.
        * 
        * example:
        *   - self.image.setImage('special://home/scripts/test.png')
+       *   - self.image.setImage('special://home/scripts/test.png', False)
        */
-      virtual void setImage(const char* imageFilename, const bool useCache = true) throw (UnimplementedException);
+      virtual void setImage(const char* imageFilename, const bool useCache = true);
 
       /**
        * setColorDiffuse(colorDiffuse) -- Changes the images color.
@@ -990,7 +1002,7 @@ namespace XBMCAddon
        * example:
        *   - self.image.setColorDiffuse('0xC0FF0000')
        */
-      virtual void setColorDiffuse(const char* hexString) throw (UnimplementedException);
+      virtual void setColorDiffuse(const char* hexString);
 
 #ifndef SWIG
       ControlImage() :
@@ -1001,7 +1013,7 @@ namespace XBMCAddon
       int aspectRatio;
       color_t colorDiffuse;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create() throw (WindowException);
+      SWIGHIDDENVIRTUAL CGUIControl* Create();
 #endif
     };
 
@@ -1025,7 +1037,7 @@ namespace XBMCAddon
        * example:
        *   - self.progress.setPercent(60)
        */
-      virtual void setPercent(float pct) throw (UnimplementedException);
+      virtual void setPercent(float pct);
 
       /**
        * getPercent() -- Returns a float of the percent of the progress.
@@ -1033,7 +1045,7 @@ namespace XBMCAddon
        * example:
        *   - print self.progress.getValue()
        */
-       virtual float getPercent() throw (UnimplementedException);
+       virtual float getPercent();
 
 #ifndef SWIG
       std::string strTextureLeft;
@@ -1044,7 +1056,7 @@ namespace XBMCAddon
       int aspectRatio;
       color_t colorDiffuse;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create() throw (WindowException);
+      SWIGHIDDENVIRTUAL CGUIControl* Create();
       ControlProgress() :
         aspectRatio (0)
       {}
@@ -1118,7 +1130,7 @@ namespace XBMCAddon
                             const char* disabledColor = NULL,
                             const char* shadowColor = NULL,
                             const char* focusedColor = NULL,
-                            const String& label2 = emptyString) throw (UnimplementedException);
+                            const String& label2 = emptyString);
 
       // setDisabledColor() Method
       /**
@@ -1129,7 +1141,7 @@ namespace XBMCAddon
        * example:
        *   - self.button.setDisabledColor('0xFFFF3300')
        */
-      virtual void setDisabledColor(const char* color) throw (UnimplementedException);
+      virtual void setDisabledColor(const char* color);
 
       // getLabel() Method
       /**
@@ -1138,7 +1150,7 @@ namespace XBMCAddon
        * example:
        *   - label = self.button.getLabel()
        */
-      virtual String getLabel() throw (UnimplementedException);
+      virtual String getLabel();
 
       // getLabel2() Method
       /**
@@ -1147,7 +1159,7 @@ namespace XBMCAddon
        * example:
        *   - label = self.button.getLabel2()
        */
-      virtual String getLabel2() throw (UnimplementedException);
+      virtual String getLabel2();
 #ifndef SWIG
       SWIGHIDDENVIRTUAL bool canAcceptMessages(int actionId) { return true; }
 
@@ -1165,7 +1177,7 @@ namespace XBMCAddon
       std::string strTextureFocus;
       std::string strTextureNoFocus;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create() throw (WindowException);
+      SWIGHIDDENVIRTUAL CGUIControl* Create();
 
       ControlButton() :
         textOffsetX (0),
@@ -1222,7 +1234,7 @@ namespace XBMCAddon
        * example:
        *   - selected = self.checkmark.getSelected()
        */
-      virtual bool getSelected() throw (UnimplementedException);
+      virtual bool getSelected();
 
       // setSelected() Method
       /**
@@ -1233,7 +1245,7 @@ namespace XBMCAddon
        * example:
        *   - self.checkmark.setSelected(True)
        */
-      virtual void setSelected(bool selected) throw (UnimplementedException);
+      virtual void setSelected(bool selected);
 
       // setLabel() Method
       /**
@@ -1253,7 +1265,7 @@ namespace XBMCAddon
                             const char* disabledColor = NULL,
                             const char* shadowColor = NULL,
                             const char* focusedColor = NULL,
-                            const String& label2 = emptyString) throw (UnimplementedException);
+                            const String& label2 = emptyString);
 
       // setDisabledColor() Method
       /**
@@ -1264,7 +1276,7 @@ namespace XBMCAddon
        * example:
        *   - self.checkmark.setDisabledColor('0xFFFF3300')
        */
-      virtual void setDisabledColor(const char* color) throw (UnimplementedException);
+      virtual void setDisabledColor(const char* color);
 
 #ifndef SWIG
       SWIGHIDDENVIRTUAL bool canAcceptMessages(int actionId) { return true; }
@@ -1279,7 +1291,7 @@ namespace XBMCAddon
       std::string strTextureNoFocus;
       std::string strText;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create() throw (WindowException);
+      SWIGHIDDENVIRTUAL CGUIControl* Create();
 
       ControlCheckMark() :
         checkWidth  (0),
@@ -1307,7 +1319,7 @@ namespace XBMCAddon
       ControlGroup(long x, long y, long width, long height);
 
 #ifndef SWIG
-      SWIGHIDDENVIRTUAL CGUIControl* Create() throw (WindowException);
+      SWIGHIDDENVIRTUAL CGUIControl* Create();
 
       inline ControlGroup() {}
 #endif
@@ -1352,13 +1364,14 @@ namespace XBMCAddon
       ControlRadioButton(long x, long y, long width, long height, const String& label,
                          const char* focusOnTexture = NULL, const char* noFocusOnTexture = NULL,
                          const char* focusOffTexture = NULL, const char* noFocusOffTexture = NULL,
-                         const char* focusTexture = NULL, const char* noFocusTexture = NULL, 
+                         const char* focusTexture = NULL, const char* noFocusTexture = NULL,
                          long textOffsetX = CONTROL_TEXT_OFFSET_X, 
                          long textOffsetY = CONTROL_TEXT_OFFSET_Y, 
                          long _alignment = (XBFONT_LEFT | XBFONT_CENTER_Y), 
                          const char* font = NULL, const char* textColor = NULL,
                          const char* disabledColor = NULL, long angle = 0,
-                         const char* shadowColor = NULL, const char* focusedColor = NULL);
+                         const char* shadowColor = NULL, const char* focusedColor = NULL,
+                         const char* disabledOnTexture = NULL, const char* disabledOffTexture = NULL);
 
       // setSelected() Method
       /**
@@ -1372,7 +1385,7 @@ namespace XBMCAddon
        * example:
        *   - self.radiobutton.setSelected(True)
        */
-      virtual void setSelected(bool selected) throw (UnimplementedException);
+      virtual void setSelected(bool selected);
 
       // isSelected() Method
       /**
@@ -1381,7 +1394,7 @@ namespace XBMCAddon
        * example:
        *   - is = self.radiobutton.isSelected()
        */
-      virtual bool isSelected() throw (UnimplementedException);
+      virtual bool isSelected();
 
       // setLabel() Method
       /**
@@ -1406,7 +1419,7 @@ namespace XBMCAddon
                             const char* disabledColor = NULL,
                             const char* shadowColor = NULL,
                             const char* focusedColor = NULL,
-                            const String& label2 = emptyString) throw (UnimplementedException);
+                            const String& label2 = emptyString);
 
       // setRadioDimension() Method
       /**
@@ -1423,7 +1436,7 @@ namespace XBMCAddon
        * example:
        *   - self.radiobutton.setRadioDimension(x=100, y=5, width=20, height=20)
        */
-      virtual void setRadioDimension(long x, long y, long width, long height) throw (UnimplementedException);
+      virtual void setRadioDimension(long x, long y, long width, long height);
 
 #ifndef SWIG
       SWIGHIDDENVIRTUAL bool canAcceptMessages(int actionId) { return true; }
@@ -1436,6 +1449,8 @@ namespace XBMCAddon
       std::string strTextureRadioOnNoFocus;
       std::string strTextureRadioOffFocus;
       std::string strTextureRadioOffNoFocus;
+      std::string strTextureRadioOnDisabled;
+      std::string strTextureRadioOffDisabled;
       color_t textColor;
       color_t disabledColor;
       int textOffsetX;
@@ -1445,7 +1460,7 @@ namespace XBMCAddon
       color_t shadowColor;
       color_t focusedColor;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create() throw (WindowException);
+      SWIGHIDDENVIRTUAL CGUIControl* Create();
 
       ControlRadioButton() :
         textOffsetX (0),
@@ -1489,7 +1504,7 @@ namespace XBMCAddon
        * example:
        *   - print self.slider.getPercent()
        */
-      virtual float getPercent() throw (UnimplementedException);
+      virtual float getPercent();
 
       /**
        * setPercent(50) -- Sets the percent of the slider.
@@ -1497,14 +1512,14 @@ namespace XBMCAddon
        * example:
        *   - self.slider.setPercent(50)
        */
-      virtual void setPercent(float pct) throw (UnimplementedException);
+      virtual void setPercent(float pct);
 
 #ifndef SWIG
       std::string strTextureBack;
       std::string strTexture;
       std::string strTextureFoc;    
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create() throw (WindowException);
+      SWIGHIDDENVIRTUAL CGUIControl* Create();
 
       inline ControlSlider() {}
 #endif

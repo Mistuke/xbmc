@@ -20,7 +20,6 @@
 
 #include "PVRDirectory.h"
 #include "FileItem.h"
-#include "Util.h"
 #include "URL.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
@@ -29,11 +28,9 @@
 
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
-#include "pvr/channels/PVRChannelGroup.h"
 #include "pvr/recordings/PVRRecordings.h"
 #include "pvr/timers/PVRTimers.h"
 
-using namespace std;
 using namespace XFILE;
 using namespace PVR;
 
@@ -47,7 +44,10 @@ CPVRDirectory::~CPVRDirectory()
 
 bool CPVRDirectory::Exists(const CURL& url)
 {
-  return (url.IsProtocol("pvr") && url.GetHostName() == "recordings");
+  if (!g_PVRManager.IsStarted())
+    return false;
+
+  return (url.IsProtocol("pvr") && StringUtils::StartsWith(url.GetFileName(), "recordings"));
 }
 
 bool CPVRDirectory::GetDirectory(const CURL& url, CFileItemList &items)
@@ -122,14 +122,26 @@ bool CPVRDirectory::IsLiveTV(const std::string& strPath)
   return URIUtils::IsLiveTV(filename);
 }
 
-bool CPVRDirectory::HasRecordings()
-{
-  return g_PVRManager.IsStarted() ? 
-    g_PVRRecordings->GetNumRecordings() > 0 : false;
-}
-
-bool CPVRDirectory::HasDeletedRecordings()
+bool CPVRDirectory::HasTVRecordings()
 {
   return g_PVRManager.IsStarted() ?
-    g_PVRRecordings->HasDeletedRecordings() : false;
+    g_PVRRecordings->GetNumTVRecordings() > 0 : false;
+}
+
+bool CPVRDirectory::HasDeletedTVRecordings()
+{
+  return g_PVRManager.IsStarted() ?
+    g_PVRRecordings->HasDeletedTVRecordings() : false;
+}
+
+bool CPVRDirectory::HasRadioRecordings()
+{
+  return g_PVRManager.IsStarted() ?
+    g_PVRRecordings->GetNumRadioRecordings() > 0 : false;
+}
+
+bool CPVRDirectory::HasDeletedRadioRecordings()
+{
+  return g_PVRManager.IsStarted() ?
+    g_PVRRecordings->HasDeletedRadioRecordings() : false;
 }

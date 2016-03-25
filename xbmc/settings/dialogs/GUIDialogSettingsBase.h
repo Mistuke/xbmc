@@ -32,6 +32,7 @@
 
 #define CONTROL_SETTINGS_OKAY_BUTTON    28
 #define CONTROL_SETTINGS_CANCEL_BUTTON  29
+#define CONTROL_SETTINGS_CUSTOM_BUTTON  30
 
 #define CONTROL_SETTINGS_CUSTOM         100
 
@@ -49,11 +50,14 @@ class CGUIEditControl;
 class CGUIButtonControl;
 class CGUIRadioButtonControl;
 class CGUISettingsSliderControl;
+class CGUILabelControl;
 
 class CSetting;
 class CSettingAction;
 class CSettingCategory;
 class CSettingSection;
+
+class CVariant;
 
 typedef std::shared_ptr<CGUIControlBaseSetting> BaseSettingControlPtr;
 
@@ -68,23 +72,23 @@ public:
   virtual ~CGUIDialogSettingsBase();
 
   // specializations of CGUIControl
-  virtual bool OnMessage(CGUIMessage &message);
-  virtual bool OnAction(const CAction &action);
-  virtual bool OnBack(int actionID);
-  virtual void DoProcess(unsigned int currentTime, CDirtyRegionList &dirtyregions);
+  virtual bool OnMessage(CGUIMessage &message) override;
+  virtual bool OnAction(const CAction &action) override;
+  virtual bool OnBack(int actionID) override;
+  virtual void DoProcess(unsigned int currentTime, CDirtyRegionList &dirtyregions) override;
 
   virtual bool IsConfirmed() const { return m_confirmed; }
 
 protected:
   // specializations of CGUIWindow
-  virtual void OnInitWindow();
+  virtual void OnInitWindow() override;
 
   // implementations of ITimerCallback
-  virtual void OnTimeout();
+  virtual void OnTimeout() override;
 
   // implementations of ISettingCallback
-  virtual void OnSettingChanged(const CSetting *setting);
-  virtual void OnSettingPropertyChanged(const CSetting *setting, const char *propertyName);
+  virtual void OnSettingChanged(const CSetting *setting) override;
+  virtual void OnSettingPropertyChanged(const CSetting *setting, const char *propertyName) override;
 
   // new virtual methods
   virtual bool AllowResettingSettings() const { return true; }
@@ -148,6 +152,7 @@ protected:
   BaseSettingControlPtr GetSettingControl(int controlId);
   
   CGUIControl* AddSeparator(float width, int &iControlID);
+  CGUIControl* AddLabel(float width, int &iControlID, int label);
 
   std::vector<CSettingCategory*> m_categories;
   std::vector<BaseSettingControlPtr> m_settingControls;
@@ -164,6 +169,7 @@ protected:
   CGUIButtonControl *m_pOriginalButton;
   CGUIEditControl *m_pOriginalEdit;
   CGUIImage *m_pOriginalImage;
+  CGUILabelControl *m_pOriginalGroupTitle;
   bool m_newOriginalEdit;
   
   BaseSettingControlPtr m_delayedSetting; ///< Current delayed setting \sa CBaseSettingControl::SetDelayed()

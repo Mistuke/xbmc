@@ -874,7 +874,7 @@ std::string CDateTime::GetAsSaveString() const
   SYSTEMTIME st;
   GetAsSystemTime(st);
 
-  return StringUtils::Format("%04i%02i%02i_%02i%02i%02i", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);;
+  return StringUtils::Format("%04i%02i%02i_%02i%02i%02i", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
 }
 
 bool CDateTime::SetFromUTCDateTime(const CDateTime &dateTime)
@@ -1106,6 +1106,69 @@ bool CDateTime::SetFromRFC1123DateTime(const std::string &dateTime)
   return SetDateTime(year, month, day, hour, min, sec);
 }
 
+CDateTime CDateTime::FromDateString(const std::string &date)
+{
+  CDateTime dt;
+  dt.SetFromDateString(date);
+  return dt;
+}
+
+CDateTime CDateTime::FromDBDateTime(const std::string &dateTime)
+{
+  CDateTime dt;
+  dt.SetFromDBDateTime(dateTime);
+  return dt;
+}
+
+CDateTime CDateTime::FromDBDate(const std::string &date)
+{
+  CDateTime dt;
+  dt.SetFromDBDate(date);
+  return dt;
+}
+
+CDateTime CDateTime::FromDBTime(const std::string &time)
+{
+  CDateTime dt;
+  dt.SetFromDBTime(time);
+  return dt;
+}
+
+CDateTime CDateTime::FromW3CDate(const std::string &date)
+{
+  CDateTime dt;
+  dt.SetFromW3CDate(date);
+  return dt;
+}
+
+CDateTime CDateTime::FromW3CDateTime(const std::string &date, bool ignoreTimezone /* = false */)
+{
+  CDateTime dt;
+  dt.SetFromW3CDateTime(date, ignoreTimezone);
+  return dt;
+}
+
+CDateTime CDateTime::FromUTCDateTime(const CDateTime &dateTime)
+{
+  CDateTime dt;
+  dt.SetFromUTCDateTime(dateTime);
+  return dt;
+}
+
+CDateTime CDateTime::FromUTCDateTime(const time_t &dateTime)
+{
+  CDateTime dt;
+  dt.SetFromUTCDateTime(dateTime);
+  return dt;
+}
+
+CDateTime CDateTime::FromRFC1123DateTime(const std::string &dateTime)
+{
+  CDateTime dt;
+  dt.SetFromRFC1123DateTime(dateTime);
+  return dt;
+}
+
 std::string CDateTime::GetAsLocalizedTime(const std::string &format, bool withSeconds) const
 {
   std::string strOut;
@@ -1115,7 +1178,7 @@ std::string CDateTime::GetAsLocalizedTime(const std::string &format, bool withSe
   GetAsSystemTime(dateTime);
 
   // Prefetch meridiem symbol
-  const std::string& strMeridiem=g_langInfo.GetMeridiemSymbol(dateTime.wHour > 11 ? CLangInfo::MERIDIEM_SYMBOL_PM : CLangInfo::MERIDIEM_SYMBOL_AM);
+  const std::string& strMeridiem = CLangInfo::MeridiemSymbolToString(dateTime.wHour > 11 ? MeridiemSymbolPM : MeridiemSymbolAM);
 
   size_t length = strFormat.size();
   for (size_t i=0; i < length; ++i)
@@ -1264,12 +1327,12 @@ std::string CDateTime::GetAsLocalizedTime(const std::string &format, bool withSe
   return strOut;
 }
 
-std::string CDateTime::GetAsLocalizedDate(bool longDate/*=false*/, bool withShortNames/*=true*/) const
+std::string CDateTime::GetAsLocalizedDate(bool longDate/*=false*/) const
 {
-  return GetAsLocalizedDate(g_langInfo.GetDateFormat(longDate), withShortNames);
+  return GetAsLocalizedDate(g_langInfo.GetDateFormat(longDate));
 }
 
-std::string CDateTime::GetAsLocalizedDate(const std::string &strFormat, bool withShortNames/*=true*/) const
+std::string CDateTime::GetAsLocalizedDate(const std::string &strFormat) const
 {
   std::string strOut;
 
@@ -1332,7 +1395,7 @@ std::string CDateTime::GetAsLocalizedDate(const std::string &strFormat, bool wit
       {
         int wday = dateTime.wDayOfWeek;
         if (wday < 1 || wday > 7) wday = 7;
-        str = g_localizeStrings.Get(((withShortNames || c =='d') ? 40 : 10) + wday);
+        str = g_localizeStrings.Get((c =='d' ? 40 : 10) + wday);
       }
       strOut+=str;
     }
@@ -1364,7 +1427,7 @@ std::string CDateTime::GetAsLocalizedDate(const std::string &strFormat, bool wit
       {
         int wmonth = dateTime.wMonth;
         if (wmonth < 1 || wmonth > 12) wmonth = 12;
-        str = g_localizeStrings.Get(((withShortNames || c =='m') ? 50 : 20) + wmonth);
+        str = g_localizeStrings.Get((c =='m' ? 50 : 20) + wmonth);
       }
       strOut+=str;
     }

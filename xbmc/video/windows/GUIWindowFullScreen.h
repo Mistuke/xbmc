@@ -21,7 +21,6 @@
  */
 
 #include "guilib/GUIWindow.h"
-#include "threads/CriticalSection.h"
 
 class CGUIWindowFullScreen : public CGUIWindow
 {
@@ -61,7 +60,6 @@ private:
 
   bool m_bShowViewModeInfo;
   unsigned int m_dwShowViewModeTimeout;
-  CGUIInfoBool m_showCodec;
 
   bool m_bShowCurrentTime;
 

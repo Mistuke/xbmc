@@ -21,31 +21,34 @@
 #include "GUIDialogProgress.h"
 #include "guilib/GUIProgressControl.h"
 #include "Application.h"
-#include "GUIInfoManager.h"
+#include "guiinfo/GUIInfoLabels.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
-
-using namespace std;
-
-#define CONTROL_CANCEL_BUTTON 10
-#define CONTROL_PROGRESS_BAR 20
+#include "utils/Variant.h"
 
 CGUIDialogProgress::CGUIDialogProgress(void)
-    : CGUIDialogBoxBase(WINDOW_DIALOG_PROGRESS, "DialogProgress.xml")
+    : CGUIDialogBoxBase(WINDOW_DIALOG_PROGRESS, "DialogConfirm.xml")
 {
-  m_bCanceled = false;
-  m_iCurrent=0;
-  m_iMax=0;
-  m_percentage = 0;
-  m_showProgress = false;
-  m_bCanCancel = true;
+  Reset();
 }
 
 CGUIDialogProgress::~CGUIDialogProgress(void)
 {
 
+}
+
+void CGUIDialogProgress::Reset()
+{
+  CSingleLock lock(m_section);
+  m_bCanceled = false;
+  m_iCurrent = 0;
+  m_iMax = 0;
+  m_percentage = 0;
+  m_showProgress = false;
+  m_bCanCancel = true;
+  SetInvalid();
 }
 
 void CGUIDialogProgress::SetCanCancel(bool bCanCancel)
@@ -55,28 +58,16 @@ void CGUIDialogProgress::SetCanCancel(bool bCanCancel)
   SetInvalid();
 }
 
-void CGUIDialogProgress::StartModal()
+void CGUIDialogProgress::Open(const std::string &param /* = "" */)
 {
-  CSingleLock lock(g_graphicsContext);
+  CLog::Log(LOGDEBUG, "DialogProgress::Open called %s", m_active ? "(already running)!" : "");
 
-  CLog::Log(LOGDEBUG, "DialogProgress::StartModal called %s", m_active ? "(already running)!" : "");
-  m_bCanceled = false;
-
-  // set running before it's routed, else the auto-show code
-  // could show it as well if we are in a different thread from
-  // the main rendering thread (this should really be handled via
-  // a thread message though IMO)
-  m_active = true;
-  m_bModal = true;
-  m_closing = false;
-  g_windowManager.RouteToWindow(this);
-
-  // active this window...
-  ShowProgressBar(false);
-  CGUIMessage msg(GUI_MSG_WINDOW_INIT, 0, 0);
-  OnMessage(msg);
-
-  lock.Leave();
+  {
+    CSingleLock lock(g_graphicsContext);
+    ShowProgressBar(false);
+  }
+  
+  CGUIDialog::Open_Internal(false, param);
 
   while (m_active && IsAnimating(ANIM_TYPE_WINDOW_OPEN))
   {
@@ -112,18 +103,18 @@ bool CGUIDialogProgress::OnMessage(CGUIMessage& message)
   {
 
   case GUI_MSG_WINDOW_DEINIT:
-    SetCanCancel(true);
+    Reset();
     break;
 
   case GUI_MSG_CLICKED:
     {
       int iControl = message.GetSenderId();
-      if (iControl == CONTROL_CANCEL_BUTTON && m_bCanCancel && !m_bCanceled)
+      if (iControl == CONTROL_NO_BUTTON && m_bCanCancel && !m_bCanceled)
       {
-        string strHeading = m_strHeading;
+        std::string strHeading = m_strHeading;
         strHeading.append(" : ");
         strHeading.append(g_localizeStrings.Get(16024));
-        CGUIDialogBoxBase::SetHeading(strHeading);
+        CGUIDialogBoxBase::SetHeading(CVariant{strHeading});
         m_bCanceled = true;
         return true;
       }
@@ -207,16 +198,25 @@ void CGUIDialogProgress::Process(unsigned int currentTime, CDirtyRegionList &dir
     else
       SET_CONTROL_HIDDEN(CONTROL_PROGRESS_BAR);
     if (showCancel)
-      SET_CONTROL_VISIBLE(CONTROL_CANCEL_BUTTON);
+      SET_CONTROL_VISIBLE(CONTROL_NO_BUTTON);
     else
-      SET_CONTROL_HIDDEN(CONTROL_CANCEL_BUTTON);
+      SET_CONTROL_HIDDEN(CONTROL_NO_BUTTON);
   }
   CGUIDialogBoxBase::Process(currentTime, dirtyregions);
 }
 
+void CGUIDialogProgress::OnInitWindow()
+{
+  SET_CONTROL_HIDDEN(CONTROL_YES_BUTTON);
+  SET_CONTROL_HIDDEN(CONTROL_CUSTOM_BUTTON);
+  SET_CONTROL_FOCUS(CONTROL_NO_BUTTON, 0);
+
+  CGUIDialogBoxBase::OnInitWindow();
+}
+
 int CGUIDialogProgress::GetDefaultLabelID(int controlId) const
 {
-  if (controlId == CONTROL_CANCEL_BUTTON)
+  if (controlId == CONTROL_NO_BUTTON)
     return 222;
   return CGUIDialogBoxBase::GetDefaultLabelID(controlId);
 }

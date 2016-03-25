@@ -165,7 +165,7 @@ void CVideoSyncDRM::EventHandler(int fd, unsigned int frame, unsigned int sec,
   info->videoSync->UpdateClock(vblanks, now);
 }
 
-void CVideoSyncDRM::OnResetDevice()
+void CVideoSyncDRM::OnResetDisplay()
 {
   m_abort = true;
 }
@@ -174,6 +174,12 @@ float CVideoSyncDRM::GetFps()
 {
   m_fps = g_graphicsContext.GetFPS();
   return m_fps;
+}
+
+void CVideoSyncDRM::RefreshChanged()
+{
+  if (m_fps != g_graphicsContext.GetFPS())
+    m_abort = true;
 }
 
 #endif

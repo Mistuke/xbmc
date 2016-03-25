@@ -30,14 +30,15 @@
 #include "utils/log.h"
 #include "video/VideoInfoTag.h"
 #include "URL.h"
+#include "utils/Variant.h"
 
 bool CGUIDialogSimpleMenu::ShowPlaySelection(CFileItem& item)
 {
   /* if asked to resume somewhere, we should not show anything */
-  if (item.m_lStartOffset)
+  if (item.m_lStartOffset || (item.HasVideoInfoTag() && item.GetVideoInfoTag()->m_iBookmarkId > 0))
     return true;
 
-  if (CSettings::Get().GetInt("disc.playback") != BD_PLAYBACK_SIMPLE_MENU)
+  if (CSettings::GetInstance().GetInt(CSettings::SETTING_DISC_PLAYBACK) != BD_PLAYBACK_SIMPLE_MENU)
     return true;
 
   std::string path;
@@ -54,6 +55,7 @@ bool CGUIDialogSimpleMenu::ShowPlaySelection(CFileItem& item)
     {
       CURL url("bluray://");
       url.SetHostName(URIUtils::GetParentPath(root));
+      url.SetFileName("root");
       return ShowPlaySelection(item, url.Get());
     }
   }
@@ -69,6 +71,7 @@ bool CGUIDialogSimpleMenu::ShowPlaySelection(CFileItem& item)
 
       CURL url("bluray://");
       url.SetHostName(url2.Get());
+      url.SetFileName("root");
       return ShowPlaySelection(item, url.Get());
     }
   }
@@ -96,13 +99,13 @@ bool CGUIDialogSimpleMenu::ShowPlaySelection(CFileItem& item, const std::string&
   while (true)
   {
     dialog->Reset();
-    dialog->SetHeading(25006 /* Select playback item */);
-    dialog->SetItems(&items);
+    dialog->SetHeading(CVariant{25006}); // Select playback item
+    dialog->SetItems(items);
     dialog->SetUseDetails(true);
-    dialog->DoModal();
+    dialog->Open();
 
-    CFileItemPtr item_new = dialog->GetSelectedItem();
-    if (!item_new || dialog->GetSelectedLabel() < 0)
+    CFileItemPtr item_new = dialog->GetSelectedFileItem();
+    if (!item_new || dialog->GetSelectedItem() < 0)
     {
       CLog::Log(LOGDEBUG, "CGUIWindowVideoBase::ShowPlaySelection - User aborted %s", directory.c_str());
       break;

@@ -18,21 +18,18 @@
  *
  */
 
-#include "guilib/LocalizeStrings.h"
-#include "utils/TextSearch.h"
-#include "utils/log.h"
 #include "FileItem.h"
-#include "../addons/include/xbmc_pvr_types.h"
-
-#include "EpgSearchFilter.h"
-#include "EpgContainer.h"
-
+#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/recordings/PVRRecordings.h"
 #include "pvr/timers/PVRTimers.h"
+#include "utils/TextSearch.h"
+#include "utils/log.h"
 
-using namespace std;
+#include "EpgContainer.h"
+#include "EpgSearchFilter.h"
+
 using namespace EPG;
 using namespace PVR;
 
@@ -56,7 +53,7 @@ void EpgSearchFilter::Reset()
   m_iChannelGroup            = EPG_SEARCH_UNSET;
   m_bIgnorePresentTimers     = true;
   m_bIgnorePresentRecordings = true;
-  m_iUniqueBroadcastId	     = EPG_SEARCH_UNSET;
+  m_iUniqueBroadcastId	     = 0;
 }
 
 bool EpgSearchFilter::MatchGenre(const CEpgInfoTag &tag) const
@@ -107,7 +104,7 @@ bool EpgSearchFilter::MatchSearchTerm(const CEpgInfoTag &tag) const
 
 bool EpgSearchFilter::MatchBroadcastId(const CEpgInfoTag &tag) const
 {
-  if (m_iUniqueBroadcastId != EPG_SEARCH_UNSET)
+  if (m_iUniqueBroadcastId != 0)
     return (tag.UniqueBroadcastID() == m_iUniqueBroadcastId);
 
   return true;
@@ -174,7 +171,7 @@ bool EpgSearchFilter::MatchChannelNumber(const CEpgInfoTag &tag) const
   {
     CPVRChannelGroupPtr group = (m_iChannelGroup != EPG_SEARCH_UNSET) ? g_PVRChannelGroups->GetByIdFromAll(m_iChannelGroup) : g_PVRChannelGroups->GetGroupAllTV();
     if (!group)
-      group = CPVRManager::Get().ChannelGroups()->GetGroupAllTV();
+      group = CPVRManager::GetInstance().ChannelGroups()->GetGroupAllTV();
 
     bReturn = (m_iChannelNumber == (int) group->GetChannelNumber(tag.ChannelTag()));
   }
@@ -237,7 +234,7 @@ int EpgSearchFilter::FilterTimers(CFileItemList &results)
   if (!g_PVRManager.IsStarted())
     return iRemoved;
 
-  vector<CFileItemPtr> timers = g_PVRTimers->GetActiveTimers();
+  std::vector<CFileItemPtr> timers = g_PVRTimers->GetActiveTimers();
   // TODO inefficient!
   for (unsigned int iTimerPtr = 0; iTimerPtr < timers.size(); iTimerPtr++)
   {

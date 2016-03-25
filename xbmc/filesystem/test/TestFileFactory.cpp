@@ -21,6 +21,7 @@
 #include "filesystem/File.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "utils/StringUtils.h"
 #include "test/TestUtils.h"
 #include "utils/StringUtils.h"
 
@@ -31,7 +32,7 @@ class TestFileFactory : public testing::Test
 protected:
   TestFileFactory()
   {
-    if (CSettings::Get().Initialize())
+    if (CSettings::GetInstance().Initialize())
     {
       std::vector<std::string> advancedsettings =
         CXBMCTestUtils::Instance().getAdvancedSettingsFiles();
@@ -40,20 +41,20 @@ protected:
 
       std::vector<std::string>::iterator it;
       for (it = guisettings.begin(); it < guisettings.end(); ++it)
-        CSettings::Get().Load(*it);
+        CSettings::GetInstance().Load(*it);
 
       for (it = advancedsettings.begin(); it < advancedsettings.end(); ++it)
         g_advancedSettings.ParseSettingsFile(*it);
 
-      CSettings::Get().SetLoaded();
+      CSettings::GetInstance().SetLoaded();
     }
   }
 
   ~TestFileFactory()
   {
     g_advancedSettings.Clear();
-    CSettings::Get().Unload();
-    CSettings::Get().Uninitialize();
+    CSettings::GetInstance().Unload();
+    CSettings::GetInstance().Uninitialize();
   }
 };
 

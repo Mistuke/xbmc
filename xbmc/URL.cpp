@@ -20,7 +20,6 @@
 
 #include "URL.h"
 #include "Application.h"
-#include "utils/RegExp.h"
 #include "utils/log.h"
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
@@ -28,15 +27,14 @@
 #include "filesystem/File.h"
 #include "FileItem.h"
 #include "filesystem/StackDirectory.h"
-#include "addons/Addon.h"
-#include "utils/StringUtils.h"
 #include "network/Network.h"
 #ifndef TARGET_POSIX
-#include <sys\types.h>
 #include <sys\stat.h>
 #endif
 
-using namespace std;
+#include <string>
+#include <vector>
+
 using namespace ADDON;
 
 CURL::CURL(const std::string& strURL1)
@@ -155,11 +153,23 @@ void CURL::Parse(const std::string& strURL1)
     IsProtocol("virtualpath") ||
     IsProtocol("multipath") ||
     IsProtocol("filereader") ||
-    IsProtocol("special")
+    IsProtocol("special") ||
+    IsProtocol("resource")
     )
   {
     SetFileName(strURL.substr(iPos));
     return;
+  }
+
+  if (IsProtocol("udf"))
+  {
+    std::string lower(strURL);
+    StringUtils::ToLower(lower);
+    size_t isoPos = lower.find(".iso\\", iPos);
+    if (isoPos != std::string::npos)
+    {
+      strURL = strURL.replace(isoPos + 4, 1, "/");
+    }
   }
 
   // check for username/password - should occur before first /
@@ -174,6 +184,9 @@ void CURL::Parse(const std::string& strURL1)
   std::string strProtocol2 = GetTranslatedProtocol();
   if(IsProtocol("rss") ||
      IsProtocol("rar") ||
+     IsProtocol("apk") ||
+     IsProtocol("xbt") ||
+     IsProtocol("zip") ||
      IsProtocol("addons") ||
      IsProtocol("image") ||
      IsProtocol("videodb") ||
@@ -185,10 +198,7 @@ void CURL::Parse(const std::string& strURL1)
     || IsProtocolEqual(strProtocol2, "https")
     || IsProtocolEqual(strProtocol2, "plugin")
     || IsProtocolEqual(strProtocol2, "addons")
-    || IsProtocolEqual(strProtocol2, "hdhomerun")
-    || IsProtocolEqual(strProtocol2, "rtsp")
-    || IsProtocolEqual(strProtocol2, "apk")
-    || IsProtocolEqual(strProtocol2, "zip"))
+    || IsProtocolEqual(strProtocol2, "rtsp"))
     sep = "?;#|";
   else if(IsProtocolEqual(strProtocol2, "ftp")
        || IsProtocolEqual(strProtocol2, "ftps"))
@@ -257,35 +267,33 @@ void CURL::Parse(const std::string& strURL1)
     }
   }
 
-  // detect hostname:port/
-  if (iSlash == std::string::npos)
+  std::string strHostNameAndPort = strURL.substr(iPos, (iSlash == std::string::npos) ? iEnd - iPos : iSlash - iPos);
+  // check for IPv6 numerical representation inside [].
+  // if [] found, let's store string inside as hostname
+  // and remove that parsed part from strHostNameAndPort
+  size_t iBrk = strHostNameAndPort.rfind("]");
+  if (iBrk != std::string::npos && strHostNameAndPort.find("[") == 0)
   {
-    std::string strHostNameAndPort = strURL.substr(iPos, iEnd - iPos);
-    size_t iColon = strHostNameAndPort.find(":");
-    if (iColon != std::string::npos)
-    {
-      m_strHostName = strHostNameAndPort.substr(0, iColon);
-      m_iPort = atoi(strHostNameAndPort.substr(iColon + 1).c_str());
-    }
-    else
-    {
-      m_strHostName = strHostNameAndPort;
-    }
-
+    m_strHostName = strHostNameAndPort.substr(1, iBrk-1);
+    strHostNameAndPort.erase(0, iBrk+1);
   }
-  else
+
+  // detect hostname:port/ or just :port/ if previous step found [IPv6] format
+  size_t iColon = strHostNameAndPort.rfind(":");
+  if (iColon != std::string::npos && iColon == strHostNameAndPort.find(":"))
   {
-    std::string strHostNameAndPort = strURL.substr(iPos, iSlash - iPos);
-    size_t iColon = strHostNameAndPort.find(":");
-    if (iColon != std::string::npos)
-    {
+    if (m_strHostName.empty())
       m_strHostName = strHostNameAndPort.substr(0, iColon);
-      m_iPort = atoi(strHostNameAndPort.substr(iColon + 1).c_str());
-    }
-    else
-    {
-      m_strHostName = strHostNameAndPort;
-    }
+    m_iPort = atoi(strHostNameAndPort.substr(iColon + 1).c_str());
+  }
+
+  // if we still don't have hostname, the strHostNameAndPort substring
+  // is 'just' hostname without :port specification - so use it as is.
+  if (m_strHostName.empty())
+    m_strHostName = strHostNameAndPort;
+
+  if (iSlash != std::string::npos)
+  {
     iPos = iSlash + 1;
     if (iEnd > iPos)
       m_strFileName = strURL.substr(iPos, iEnd - iPos);
@@ -333,9 +341,9 @@ void CURL::SetFileName(const std::string& strFileName)
 {
   m_strFileName = strFileName;
 
-  int slash = m_strFileName.find_last_of(GetDirectorySeparator());
-  int period = m_strFileName.find_last_of('.');
-  if(period != -1 && (slash == -1 || period > slash))
+  size_t slash = m_strFileName.find_last_of(GetDirectorySeparator());
+  size_t period = m_strFileName.find_last_of('.');
+  if(period != std::string::npos && (slash == std::string::npos || period > slash))
     m_strFileType = m_strFileName.substr(period+1);
   else
     m_strFileType = "";
@@ -458,9 +466,7 @@ const std::string& CURL::GetProtocol() const
 const std::string CURL::GetTranslatedProtocol() const
 {
   if (IsProtocol("shout")
-   || IsProtocol("daap")
    || IsProtocol("dav")
-   || IsProtocol("tuxbox")
    || IsProtocol("rss"))
     return "http";
 
@@ -490,6 +496,7 @@ const std::string CURL::GetFileNameWithoutPath() const
   // *.zip and *.rar store the actual zip/rar path in the hostname of the url
   if ((IsProtocol("rar")  ||
        IsProtocol("zip")  ||
+       IsProtocol("xbt")  ||
        IsProtocol("apk")) &&
        m_strFileName.empty())
     return URIUtils::GetFileName(m_strHostName);
@@ -500,10 +507,23 @@ const std::string CURL::GetFileNameWithoutPath() const
   return URIUtils::GetFileName(file);
 }
 
+inline
+void protectIPv6(std::string &hn)
+{
+  if (!hn.empty() && hn.find(":") != hn.rfind(":")
+   && hn.find(":") != std::string::npos)
+  {
+    hn = '[' + hn + ']';
+  }
+}
+
 char CURL::GetDirectorySeparator() const
 {
 #ifndef TARGET_POSIX
-  if ( IsLocal() )
+  //We don't want to use IsLocal here, it can return true
+  //for network protocols that matches localhost or hostname
+  //we only ever want to use \ for win32 local filesystem
+  if ( m_strProtocol.empty() )
     return '\\';
   else
 #endif
@@ -512,6 +532,9 @@ char CURL::GetDirectorySeparator() const
 
 std::string CURL::Get() const
 {
+  if (m_strProtocol.empty())
+    return m_strFileName;
+
   unsigned int sizeneed = m_strProtocol.length()
                         + m_strDomain.length()
                         + m_strUserName.length()
@@ -522,21 +545,26 @@ std::string CURL::Get() const
                         + m_strProtocolOptions.length()
                         + 10;
 
-  if (m_strProtocol.empty())
-    return m_strFileName;
-
   std::string strURL;
   strURL.reserve(sizeneed);
 
-  strURL = GetWithoutFilename();
-  strURL += m_strFileName;
+  strURL = GetWithoutOptions();
 
   if( !m_strOptions.empty() )
     strURL += m_strOptions;
+
   if (!m_strProtocolOptions.empty())
     strURL += "|"+m_strProtocolOptions;
 
   return strURL;
+}
+
+std::string CURL::GetWithoutOptions() const
+{
+  if (m_strProtocol.empty())
+    return m_strFileName;
+
+  return GetWithoutFilename() + m_strFileName;
 }
 
 std::string CURL::GetWithoutUserDetails(bool redact) const
@@ -548,7 +576,7 @@ std::string CURL::GetWithoutUserDetails(bool redact) const
     CFileItemList items;
     XFILE::CStackDirectory dir;
     dir.GetDirectory(*this,items);
-    vector<std::string> newItems;
+    std::vector<std::string> newItems;
     for (int i=0;i<items.Size();++i)
     {
       CURL url(items[i]->GetPath());
@@ -598,14 +626,16 @@ std::string CURL::GetWithoutUserDetails(bool redact) const
       strHostName = m_strHostName;
 
     if (URIUtils::HasEncodedHostname(*this))
-      strURL += Encode(strHostName);
-    else
-      strURL += strHostName;
+      strHostName = Encode(strHostName);
 
     if ( HasPort() )
     {
-      strURL += StringUtils::Format(":%i", m_iPort);
+      protectIPv6(strHostName);
+      strURL += strHostName + StringUtils::Format(":%i", m_iPort);
     }
+    else
+      strURL += strHostName;
+
     strURL += "/";
   }
   strURL += m_strFileName;
@@ -657,12 +687,21 @@ std::string CURL::GetWithoutFilename() const
 
   if (!m_strHostName.empty())
   {
+    std::string hostname;
+
     if( URIUtils::HasEncodedHostname(*this) )
-      strURL += Encode(m_strHostName);
+      hostname = Encode(m_strHostName);
     else
-      strURL += m_strHostName;
+      hostname = m_strHostName;
+
     if (HasPort())
-      strURL += ':' + StringUtils::Format("%i", m_iPort);
+    {
+      protectIPv6(hostname);
+      strURL += hostname + StringUtils::Format(":%i", m_iPort);
+    }
+    else
+      strURL += hostname;
+
     strURL += "/";
   }
 
@@ -757,7 +796,7 @@ std::string CURL::Encode(const std::string& strURLData)
     if (StringUtils::isasciialphanum(kar) || kar == '-' || kar == '.' || kar == '_' || kar == '!' || kar == '(' || kar == ')')
       strResult.push_back(kar);
     else
-      strResult += StringUtils::Format("%%%02.2x", (unsigned int)((unsigned char)kar)); // TODO: Change to "%%%02.2X" after Gotham
+      strResult += StringUtils::Format("%%%2.2X", (unsigned int)((unsigned char)kar));
   }
 
   return strResult;

@@ -28,7 +28,6 @@
 #include "settings/MediaSourceSettings.h"
 #include "guilib/TextureManager.h"
 #include "storage/MediaManager.h"
-#include "utils/StringUtils.h"
 
 using namespace XFILE;
 
@@ -48,7 +47,7 @@ bool CSourcesDirectory::GetDirectory(const CURL& url, CFileItemList &items)
   URIUtils::RemoveSlashAtEnd(type);
 
   VECSOURCES sources;
-  VECSOURCES *sourcesFromType = CMediaSourceSettings::Get().GetSources(type);
+  VECSOURCES *sourcesFromType = CMediaSourceSettings::GetInstance().GetSources(type);
   if (!sourcesFromType)
     return false;
 
@@ -91,7 +90,7 @@ bool CSourcesDirectory::GetDirectory(const VECSOURCES &sources, CFileItemList &i
     else if (pItem->IsISO9660())
       strIcon = "DefaultDVDRom.png";
     else if (pItem->IsDVD())
-      strIcon = "DefaultDVDRom.png";
+      strIcon = "DefaultDVDFull.png";
     else if (pItem->IsCDDA())
       strIcon = "DefaultCDDA.png";
     else if (pItem->IsRemovable() && g_TextureManager.HasTexture("DefaultRemovableDisk.png"))
@@ -100,7 +99,7 @@ bool CSourcesDirectory::GetDirectory(const VECSOURCES &sources, CFileItemList &i
       strIcon = "DefaultHardDisk.png";
     
     pItem->SetIconImage(strIcon);
-    if (share.m_iHasLock == 2 && CProfilesManager::Get().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE)
+    if (share.m_iHasLock == 2 && CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE)
       pItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_LOCKED);
     else
       pItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_NONE);

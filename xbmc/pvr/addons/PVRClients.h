@@ -22,13 +22,14 @@
 #include "threads/CriticalSection.h"
 #include "threads/Thread.h"
 #include "utils/Observer.h"
-#include "PVRClient.h"
+
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/recordings/PVRRecording.h"
-#include "addons/AddonDatabase.h"
 
-#include <vector>
+#include "addons/PVRClient.h"
+
 #include <deque>
+#include <vector>
 
 namespace EPG
 {
@@ -45,12 +46,25 @@ namespace PVR
   typedef std::map< int, PVR_CLIENT >::const_iterator PVR_CLIENTMAP_CITR;
   typedef std::map< int, PVR_STREAM_PROPERTIES >      STREAMPROPS;
 
-  class CPVRClients : public ADDON::IAddonMgrCallback,
-                      public Observer,
-                      private CThread
+  /**
+   * Holds generic data about a backend (number of channels etc.)
+   */
+  struct SBackend
   {
-    friend class CPVRGUIInfo;
+    std::string name;
+    std::string version;
+    std::string host;
+    int         numTimers = 0;
+    int         numRecordings = 0;
+    int         numDeletedRecordings = 0;
+    int         numChannels = 0;
+    long long   diskUsed = 0;
+    long long   diskTotal = 0;
+  };
 
+  class CPVRClients : public ADDON::IAddonMgrCallback
+  {
+  friend class CPVRClient;
   public:
     CPVRClients(void);
     virtual ~CPVRClients(void);
@@ -63,14 +77,10 @@ namespace PVR
     bool IsInUse(const std::string& strAddonId) const;
 
     /*!
-     * @brief Start the backend info updater thread.
+     * @brief Start the backend.
      */
     void Start(void);
 
-    /*!
-     * @brief Stop the backend info updater thread.
-     */
-    void Stop(void);
 
     /*! @name Backend methods */
     //@{
@@ -80,9 +90,9 @@ namespace PVR
      * @param iClientId The client ID.
      * @return True when the client ID is valid and connected, false otherwise.
      */
-    bool IsConnectedClient(int iClientId) const;
+    bool IsCreatedClient(int iClientId) const;
 
-    bool IsConnectedClient(const ADDON::AddonPtr addon);
+    bool IsCreatedClient(const ADDON::AddonPtr addon);
 
     /*!
      * @brief Restart a single client add-on.
@@ -130,13 +140,13 @@ namespace PVR
     /*!
      * @return The amount of connected clients.
      */
-    int ConnectedClientAmount(void) const;
+    int CreatedClientAmount(void) const;
 
     /*!
      * @brief Check whether there are any connected clients.
      * @return True if at least one client is connected.
      */
-    bool HasConnectedClients(void) const;
+    bool HasCreatedClients(void) const;
 
     /*!
      * @brief Get the friendly name for the client with the given id.
@@ -144,14 +154,36 @@ namespace PVR
      * @param strName The friendly name of the client or an empty string when it wasn't found.
      * @return True if the client was found, false otherwise.
      */
-    bool GetClientName(int iClientId, std::string &strName) const;
+    bool GetClientFriendlyName(int iClientId, std::string &strName) const;
 
     /*!
-     * @bried Get all connected clients.
-     * @param clients Store the active clients in this map.
-     * @return The amount of added clients.
+     * @brief Get the addon name for the client with the given id.
+     * @param iClientId The id of the client.
+     * @param strName The addon name of the client or an empty string when it wasn't found.
+     * @return True if the client was found, false otherwise.
      */
-    int GetConnectedClients(PVR_CLIENTMAP &clients) const;
+    bool GetClientAddonName(int iClientId, std::string &strName) const;
+
+    /*!
+     * @brief Get the addon icon for the client with the given id.
+     * @param iClientId The id of the client.
+     * @param strIcon The path to the addon icon of the client or an empty string when it wasn't found.
+     * @return True if the client was found, false otherwise.
+     */
+    bool GetClientAddonIcon(int iClientId, std::string &strIcon) const;
+
+    /*!
+     * @brief Returns properties about all connected clients
+     * @return the properties
+     */
+    std::vector<SBackend> GetBackendProperties() const;
+
+    /*!
+     * Get the add-on ID of the client
+     * @param iClientId The db id of the client
+     * @return The add-on id
+     */
+    std::string GetClientAddonId(int iClientId) const;
 
     /*!
      * @return The client ID of the client that is currently playing a stream or -1 if no client is playing.
@@ -301,6 +333,12 @@ namespace PVR
     //@{
 
     /*!
+     * @brief Check whether there is at least one connected client supporting timers.
+     * @return True if at least one connected client supports timers, false otherwise.
+     */
+    bool SupportsTimers() const;
+
+    /*!
      * @brief Check whether a client supports timers.
      * @param iClientId The id of the client to check.
      * @return True if the supports timers, false otherwise.
@@ -347,6 +385,21 @@ namespace PVR
      * @return True if the timer was renamed successfully, false otherwise.
      */
     PVR_ERROR RenameTimer(const CPVRTimerInfoTag &timer, const std::string &strNewName);
+
+    /*!
+     * @brief Get all supported timer types.
+     * @param results The container to store the result in.
+     * @return PVR_ERROR_NO_ERROR if the list has been fetched successfully.
+     */
+    PVR_ERROR GetTimerTypes(CPVRTimerTypes& results) const;
+
+    /*!
+     * @brief Get all timer types supported by a certain client.
+     * @param iClientId The id of the client.
+     * @param results The container to store the result in.
+     * @return PVR_ERROR_NO_ERROR if the list has been fetched successfully.
+     */
+    PVR_ERROR GetTimerTypes(CPVRTimerTypes& results, int iClientId) const;
 
     //@}
 
@@ -472,6 +525,15 @@ namespace PVR
      */
     PVR_ERROR GetEPGForChannel(const CPVRChannelPtr &channel, EPG::CEpg *epg, time_t start, time_t end);
 
+    /*!
+     * Tell the client the time frame to use when notifying epg events back to Kodi. The client might push epg events asynchronously
+     * to Kodi using the callback function EpgEventStateChange. To be able to only push events that are actually of interest for Kodi,
+     * client needs to know about the epg time frame Kodi uses.
+     * @param iDays number of days from "now". EPG_TIMEFRAME_UNLIMITED means that Kodi is interested in all epg events, regardless of event times.
+     * @return PVR_ERROR_NO_ERROR if new value was successfully set.
+     */
+    PVR_ERROR SetEPGTimeFrame(int iDays);
+
     //@}
 
     /*! @name Channel methods */
@@ -587,15 +649,12 @@ namespace PVR
 
     //@}
 
-    void Notify(const Observable &obs, const ObservableMessage msg);
-
     bool GetClient(const std::string &strId, ADDON::AddonPtr &addon) const;
 
     bool SupportsChannelScan(int iClientId) const;
     bool SupportsChannelSettings(int iClientId) const;
     bool SupportsLastPlayedPosition(int iClientId) const;
     bool SupportsRadio(int iClientId) const;
-    bool SupportsRecordingFolders(int iClientId) const;
     bool SupportsRecordingPlayCount(int iClientId) const;
     bool SupportsRecordingEdl(int iClientId) const;
     bool SupportsTimers(int iClientId) const;
@@ -607,16 +666,21 @@ namespace PVR
 
     std::string GetBackendHostnameByClientId(int iClientId) const;
 
+    bool IsTimeshifting() const;
     time_t GetPlayingTime() const;
     time_t GetBufferTimeStart() const;
     time_t GetBufferTimeEnd() const;
 
+
+    int GetClientId(const std::string& strId) const;
+
+    bool IsRealTimeStream() const;
+
   private:
     /*!
      * @brief Update add-ons from the AddonManager
-     * @return True when updated, false otherwise
      */
-    bool UpdateAddons(void);
+    void UpdateAddons(void);
 
     /*!
      * @brief Get the menu hooks for a client.
@@ -627,16 +691,6 @@ namespace PVR
     bool GetMenuHooks(int iClientID, PVR_MENUHOOK_CAT cat, PVR_MENUHOOKS *hooks);
 
     /*!
-     * @brief Updates the backend information
-     */
-    void Process(void);
-
-    /*!
-     * @brief Show a dialog to guide new users who have no clients enabled.
-     */
-    void ShowDialogNoClientsEnabled(void);
-
-    /*!
      * @brief Get the instance of the client.
      * @param iClientId The id of the client to get.
      * @param addon The client.
@@ -645,12 +699,19 @@ namespace PVR
     bool GetClient(int iClientId, PVR_CLIENT &addon) const;
 
     /*!
-     * @brief Get the instance of the client, if it's connected.
+     * @brief Get the instance of the client, if it's created.
      * @param iClientId The id of the client to get.
      * @param addon The client.
      * @return True if the client is connected, false otherwise.
      */
-    bool GetConnectedClient(int iClientId, PVR_CLIENT &addon) const;
+    bool GetCreatedClient(int iClientId, PVR_CLIENT &addon) const;
+
+    /*!
+     * @bried Get all created clients.
+     * @param clients Store the active clients in this map.
+     * @return The amount of added clients.
+     */
+    int GetCreatedClients(PVR_CLIENTMAP &clients) const;
 
     /*!
      * @brief Check whether a client is registered.
@@ -659,35 +720,18 @@ namespace PVR
      */
     bool IsKnownClient(const ADDON::AddonPtr client) const;
 
-    /*!
-     * @brief Check whether there are any new pvr add-ons enabled or whether any of the known clients has been disabled.
-     * @param bInitialiseAllClients True to initialise all clients, false to only initialise new clients.
-     * @return True if all clients were updated successfully, false otherwise.
-     */
-    bool UpdateAndInitialiseClients(bool bInitialiseAllClients = false);
-
-    /*!
-     * @brief Initialise and connect a client.
-     * @param client The client to initialise.
-     * @param newRegistration pass in pointer to bool to return whether the client was newly registered.
-     * @return The id of the client if it was created or found in the existing client map, -1 otherwise.
-     */
-    int RegisterClient(ADDON::AddonPtr client, bool* newRegistration = NULL);
 
     int GetClientId(const ADDON::AddonPtr client) const;
+
 
     bool                  m_bChannelScanRunning;      /*!< true when a channel scan is currently running, false otherwise */
     bool                  m_bIsSwitchingChannels;        /*!< true while switching channels */
     int                   m_playingClientId;          /*!< the ID of the client that is currently playing */
     bool                  m_bIsPlayingLiveTV;
     bool                  m_bIsPlayingRecording;
-    DWORD                 m_scanStart;                /*!< scan start time to check for non present streams */
     std::string           m_strPlayingClientName;     /*!< the name client that is currenty playing a stream or an empty string if nothing is playing */
-    ADDON::VECADDONS      m_addons;
     PVR_CLIENTMAP         m_clientMap;                /*!< a map of all known clients */
-    STREAMPROPS           m_streamProps;              /*!< the current stream's properties */
-    bool                  m_bNoAddonWarningDisplayed; /*!< true when a warning was displayed that no add-ons were found, false otherwise */
     CCriticalSection      m_critSection;
-    std::map<int, time_t> m_connectionAttempts;       /*!< last connection attempt per add-on */
+    std::map<std::string, int> m_addonNameIds; /*!< map add-on names to IDs */
   };
 }

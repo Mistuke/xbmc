@@ -38,22 +38,23 @@ namespace PVR
     CGUIDialogPVRGuideInfo(void);
     virtual ~CGUIDialogPVRGuideInfo(void);
     virtual bool OnMessage(CGUIMessage& message);
+    virtual bool OnInfo(int actionID) override;
     virtual bool HasListItems() const { return true; };
     virtual CFileItemPtr GetCurrentListItem(int offset = 0);
 
-    void SetProgInfo(const CFileItem *item);
+    void SetProgInfo(const EPG::CEpgInfoTagPtr &tag);
 
   protected:
     virtual void OnInitWindow();
 
     bool ActionStartTimer(const EPG::CEpgInfoTagPtr &tag);
-    bool ActionCancelTimer(CFileItemPtr timer);
+    bool ActionCancelTimer(const CFileItemPtr &timer);
 
     bool OnClickButtonOK(CGUIMessage &message);
     bool OnClickButtonRecord(CGUIMessage &message);
-    bool OnClickButtonSwitch(CGUIMessage &message);
+    bool OnClickButtonPlay(CGUIMessage &message);
     bool OnClickButtonFind(CGUIMessage &message);
 
-    CFileItemPtr m_progItem;
+    EPG::CEpgInfoTagPtr m_progItem;
   };
 }

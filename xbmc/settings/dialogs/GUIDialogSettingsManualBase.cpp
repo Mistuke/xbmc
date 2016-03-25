@@ -18,8 +18,10 @@
  *
  */
 
+#include <string>
+#include <vector>
+
 #include "GUIDialogSettingsManualBase.h"
-#include "guilib/LocalizeStrings.h"
 #include "settings/SettingAddon.h"
 #include "settings/SettingPath.h"
 #include "settings/SettingUtils.h"
@@ -27,8 +29,7 @@
 #include "settings/lib/SettingSection.h"
 #include "settings/lib/SettingsManager.h"
 #include "utils/StringUtils.h"
-
-using namespace std;
+#include "utils/Variant.h"
 
 CGUIDialogSettingsManualBase::CGUIDialogSettingsManualBase(int windowId, const std::string &xmlFile)
     : CGUIDialogSettingsManagerBase(windowId, xmlFile),
@@ -89,16 +90,22 @@ CSettingCategory* CGUIDialogSettingsManualBase::AddCategory(const std::string &i
   return category;
 }
 
-CSettingGroup* CGUIDialogSettingsManualBase::AddGroup(CSettingCategory *category)
+CSettingGroup* CGUIDialogSettingsManualBase::AddGroup(CSettingCategory *category, int label /* = -1 */, int help /* = -1 */, bool separatorBelowLabel /* = true */, bool hideSeparator /* = false */)
 {
   if (category == NULL)
     return NULL;
 
   size_t groups = category->GetGroups().size();
 
-  CSettingGroup *group = new CSettingGroup(StringUtils::Format("%zu", groups + 1), m_settingsManager);
+  CSettingGroup *group = new CSettingGroup(StringUtils::Format("%" PRIuS, groups + 1), m_settingsManager);
   if (group == NULL)
     return NULL;
+
+  if (label >= 0)
+    group->SetLabel(label);
+  if (help >= 0)
+    group->SetHelp(help);
+  group->SetControl(GetTitleControl(separatorBelowLabel, hideSeparator));
 
   category->AddGroup(group);
   return group;
@@ -233,6 +240,24 @@ CSettingAction* CGUIDialogSettingsManualBase::AddButton(CSettingGroup *group, co
     return NULL;
 
   setting->SetControl(GetButtonControl("action", delayed));
+  setSettingDetails(setting, level, visible, help);
+
+  group->AddSetting(setting);
+  return setting;
+}
+
+CSettingString* CGUIDialogSettingsManualBase::AddInfoLabelButton(CSettingGroup *group, const std::string &id, int label, int level, std::string info,
+                                                                 bool visible /* = true */, int help /* = -1 */)
+{
+  if (group == NULL || id.empty() || label < 0 ||
+      GetSetting(id) != NULL)
+    return NULL;
+
+  CSettingString *setting = new CSettingString(id, label, info, m_settingsManager);
+  if (setting == NULL)
+    return NULL;
+
+  setting->SetControl(GetButtonControl("infolabel", false));
   setSettingDetails(setting, level, visible, help);
 
   group->AddSetting(setting);
@@ -575,7 +600,7 @@ CSettingList* CGUIDialogSettingsManualBase::AddList(CSettingGroup *group, const 
 
 CSettingList* CGUIDialogSettingsManualBase::AddList(CSettingGroup *group, const std::string &id, int label, int level, std::vector<int> values,
                                                     IntegerSettingOptionsFiller filler, int heading, int minimumItems /* = 0 */, int maximumItems /* = -1 */,
-                                                    bool visible /* = true */, int help /* = -1 */)
+                                                    bool visible /* = true */, int help /* = -1 */, SettingControlListValueFormatter formatter /* = NULL */)
 {
   if (group == NULL || id.empty() || label < 0 || filler == NULL ||
       GetSetting(id) != NULL)
@@ -607,7 +632,7 @@ CSettingList* CGUIDialogSettingsManualBase::AddList(CSettingGroup *group, const 
   // setting the default will also set the actual value on an unchanged setting
   setting->SetDefault(settingValues);
 
-  setting->SetControl(GetListControl("integer", false, heading, true));
+  setting->SetControl(GetListControl("integer", false, heading, true, formatter));
   setting->SetMinimumItems(minimumItems);
   setting->SetMaximumItems(maximumItems);
   setSettingDetails(setting, level, visible, help);
@@ -934,6 +959,15 @@ ISettingControl* CGUIDialogSettingsManualBase::GetCheckmarkControl(bool delayed 
   return control;
 }
 
+ISettingControl* CGUIDialogSettingsManualBase::GetTitleControl(bool separatorBelowLabel /* = true */, bool hideSeparator /* = false */)
+{
+  CSettingControlTitle *control = new CSettingControlTitle();
+  control->SetSeparatorBelowLabel(separatorBelowLabel);
+  control->SetSeparatorHidden(hideSeparator);
+
+  return control;
+}
+
 ISettingControl* CGUIDialogSettingsManualBase::GetEditControl(const std::string &format, bool delayed /* = false */, bool hidden /* = false */, bool verifyNewValue /* = false */, int heading /* = -1 */)
 {
   CSettingControlEdit *control = new CSettingControlEdit();
@@ -991,7 +1025,7 @@ ISettingControl* CGUIDialogSettingsManualBase::GetSpinnerControl(const std::stri
   return control;
 }
 
-ISettingControl* CGUIDialogSettingsManualBase::GetListControl(const std::string &format, bool delayed /* = false */, int heading /* = -1 */, bool multiselect /* = false */)
+ISettingControl* CGUIDialogSettingsManualBase::GetListControl(const std::string &format, bool delayed /* = false */, int heading /* = -1 */, bool multiselect /* = false */,SettingControlListValueFormatter formatter /* = NULL */)
 {
   CSettingControlList *control = new CSettingControlList();
   if (!control->SetFormat(format))
@@ -1003,6 +1037,7 @@ ISettingControl* CGUIDialogSettingsManualBase::GetListControl(const std::string 
   control->SetDelayed(delayed);
   control->SetHeading(heading);
   control->SetMultiSelect(multiselect);
+  control->SetFormatter(formatter);
 
   return control;
 }

@@ -19,16 +19,19 @@
  */
 
 #include "GUIDialogLockSettings.h"
-#include "URL.h"
+
+#include <utility>
+
 #include "dialogs/GUIDialogContextMenu.h"
 #include "dialogs/GUIDialogGamepad.h"
-#include "guilib/GUIKeyboardFactory.h"
 #include "dialogs/GUIDialogNumeric.h"
+#include "guilib/GUIKeyboardFactory.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "settings/lib/Setting.h"
 #include "settings/lib/SettingSection.h"
 #include "settings/windows/GUIControlSettings.h"
+#include "URL.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 
@@ -46,7 +49,7 @@
 #define SETTING_LOCK_ADDONMANAGER   "lock.addonmanager"
 
 CGUIDialogLockSettings::CGUIDialogLockSettings()
-    : CGUIDialogSettingsManualBase(WINDOW_DIALOG_LOCK_SETTINGS, "LockSettings.xml"),
+    : CGUIDialogSettingsManualBase(WINDOW_DIALOG_LOCK_SETTINGS, "DialogSettings.xml"),
       m_changed(false),
       m_details(true),
       m_conditionalDetails(false),
@@ -82,7 +85,7 @@ bool CGUIDialogLockSettings::ShowAndGetLock(CProfile::CLock &locks, int buttonLa
   dialog->m_getUser = false;
   dialog->m_conditionalDetails = conditional;
   dialog->m_details = details;
-  dialog->DoModal();
+  dialog->Open();
 
   if (!dialog->m_changed)
     return false;
@@ -102,7 +105,7 @@ bool CGUIDialogLockSettings::ShowAndGetUserAndPassword(std::string &user, std::s
   dialog->m_user = user;
   dialog->m_url = url;
   dialog->m_saveUserDetails = saveUserDetails;
-  dialog->DoModal();
+  dialog->Open();
 
   if (!dialog->m_changed)
     return false;
@@ -226,6 +229,9 @@ void CGUIDialogLockSettings::SetupView()
     setLockCodeLabel();
     setDetailSettingsEnabled(m_locks.mode != LOCK_MODE_EVERYONE);
   }
+  SET_CONTROL_HIDDEN(CONTROL_SETTINGS_CUSTOM_BUTTON);
+  SET_CONTROL_LABEL(CONTROL_SETTINGS_OKAY_BUTTON, 186);
+  SET_CONTROL_LABEL(CONTROL_SETTINGS_CANCEL_BUTTON, 222);
 }
 
 void CGUIDialogLockSettings::InitializeSettings()

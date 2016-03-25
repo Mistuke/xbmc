@@ -1,5 +1,4 @@
 #pragma once
-
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://xbmc.org
@@ -20,11 +19,12 @@
  *
  */
 
-#include <vector>
-
 #include "FileItem.h"
-#include "PVRChannelGroup.h"
 #include "threads/CriticalSection.h"
+
+#include "PVRChannelGroup.h"
+
+#include <vector>
 
 namespace PVR
 {
@@ -86,6 +86,14 @@ namespace PVR
     CPVRChannelGroupPtr GetById(int iGroupId) const;
 
     /*!
+     * @brief Get all groups the given channel is a member.
+     * @param channel The channel.
+     * @param bExcludeHidden Whenever to exclude hidden channel groups.
+     * @return A list of groups the channel is a member.
+     */
+    std::vector<CPVRChannelGroupPtr> GetGroupsByChannel(const CPVRChannelPtr channel, bool bExcludeHidden = false) const;
+
+    /*!
      * @brief Get a group given it's name.
      * @param strName The name.
      * @return The group or NULL if it wan't found.
@@ -107,7 +115,7 @@ namespace PVR
      * @return The last group in this container.
      */
     CPVRChannelGroupPtr GetLastGroup(void) const;
-    
+
     /*!
      * @brief The group that was played last and optionally contains the given channel.
      * @param iChannelID The channel ID
@@ -118,9 +126,10 @@ namespace PVR
     /*!
      * @brief Get the list of groups.
      * @param groups The list to store the results in.
+     * @param bExcludeHidden Whenever to exclude hidden channel groups.
      * @return The amount of items that were added.
      */
-    std::vector<CPVRChannelGroupPtr> GetMembers() const;
+    std::vector<CPVRChannelGroupPtr> GetMembers(bool bExcludeHidden = false) const;
 
     /*!
      * @brief Get the list of groups.
@@ -204,6 +213,7 @@ namespace PVR
     bool UpdateGroupsEntries(const CPVRChannelGroups &groups);
     bool LoadUserDefinedChannelGroups(void);
     bool GetGroupsFromClients(void);
+    void SortGroups(void);
 
     bool                             m_bRadio;         /*!< true if this is a container for radio channels, false if it is for tv channels */
     CPVRChannelGroupPtr              m_selectedGroup;  /*!< the group that's currently selected in the UI */

@@ -31,6 +31,7 @@
 class CArchive;
 class TiXmlNode;
 class TiXmlElement;
+class CVariant;
 
 struct SActorInfo
 {
@@ -45,6 +46,18 @@ struct SActorInfo
   std::string thumb;
   int        order;
 };
+
+class CRating
+{
+public:
+  CRating()
+    : CRating(0.0f, 0)
+  { }
+  CRating(float r, int v) { rating = r; votes = v; }
+  float rating;
+  int votes;
+};
+typedef std::map<std::string, CRating> RatingMap;
 
 class CVideoInfoTag : public IArchivable, public ISerializable, public ISortable
 {
@@ -71,6 +84,7 @@ public:
   virtual void Archive(CArchive& ar);
   virtual void Serialize(CVariant& value) const;
   virtual void ToSortable(SortItem& sortable, Field field) const;
+  const CRating GetRating(std::string type = "") const;
   const std::string GetCast(bool bIncludeRole = false) const;
   bool HasStreamDetails() const;
   bool IsEmpty() const;
@@ -93,6 +107,43 @@ public:
    */
   static unsigned int GetDurationFromMinuteString(const std::string &runtime);
 
+  void SetBasePath(std::string basePath);
+  void SetDirector(std::vector<std::string> director);
+  void SetWritingCredits(std::vector<std::string> writingCredits);
+  void SetGenre(std::vector<std::string> genre);
+  void SetCountry(std::vector<std::string> country);
+  void SetTagLine(std::string tagLine);
+  void SetPlotOutline(std::string plotOutline);
+  void SetTrailer(std::string trailer);
+  void SetPlot(std::string plot);
+  void SetTitle(std::string title);
+  void SetSortTitle(std::string sortTitle);
+  void SetPictureURL(CScraperUrl &pictureURL);
+  void AddRating(float rating, int votes, const std::string& type = "");
+  void AddRating(CRating rating, const std::string& type = "");
+  void SetRating(float rating, const std::string& type = "");
+  void SetVotes(int votes, const std::string& type = "");
+  void SetArtist(std::vector<std::string> artist);
+  void SetSet(std::string set);
+  void SetSetOverview(std::string setOverview);
+  void SetTags(std::vector<std::string> tags);
+  void SetFile(std::string file);
+  void SetPath(std::string path);
+  void SetIMDBNumber(std::string imdbNumber);
+  void SetMPAARating(std::string mpaaRating);
+  void SetFileNameAndPath(std::string fileNameAndPath);
+  void SetOriginalTitle(std::string originalTitle);
+  void SetEpisodeGuide(std::string episodeGuide);
+  void SetStatus(std::string status);
+  void SetProductionCode(std::string productionCode);
+  void SetShowTitle(std::string showTitle);
+  void SetStudio(std::vector<std::string> studio);
+  void SetAlbum(std::string album);
+  void SetShowLink(std::vector<std::string> showLink);
+  void SetUniqueId(std::string uniqueId);
+  void SetNamedSeasons(std::map<int, std::string> namedSeasons);
+  void SetUserrating(int userrating);
+
   std::string m_basePath; // the base path of the video, for folder-based lookups
   int m_parentPathID;      // the parent path id where the base path of the video lies
   std::vector<std::string> m_director;
@@ -112,6 +163,7 @@ public:
   typedef std::vector< SActorInfo >::const_iterator iCast;
   std::string m_strSet;
   int m_iSetId;
+  std::string m_strSetOverview;
   std::vector<std::string> m_tags;
   std::string m_strFile;
   std::string m_strPath;
@@ -129,6 +181,7 @@ public:
   std::string m_strAlbum;
   CDateTime m_lastPlayed;
   std::vector<std::string> m_showLink;
+  std::map<int, std::string> m_namedSeasons;
   int m_playCount;
   int m_iTop250;
   int m_iYear;
@@ -140,8 +193,11 @@ public:
   int m_iSpecialSortSeason;
   int m_iSpecialSortEpisode;
   int m_iTrack;
-  float m_fRating;
-  float m_fEpBookmark;
+  RatingMap m_ratings;
+  int m_iIdRating;
+  std::string m_strDefaultRating;
+  int m_iUserRating;
+  CBookmark m_EpBookmark;
   int m_iBookmarkId;
   int m_iIdShow;
   int m_iIdSeason;
@@ -151,6 +207,8 @@ public:
   CDateTime m_dateAdded;
   MediaType m_type;
   int m_duration; ///< duration in seconds
+  int m_relevance; // Used for actors' number of appearances
+  int m_parsedDetails;
 
 private:
   /* \brief Parse our native XML format for video info.
@@ -161,6 +219,9 @@ private:
    \sa Load
    */
   void ParseNative(const TiXmlElement* element, bool prioritise);
+
+  std::string Trim(std::string &&value);
+  std::vector<std::string> Trim(std::vector<std::string> &&items);
 };
 
 typedef std::vector<CVideoInfoTag> VECMOVIES;

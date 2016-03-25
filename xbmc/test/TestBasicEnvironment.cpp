@@ -28,6 +28,7 @@
 #include "settings/Settings.h"
 #include "Util.h"
 #include "Application.h"
+#include "interfaces/AnnouncementManager.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -35,9 +36,11 @@
 
 void TestBasicEnvironment::SetUp()
 {
-  char *tmp;
-  std::string xbmcTempPath;
   XFILE::CFile *f;
+
+  g_application.m_ServiceManager.reset(new CServiceManager());
+  if (!g_application.m_ServiceManager->Init1())
+    exit(1);
 
   /* NOTE: The below is done to fix memleak warning about unitialized variable
    * in xbmcutil::GlobalsSingleton<CAdvancedSettings>::getInstance().
@@ -63,12 +66,16 @@ void TestBasicEnvironment::SetUp()
    * that the initialization of these components won't be needed.
    */
   g_powerManager.Initialize();
-  CSettings::Get().Initialize();
+  CSettings::GetInstance().Initialize();
+
+  if (!g_application.m_ServiceManager->Init2())
+    exit(1);
 
   /* Create a temporary directory and set it to be used throughout the
    * test suite run.
    */
 #ifdef TARGET_WINDOWS
+  std::string xbmcTempPath;
   TCHAR lpTempPathBuffer[MAX_PATH];
   if (!GetTempPath(MAX_PATH, lpTempPathBuffer))
     SetUpError();
@@ -81,7 +88,7 @@ void TestBasicEnvironment::SetUp()
   CSpecialProtocol::SetTempPath(lpTempPathBuffer);
 #else
   char buf[MAX_PATH];
-  (void)xbmcTempPath;
+  char *tmp;
   strcpy(buf, "/tmp/xbmctempdirXXXXXX");
   if ((tmp = mkdtemp(buf)) == NULL)
     SetUpError();
@@ -107,6 +114,8 @@ void TestBasicEnvironment::TearDown()
 {
   std::string xbmcTempPath = CSpecialProtocol::TranslatePath("special://temp/");
   XFILE::CDirectory::Remove(xbmcTempPath);
+  CSettings::GetInstance().Uninitialize();
+  g_application.m_ServiceManager->Deinit();
 }
 
 void TestBasicEnvironment::SetUpError()

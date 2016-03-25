@@ -18,12 +18,15 @@
 *  <http://www.gnu.org/licenses/>.
 *
 */
-#include <memory>
+
+#include <stdint.h>
 
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
-#include <stdint.h>
+#include <utility>
+#include "XBDateTime.h"
 
 class TiXmlElement;
 
@@ -35,6 +38,9 @@ namespace ADDON
     ADDON_VIZ,
     ADDON_SKIN,
     ADDON_PVRDLL,
+    ADDON_ADSPDLL,
+    ADDON_INPUTSTREAM,
+    ADDON_PERIPHERALDLL,
     ADDON_SCRIPT,
     ADDON_SCRIPT_WEATHER,
     ADDON_SUBTITLE_MODULE,
@@ -52,6 +58,9 @@ namespace ADDON
     ADDON_AUDIOENCODER,
     ADDON_CONTEXT_ITEM,
     ADDON_AUDIODECODER,
+    ADDON_RESOURCE_IMAGES,
+    ADDON_RESOURCE_LANGUAGE,
+    ADDON_RESOURCE_UISOUNDS,
     ADDON_VIDEO, // virtual addon types
     ADDON_AUDIO,
     ADDON_IMAGE,
@@ -60,6 +69,7 @@ namespace ADDON
     ADDON_SCRAPER_LIBRARY,
     ADDON_SCRIPT_LIBRARY,
     ADDON_SCRIPT_MODULE,
+    ADDON_GAME_CONTROLLER,
     ADDON_MAX
   } TYPE;
 
@@ -82,14 +92,12 @@ namespace ADDON
   {
   public:
     virtual ~IAddon() {};
-    virtual AddonPtr Clone() const =0;
     virtual TYPE Type() const =0;
+    virtual TYPE FullType() const =0;
     virtual bool IsType(TYPE type) const =0;
-    virtual AddonProps Props() const =0;
-    virtual AddonProps& Props() =0;
+    virtual const AddonProps& Props() =0;
     virtual const std::string ID() const =0;
     virtual const std::string Name() const =0;
-    virtual bool Enabled() const =0;
     virtual bool IsInUse() const =0;
     virtual const AddonVersion Version() const =0;
     virtual const AddonVersion MinVersion() const =0;
@@ -102,15 +110,17 @@ namespace ADDON
     virtual const std::string FanArt() const =0;
     virtual const std::string Author() const =0;
     virtual const std::string Icon() const =0;
-    virtual int  Stars() const =0;
     virtual const std::string Disclaimer() const =0;
+    virtual const std::string Broken() const =0;
+    virtual CDateTime InstallDate() const =0;
+    virtual CDateTime LastUpdated() const =0;
+    virtual CDateTime LastUsed() const =0;
     virtual const InfoMap &ExtraInfo() const =0;
     virtual bool HasSettings() =0;
     virtual void SaveSettings() =0;
     virtual void UpdateSetting(const std::string& key, const std::string& value) =0;
     virtual std::string GetSetting(const std::string& key) =0;
     virtual TiXmlElement* GetSettingsXML() =0;
-    virtual std::string GetString(uint32_t id) =0;
     virtual const ADDONDEPS &GetDeps() const =0;
     virtual AddonVersion GetDependencyVersion(const std::string &dependencyID) const =0;
     virtual bool MeetsVersion(const AddonVersion &version) const =0;
@@ -118,22 +128,14 @@ namespace ADDON
     virtual void OnDisabled() =0;
     virtual void OnEnabled() =0;
     virtual AddonPtr GetRunningInstance() const=0;
-    virtual bool OnPreInstall() =0;
-    virtual void OnPostInstall(bool restart, bool update, bool modal) =0;
+    virtual void OnPreInstall() =0;
+    virtual void OnPostInstall(bool update, bool modal) =0;
     virtual void OnPreUnInstall() =0;
     virtual void OnPostUnInstall() =0;
-    virtual bool CanInstall(const std::string& referer) =0;
+    virtual bool CanInstall() =0;
 
   protected:
     virtual bool LoadSettings(bool bForce = false) =0;
-
-  private:
-    friend class CAddonMgr;
-    virtual bool IsAddonLibrary() =0;
-    virtual void Enable() =0;
-    virtual void Disable() =0;
-    virtual bool LoadStrings() =0;
-    virtual void ClearStrings() =0;
   };
 };
 

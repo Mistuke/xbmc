@@ -20,10 +20,9 @@
  *
  */
 
-#include "guilib/GUIDialog.h"
+#include "settings/dialogs/GUIDialogSettingsManualBase.h"
 
-class CGUIDialogNetworkSetup :
-      public CGUIDialog
+class CGUIDialogNetworkSetup : public CGUIDialogSettingsManualBase
 {
 public:
   enum NET_PROTOCOL { NET_PROTOCOL_SMB = 0,
@@ -33,16 +32,10 @@ public:
                       NET_PROTOCOL_HTTPS,
                       NET_PROTOCOL_DAV,
                       NET_PROTOCOL_DAVS,
-                      NET_PROTOCOL_DAAP,
                       NET_PROTOCOL_UPNP,
                       NET_PROTOCOL_RSS,
-                      NET_PROTOCOL_HTSP,
-                      NET_PROTOCOL_VTP,
-                      NET_PROTOCOL_MYTH,
-                      NET_PROTOCOL_TUXBOX,
                       NET_PROTOCOL_SFTP,
-                      NET_PROTOCOL_NFS, 
-                      NET_PROTOCOL_AFP};
+                      NET_PROTOCOL_NFS};
   CGUIDialogNetworkSetup(void);
   virtual ~CGUIDialogNetworkSetup(void);
   virtual bool OnMessage(CGUIMessage& message);
@@ -57,6 +50,18 @@ public:
   bool IsConfirmed() const { return m_confirmed; };
 
 protected:
+  // implementations of ISettingCallback
+  virtual void OnSettingChanged(const CSetting *setting);
+  virtual void OnSettingAction(const CSetting *setting);
+
+  // specialization of CGUIDialogSettingsBase
+  bool AllowResettingSettings() const override { return false; }
+  virtual void Save() { }
+  virtual void SetupView();
+
+  // specialization of CGUIDialogSettingsManualBase
+  virtual void InitializeSettings();
+
   void OnProtocolChange();
   void OnServerBrowse();
   void OnOK();

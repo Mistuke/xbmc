@@ -19,9 +19,12 @@
  */
 
 #include "WsgiResponse.h"
-#include "network/httprequesthandler/IHTTPRequestHandler.h"
+
+#include <utility>
+
 #include "utils/log.h"
 #include "utils/StringUtils.h"
+
 
 namespace XBMCAddon
 {

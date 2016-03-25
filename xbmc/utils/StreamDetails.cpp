@@ -21,7 +21,7 @@
 #include <math.h>
 #include "StreamDetails.h"
 #include "StreamUtils.h"
-#include "Variant.h"
+#include "utils/Variant.h"
 #include "LangInfo.h"
 #include "utils/LangCodeExpander.h"
 #include "utils/Archive.h"
@@ -53,6 +53,7 @@ void CStreamDetailVideo::Archive(CArchive& ar)
     ar << m_iWidth;
     ar << m_iDuration;
     ar << m_strStereoMode;
+    ar << m_strLanguage;
   }
   else
   {
@@ -62,6 +63,7 @@ void CStreamDetailVideo::Archive(CArchive& ar)
     ar >> m_iWidth;
     ar >> m_iDuration;
     ar >> m_strStereoMode;
+    ar >> m_strLanguage;
   }
 }
 void CStreamDetailVideo::Serialize(CVariant& value) const
@@ -72,6 +74,7 @@ void CStreamDetailVideo::Serialize(CVariant& value) const
   value["width"] = m_iWidth;
   value["duration"] = m_iDuration;
   value["stereomode"] = m_strStereoMode;
+  value["language"] = m_strLanguage;
 }
 
 bool CStreamDetailVideo::IsWorseThan(CStreamDetail *that)
@@ -155,13 +158,13 @@ bool CStreamDetailSubtitle::IsWorseThan(CStreamDetail *that)
   if (that->m_eType != CStreamDetail::SUBTITLE)
     return true;
 
-  if (g_LangCodeExpander.CompareLangCodes(m_strLanguage, ((CStreamDetailSubtitle *)that)->m_strLanguage))
+  if (g_LangCodeExpander.CompareISO639Codes(m_strLanguage, ((CStreamDetailSubtitle *)that)->m_strLanguage))
     return false;
 
   // the best subtitle should be the one in the user's preferred language
   // If preferred language is set to "original" this is "eng"
   return m_strLanguage.empty() ||
-    g_LangCodeExpander.CompareLangCodes(((CStreamDetailSubtitle *)that)->m_strLanguage, g_langInfo.GetSubtitleLanguage());
+    g_LangCodeExpander.CompareISO639Codes(((CStreamDetailSubtitle *)that)->m_strLanguage, g_langInfo.GetSubtitleLanguage());
 }
 
 CStreamDetailSubtitle& CStreamDetailSubtitle::operator=(const CStreamDetailSubtitle &that)
@@ -267,6 +270,15 @@ CStreamDetail *CStreamDetails::NewStream(CStreamDetail::StreamType type)
   return retVal;
 }
 
+std::string CStreamDetails::GetVideoLanguage(int idx) const
+{
+  CStreamDetailVideo *item = (CStreamDetailVideo*)GetNthStream(CStreamDetail::VIDEO, idx);
+  if (item)
+    return item->m_strLanguage;
+  else
+    return "";
+}
+
 int CStreamDetails::GetStreamCount(CStreamDetail::StreamType type) const
 {
   int retVal = 0;
@@ -294,6 +306,9 @@ int CStreamDetails::GetSubtitleStreamCount(void) const
 
 CStreamDetails::CStreamDetails(const CStreamDetails &that)
 {
+  m_pBestVideo = nullptr;
+  m_pBestAudio = nullptr;
+  m_pBestSubtitle = nullptr;
   *this = that;
 }
 
@@ -305,9 +320,9 @@ void CStreamDetails::AddStream(CStreamDetail *item)
 
 void CStreamDetails::Reset(void)
 {
-  m_pBestVideo = NULL;
-  m_pBestAudio = NULL;
-  m_pBestSubtitle = NULL;
+  m_pBestVideo = nullptr;
+  m_pBestAudio = nullptr;
+  m_pBestSubtitle = nullptr;
 
   std::vector<CStreamDetail *>::iterator iter;
   for (iter = m_vecItems.begin(); iter != m_vecItems.end(); ++iter)

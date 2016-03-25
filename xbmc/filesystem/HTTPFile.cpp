@@ -46,8 +46,8 @@ ssize_t CHTTPFile::Write(const void* lpBuf, size_t uiBufSize)
   if (!m_openedforwrite)
     return -1;
 
-  std::string myPostData((char*) lpBuf);
-  if ((int64_t)myPostData.length() != uiBufSize)
+  std::string myPostData(static_cast<const char*>(lpBuf));
+  if (myPostData.length() != uiBufSize)
     return -1;
 
   // If we get here, we (most likely) satisfied the pre-conditions that we used OpenForWrite and passed a string as postdata

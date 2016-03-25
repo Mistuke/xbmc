@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2005-2015 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,18 +13,18 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "XBMCOperations.h"
-#include "ApplicationMessenger.h"
-#include "Util.h"
+#include "messaging/ApplicationMessenger.h"
 #include "utils/Variant.h"
 #include "powermanagement/PowerManager.h"
 
 using namespace JSONRPC;
+using namespace KODI::MESSAGING;
 
 JSONRPC_STATUS CXBMCOperations::GetInfoLabels(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
 {
@@ -38,9 +38,11 @@ JSONRPC_STATUS CXBMCOperations::GetInfoLabels(const std::string &method, ITransp
     info.push_back(parameterObject["labels"][i].asString());
   }
 
-  if (info.size() > 0)
+  if (!info.empty())
   {
-    std::vector<std::string> infoLabels = CApplicationMessenger::Get().GetInfoLabels(info);
+    std::vector<std::string> infoLabels;
+    CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_INFOLABEL, -1, -1, static_cast<void*>(&infoLabels), "", info);
+
     for (unsigned int i = 0; i < info.size(); i++)
     {
       if (i >= infoLabels.size())
@@ -79,9 +81,10 @@ JSONRPC_STATUS CXBMCOperations::GetInfoBooleans(const std::string &method, ITran
       info.push_back(parameterObject["booleans"][i].asString());
   }
 
-  if (info.size() > 0)
+  if (!info.empty())
   {
-    std::vector<bool> infoLabels = CApplicationMessenger::Get().GetInfoBooleans(info);
+    std::vector<bool> infoLabels;
+    CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_INFOBOOL, -1, -1, static_cast<void*>(&infoLabels), "", info);
     for (unsigned int i = 0; i < info.size(); i++)
     {
       if (i >= infoLabels.size())

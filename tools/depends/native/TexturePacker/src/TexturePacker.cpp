@@ -32,13 +32,13 @@
 #include <map>
 
 #include "guilib/XBTF.h"
+#include "guilib/XBTFReader.h"
 
 #include "DecoderManager.h"
 
 #include "XBTFWriter.h"
 #include "md5.h"
 #include "cmdlineargs.h"
-#include "squish.h"
 
 #ifdef TARGET_WINDOWS
 #define strncasecmp _strnicmp
@@ -55,8 +55,6 @@
 using namespace std;
 
 #define FLAGS_USE_LZO     1
-#define FLAGS_ALLOW_YCOCG 2
-#define FLAGS_USE_DXT     4
 
 #define DIR_SEPARATOR "/"
 
@@ -81,7 +79,7 @@ const char *GetFormatString(unsigned int format)
   }
 }
 
-void CreateSkeletonHeaderImpl(CXBTF& xbtf, std::string fullPath, std::string relativePath)
+void CreateSkeletonHeaderImpl(CXBTFWriter& xbtfWriter, std::string fullPath, std::string relativePath)
 {
   struct dirent* dp;
   struct stat stat_p;
@@ -108,7 +106,7 @@ void CreateSkeletonHeaderImpl(CXBTF& xbtf, std::string fullPath, std::string rel
             tmpPath += "/";
           }
 
-          CreateSkeletonHeaderImpl(xbtf, fullPath + DIR_SEPARATOR + dp->d_name, tmpPath + dp->d_name);
+          CreateSkeletonHeaderImpl(xbtfWriter, fullPath + DIR_SEPARATOR + dp->d_name, tmpPath + dp->d_name);
         }
         else if (DecoderManager::IsSupportedGraphicsFile(dp->d_name))
         {
@@ -123,7 +121,7 @@ void CreateSkeletonHeaderImpl(CXBTF& xbtf, std::string fullPath, std::string rel
 
           CXBTFFile file;
           file.SetPath(fileName);
-          xbtf.GetFiles().push_back(file);
+          xbtfWriter.AddFile(file);
         }
       }
     }
@@ -136,10 +134,10 @@ void CreateSkeletonHeaderImpl(CXBTF& xbtf, std::string fullPath, std::string rel
   }
 }
 
-void CreateSkeletonHeader(CXBTF& xbtf, std::string fullPath)
+void CreateSkeletonHeader(CXBTFWriter& xbtfWriter, std::string fullPath)
 {
   std::string temp;
-  CreateSkeletonHeaderImpl(xbtf, fullPath, temp);
+  CreateSkeletonHeaderImpl(xbtfWriter, fullPath, temp);
 }
 
 CXBTFFrame appendContent(CXBTFWriter &writer, int width, int height, unsigned char *data, unsigned int size, unsigned int format, bool hasAlpha, unsigned int flags)
@@ -195,12 +193,6 @@ CXBTFFrame appendContent(CXBTFWriter &writer, int width, int height, unsigned ch
   return frame;
 }
 
-void CompressImage(const squish::u8 *brga, int width, int height, squish::u8 *compressed, unsigned int flags, double &colorMSE, double &alphaMSE)
-{
-  squish::CompressImage(brga, width, height, compressed, flags | squish::kSourceBGRA);
-  squish::ComputeMSE(brga, width, height, compressed, flags | squish::kSourceBGRA, colorMSE, alphaMSE);
-}
-
 bool HasAlpha(unsigned char *argb, unsigned int width, unsigned int height)
 {
   unsigned char *p = argb + 3; // offset of alpha
@@ -218,63 +210,14 @@ CXBTFFrame createXBTFFrame(RGBAImage &image, CXBTFWriter& writer, double maxMSE,
   int width, height;
   unsigned int format = 0;
   unsigned char* argb = (unsigned char*)image.pixels;
-  unsigned int compressedSize = 0;
-  unsigned char* compressed = NULL;
   
   width  = image.width;
   height = image.height;
   bool hasAlpha = HasAlpha(argb, width, height);
 
-  if (flags & FLAGS_USE_DXT)
-  {
-    double colorMSE, alphaMSE;
-    compressedSize = squish::GetStorageRequirements(width, height, squish::kDxt5);
-    compressed = new unsigned char[compressedSize];
-    // first try DXT1, which is only 4bits/pixel
-    CompressImage(argb, width, height, compressed, squish::kDxt1, colorMSE, alphaMSE);
-    if (colorMSE < maxMSE && alphaMSE < maxMSE)
-    { // success - use it
-      compressedSize = squish::GetStorageRequirements(width, height, squish::kDxt1);
-      format = XB_FMT_DXT1;
-    }
-
-    if (!format)
-    { // try DXT3 and DXT5 - use whichever is better (color is the same, but alpha will be different)
-      CompressImage(argb, width, height, compressed, squish::kDxt3, colorMSE, alphaMSE);
-      if (colorMSE < maxMSE)
-      { // color is fine, test DXT5 as well
-        double dxt5MSE;
-        squish::u8* compressed2 = new squish::u8[squish::GetStorageRequirements(width, height, squish::kDxt5)];
-        CompressImage(argb, width, height, compressed2, squish::kDxt5, colorMSE, dxt5MSE);
-        if (alphaMSE < maxMSE && alphaMSE < dxt5MSE)
-        { // DXT3 passes and is best
-          compressedSize = squish::GetStorageRequirements(width, height, squish::kDxt3);
-          format = XB_FMT_DXT3;
-        }
-        else if (dxt5MSE < maxMSE)
-        { // DXT5 passes
-          compressedSize = squish::GetStorageRequirements(width, height, squish::kDxt5);
-          memcpy(compressed, compressed2, compressedSize);
-          format = XB_FMT_DXT5;
-        }
-        delete[] compressed2;
-      }
-    }
-  }
-
   CXBTFFrame frame; 
-  if (format)
-  {
-    frame = appendContent(writer, width, height, compressed, compressedSize, format, hasAlpha, flags);
-    if (compressedSize)
-      delete[] compressed;
-  }
-  else
-  {
-    // none of the compressed stuff works for us, so we use 32bit texture
-    format = XB_FMT_A8R8G8B8;
-    frame = appendContent(writer, width, height, argb, (width * height * 4), format, hasAlpha, flags);
-  }
+  format = XB_FMT_A8R8G8B8;
+  frame = appendContent(writer, width, height, argb, (width * height * 4), format, hasAlpha, flags);
 
   return frame;
 }
@@ -284,11 +227,9 @@ void Usage()
   puts("Usage:");
   puts("  -help            Show this screen.");
   puts("  -input <dir>     Input directory. Default: current dir");
-  puts("  -output <dir>    Output directory/filename. Default: Textures.xpr");
-  puts("  -dupecheck       Enable duplicate file detection. Reduces output file size. Default: on");
-  puts("  -use_lzo         Use lz0 packing.     Default: on");
-  puts("  -use_dxt         Use DXT compression. Default: on");
-  puts("  -use_none        Use No  compression. Default: off");
+  puts("  -output <dir>    Output directory/filename. Default: Textures.xbt");
+  puts("  -dupecheck       Enable duplicate file detection. Reduces output file size. Default: off");
+  puts("  -disable_lzo     Disable lz0 packing");
 }
 
 static bool checkDupe(struct MD5Context* ctx,
@@ -320,25 +261,25 @@ static bool checkDupe(struct MD5Context* ctx,
 
 int createBundle(const std::string& InputDir, const std::string& OutputFile, double maxMSE, unsigned int flags, bool dupecheck)
 {
-  map<string,unsigned int> hashes;
-  vector<unsigned int> dupes;
-  CXBTF xbtf;
-  CreateSkeletonHeader(xbtf, InputDir);
-  dupes.resize(xbtf.GetFiles().size());
-  if (!dupecheck)
-  {
-    for (unsigned int i=0;i<dupes.size();++i)
-      dupes[i] = i;
-  }
-
-  CXBTFWriter writer(xbtf, OutputFile);
+  CXBTFWriter writer(OutputFile);
   if (!writer.Create())
   {
     fprintf(stderr, "Error creating file\n");
     return 1;
   }
 
-  std::vector<CXBTFFile>& files = xbtf.GetFiles();
+  map<string,unsigned int> hashes;
+  vector<unsigned int> dupes;
+  CreateSkeletonHeader(writer, InputDir);
+
+  std::vector<CXBTFFile> files = writer.GetFiles();
+  dupes.resize(files.size());
+  if (!dupecheck)
+  {
+    for (unsigned int i=0;i<dupes.size();++i)
+      dupes[i] = i;
+  }
+
   for (size_t i = 0; i < files.size(); i++)
   {
     struct MD5Context ctx;
@@ -358,7 +299,7 @@ int createBundle(const std::string& InputDir, const std::string& OutputFile, dou
 
     if (!loaded)
     {
-      fprintf(stderr, "...unable to load image %s\n", file.GetPath());
+      fprintf(stderr, "...unable to load image %s\n", file.GetPath().c_str());
       continue;
     }
 
@@ -373,7 +314,7 @@ int createBundle(const std::string& InputDir, const std::string& OutputFile, dou
 
       if (checkDupe(&ctx,hashes,dupes,i))
       {
-        printf("****  duplicate of %s\n", files[dupes[i]].GetPath());
+        printf("****  duplicate of %s\n", files[dupes[i]].GetPath().c_str());
         file.GetFrames().insert(file.GetFrames().end(),
                                 files[dupes[i]].GetFrames().begin(),
                                 files[dupes[i]].GetFrames().end());
@@ -395,6 +336,8 @@ int createBundle(const std::string& InputDir, const std::string& OutputFile, dou
     }
     DecoderManager::FreeDecodedFrames(frames);
     file.SetLoop(0);
+
+    writer.UpdateFile(file);
   }
 
   if (!writer.UpdateHeader(dupes))
@@ -423,10 +366,9 @@ int main(int argc, char* argv[])
   bool dupecheck = false;
   CmdLineArgs args(argc, (const char**)argv);
 
-  // setup some defaults, dxt with lzo post packing,
-  flags = FLAGS_USE_DXT;
+  // setup some defaults, lzo packing,
 #ifdef USE_LZO_PACKING
-  flags |= FLAGS_USE_LZO;
+  flags = FLAGS_USE_LZO;
 #endif
 
   if (args.size() == 1)
@@ -463,18 +405,10 @@ int main(int argc, char* argv[])
       while ((c = (char *)strchr(OutputFilename.c_str(), '\\')) != NULL) *c = '/';
 #endif
     }
-    else if (!platform_stricmp(args[i], "-use_none"))
-    {
-      flags &= ~FLAGS_USE_DXT;
-    }
-    else if (!platform_stricmp(args[i], "-use_dxt"))
-    {
-      flags |= FLAGS_USE_DXT;
-    }
 #ifdef USE_LZO_PACKING
-    else if (!platform_stricmp(args[i], "-use_lzo"))
+    else if (!platform_stricmp(args[i], "-disable_lzo"))
     {
-      flags |= FLAGS_USE_LZO;
+      flags &= ~FLAGS_USE_LZO;
     }
 #endif
     else

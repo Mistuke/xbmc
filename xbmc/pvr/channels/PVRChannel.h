@@ -1,5 +1,4 @@
 #pragma once
-
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://xbmc.org
@@ -20,20 +19,21 @@
  *
  */
 
-#include "XBDateTime.h"
+#include <memory>
+#include <utility>
+
+#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 #include "FileItem.h"
-#include "addons/include/xbmc_pvr_types.h"
-#include "utils/Observer.h"
 #include "threads/CriticalSection.h"
 #include "utils/ISerializable.h"
+#include "utils/Observer.h"
 
-#include <memory>
-
-#define PVR_INVALID_CHANNEL_UID -1
+class CVariant;
 
 namespace EPG
 {
   class CEpg;
+  typedef std::shared_ptr<CEpg> CEpgPtr;
   class CEpgInfoTag;
   typedef std::shared_ptr<CEpgInfoTag> CEpgInfoTagPtr;
 
@@ -180,6 +180,16 @@ namespace PVR
     bool IsRecording(void) const;
 
     /*!
+     * @return If recording, gets the recording if the add-on provides the epg id in recordings
+     */
+    CPVRRecordingPtr GetRecording(void) const;
+
+    /*!
+     * @return True if this channel has a corresponding recording, false otherwise
+     */
+    bool HasRecording(void) const;
+
+    /*!
      * @return The path to the icon for this channel.
      */
     std::string IconPath(void) const;
@@ -239,6 +249,11 @@ namespace PVR
     bool IsEmpty() const;
 
     bool IsChanged() const;
+
+    /*!
+     * @brief reset changed flag after persist
+     */
+    void Persisted();
     //@}
 
     /*! @name Client related channel methods
@@ -254,13 +269,6 @@ namespace PVR
      * @return The Unique ID.
      */
     int UniqueID(void) const;
-
-    /*!
-     * @brief Change the unique identifier for this channel.
-     * @param iUniqueId The new unique ID.
-     * @return True if the something changed, false otherwise.
-     */
-    bool SetUniqueID(int iUniqueId);
 
     /*!
      * @return The identifier of the client that serves this channel.
@@ -294,7 +302,7 @@ namespace PVR
      *
      * The stream input type
      * If it is empty, ffmpeg will try to scan the stream to find the right input format.
-     * See "xbmc/cores/dvdplayer/Codecs/ffmpeg/libavformat/allformats.c" for a
+     * See "xbmc/cores/VideoPlayer/Codecs/ffmpeg/libavformat/allformats.c" for a
      * list of the input formats.
      *
      * @return The stream input type
@@ -331,11 +339,15 @@ namespace PVR
     virtual void ToSortable(SortItem& sortable, Field field) const;
 
     /*!
-     * @brief Update the path after the channel number in the internal group changed.
+     * @brief Update the path this channel got added to the internal group
      * @param group The internal group that contains this channel
-     * @param iNewChannelGroupPosition The new channel number in the group
      */
-    void UpdatePath(CPVRChannelGroupInternal* group, unsigned int iNewChannelGroupPosition);
+    void UpdatePath(CPVRChannelGroupInternal* group);
+
+    /*!
+     * @return Storage id for this channel in CPVRChannelGroup
+     */
+    std::pair<int, int> StorageId(void) const { return std::make_pair(m_iClientId, m_iUniqueId); }
 
     /*!
      * @brief Return true if this channel is encrypted.
@@ -383,7 +395,7 @@ namespace PVR
      * @brief Get the EPG table for this channel.
      * @return The EPG for this channel.
      */
-    EPG::CEpg *GetEPG(void) const;
+    EPG::CEpgPtr GetEPG(void) const;
 
     /*!
      * @brief Get the EPG table for this channel.

@@ -1,3 +1,5 @@
+#pragma once
+
 /**********************************************************************
  * Copyright (c) 2002, Leo Seib, Hannover
  *
@@ -26,19 +28,12 @@
  *
  **********************************************************************/
 
-
-#ifndef _DATASET_H
-#define _DATASET_H
-
 #include <cstdio>
 #include <string>
 #include <map>
 #include <list>
 #include "qry_dat.h"
 #include <stdarg.h>
-
-
-
 
 namespace dbiplus {
 class Dataset;		// forward declaration of class Dataset
@@ -290,7 +285,7 @@ public:
 /* status active is OK query */
   virtual bool isActive(void) { return active; }
 
-  virtual void setSqlParams(const char *sqlFrmt, sqlType t, ...); 
+  virtual void setSqlParams(const char *sqlFrmt, sqlType t, ...);
 
 
 /* error handling */
@@ -409,6 +404,58 @@ public:
   const sql_record* const get_sql_record();
 
  private:
+
+  unsigned int fieldIndexMapID;
+
+/* Struct to store an indexMapped field access entry */
+  struct FieldIndexMapEntry
+  {
+   FieldIndexMapEntry(const char *name):fieldIndex(~0), strName(name){};
+   bool operator < (const FieldIndexMapEntry &other) const {return strName < other.strName;};
+   unsigned int fieldIndex;
+   std::string strName;
+  };
+
+/* Comparator to quickly find an indexMapped field access entry in the unsorted fieldIndexMap_Entries vector */
+  struct FieldIndexMapComparator
+  {
+   FieldIndexMapComparator(const std::vector<FieldIndexMapEntry> &c): c_(c) {};
+   bool operator()(const unsigned int &v, const FieldIndexMapEntry &o) const
+   {
+     return c_[v] < o;
+   };
+   bool operator()(const unsigned int &v1, const unsigned int &v2) const
+   {
+     return c_[v1] < c_[v2];
+   };
+   bool operator()(const FieldIndexMapEntry &o, const unsigned int &v) const
+   {
+     return o < c_[v];
+   };
+  private:
+   const std::vector<FieldIndexMapEntry> &c_;
+  };
+
+/* Store string to field index translation in the same order
+   fields are accessed by field_value([string]).
+   Idea behind it:
+   - Open a SELECT query with many results
+   - track field access of the first row
+   - use this information for the following rows by just looking at the next
+     element in this vector
+*/
+  std::vector<FieldIndexMapEntry> fieldIndexMap_Entries;
+
+/* Hold the sorting order regarding FieldIndexMapEntry::strName in the
+   fieldIndexMap_Entries vector.
+   If "next element" in fieldIndexMap_Entries does not match,
+   do a fast binary search inside it using the fieldIndexMap_Sorter.
+*/
+  std::vector<unsigned int> fieldIndexMap_Sorter;
+
+/* Get the column index from a string field_value request */
+  bool get_index_map_entry(const char *f_name);
+
   void set_ds_state(dsStates new_state) {ds_state = new_state;};	
  public:
 /* return ds_state value */
@@ -460,4 +507,4 @@ public:
 };
 
 }
-#endif
+

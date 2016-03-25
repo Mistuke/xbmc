@@ -25,8 +25,9 @@
 #include "cores/AudioEngine/Interfaces/AE.h"
 #include "cores/AudioEngine/Interfaces/AESink.h"
 #include "cores/AudioEngine/AESinkFactory.h"
-#include "cores/AudioEngine/Interfaces/AEResample.h"
 #include "cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.h"
+
+class CAEBitstreamPacker;
 
 namespace ActiveAE
 {
@@ -98,7 +99,7 @@ public:
   void Dispose();
   AEDeviceType GetDeviceType(const std::string &device);
   bool HasPassthroughDevice();
-  bool SupportsFormat(const std::string &device, AEDataFormat format, int samplerate);
+  bool SupportsFormat(const std::string &device, AEAudioFormat &format);
   CSinkControlProtocol m_controlPort;
   CSinkDataProtocol m_dataPort;
 
@@ -110,6 +111,7 @@ protected:
   void OpenSink();
   void ReturnBuffers();
   void SetSilenceTimer();
+  bool NeedIECPacking();
 
   unsigned int OutputSamples(CSampleBuffer* samples);
   void SwapInit(CSampleBuffer* samples);
@@ -144,6 +146,8 @@ protected:
   CEngineStats *m_stats;
   float m_volume;
   int m_sinkLatency;
+  CAEBitstreamPacker *m_packer;
+  bool m_needIecPack;
 };
 
 }

@@ -30,14 +30,14 @@ TEST(TestFileUtils, DeleteItem_CFileItemPtr)
   XFILE::CFile *tmpfile;
   std::string tmpfilepath;
 
-  ASSERT_TRUE((tmpfile = XBMC_CREATETEMPFILE("")));
+  ASSERT_NE(nullptr, (tmpfile = XBMC_CREATETEMPFILE("")));
   tmpfilepath = XBMC_TEMPFILEPATH(tmpfile);
 
   CFileItemPtr item(new CFileItem(tmpfilepath));
   item->SetPath(tmpfilepath);
   item->m_bIsFolder = false;
   item->Select(true);
-
+  tmpfile->Close();  //Close tmpfile before we try to delete it
   EXPECT_TRUE(CFileUtils::DeleteItem(item));
 }
 
@@ -45,7 +45,8 @@ TEST(TestFileUtils, DeleteItemString)
 {
   XFILE::CFile *tmpfile;
 
-  ASSERT_TRUE((tmpfile = XBMC_CREATETEMPFILE("")));
+  ASSERT_NE(nullptr, (tmpfile = XBMC_CREATETEMPFILE("")));
+  tmpfile->Close();  //Close tmpfile before we try to delete it
   EXPECT_TRUE(CFileUtils::DeleteItem(XBMC_TEMPFILEPATH(tmpfile)));
 }
 
